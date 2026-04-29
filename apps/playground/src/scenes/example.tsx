@@ -1,12 +1,16 @@
-import { Circle, makeScene2D } from "@motion-canvas/2d";
-import { createRef } from "@motion-canvas/core";
+import { makeScene2D } from "@motion-canvas/2d";
+import { useScene, waitFor, ThreadGenerator, all } from "@motion-canvas/core";
 
 export default makeScene2D(function* (view) {
-  // Create your animations here
+  const tg: ThreadGenerator = all(waitFor(1));
 
-  const circle = createRef<Circle>();
+  console.log(tg);
 
-  view.add(<Circle ref={circle} size={320} fill={"lightseagreen"} />);
+  view.add(<></>);
 
-  yield* circle().scale(2, 2).to(1, 2);
+  const scene = useScene();
+  console.log(Object.keys(scene.playback));
+
+  yield* waitFor(1);
+  console.log("Done");
 });
