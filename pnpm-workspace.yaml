@@ -3,14 +3,20 @@ packages:
   - packages/*
   - tools/*
 
-catalogMode: prefer
-
 catalog:
+  "@motion-canvas/2d": ^3.17.2
+  "@motion-canvas/core": ^3.17.2
   "@types/node": ^24
+  "@vitest/coverage-v8": ^4.1.5
+  "@vue/runtime-dom": ^3.5.33
+  jsdom: ^29.1.0
   typescript: ^5
   vite: npm:@voidzero-dev/vite-plus-core@latest
-  vitest: npm:@voidzero-dev/vite-plus-test@latest
   vite-plus: latest
+  vitest: npm:@voidzero-dev/vite-plus-test@^0.1.20
+  vue: ^3.5.33
+
+catalogMode: prefer
 overrides:
   vite: "catalog:"
   vitest: "catalog:"

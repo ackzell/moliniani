@@ -1,5 +1,5 @@
 {
-  "name": "utils",
+  "name": "@moliniani/core",
   "version": "0.0.0",
   "description": "A starter for creating a TypeScript package.",
   "homepage": "https://github.com/author/library#readme",
@@ -30,11 +30,25 @@
     "check": "vp check",
     "prepublishOnly": "vp run build"
   },
+  "dependencies": {
+    "@vue/runtime-dom": "catalog:"
+  },
   "devDependencies": {
+    "@motion-canvas/2d": "catalog:",
+    "@motion-canvas/core": "catalog:",
     "@types/node": "^25.5.0",
     "@typescript/native-preview": "7.0.0-dev.20260328.1",
+    "@vitest/coverage-v8": "catalog:",
     "bumpp": "^11.0.1",
+    "jsdom": "catalog:",
     "typescript": "^6.0.2",
-    "vite-plus": "^0.1.14"
+    "vite-plus": "^0.1.14",
+    "vitest": "catalog:",
+    "vue": "catalog:"
+  },
+  "peerDependencies": {
+    "@motion-canvas/2d": "catalog:",
+    "@motion-canvas/core": "catalog:",
+    "vue": "catalog:"
   }
 }
