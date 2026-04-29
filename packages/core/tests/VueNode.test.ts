@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { defineComponent, ref } from "vue";
+import { defineComponent, nextTick, ref } from "vue";
 import { VueNode } from "../src/VueNode";
 
 const TestComponent = defineComponent({
@@ -11,6 +11,7 @@ const TestComponent = defineComponent({
     expose({
       increment: () => count.value++,
       getCount: () => count.value,
+      getTitle: () => _.title,
     });
     return { count };
   },
@@ -53,5 +54,22 @@ describe("VueNode", () => {
 
     const handle = node.getHandle();
     await expect(handle.call("nonExistent")).rejects.toThrow("not exposed");
+  });
+
+  it("prop changes are reactive", async () => {
+    const node = new VueNode({
+      component: TestComponent,
+      props: { title: "Hello" },
+      view: {} as any,
+    });
+
+    const handle = node.getHandle();
+    handle.props.title = "World";
+
+    // wait for Vue to flush
+    await nextTick();
+
+    const title = await handle.call<string>("getTitle");
+    expect(title).toBe("World");
   });
 });

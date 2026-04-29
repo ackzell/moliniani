@@ -1,4 +1,4 @@
-import { createApp, type App, type Component } from "@vue/runtime-dom";
+import { createApp, h, reactive, type App, type Component } from "@vue/runtime-dom";
 import type { MolinianiHandle, VueNodeConfig } from "./types";
 
 export class VueNode<P extends Record<string, unknown>> {
@@ -8,7 +8,8 @@ export class VueNode<P extends Record<string, unknown>> {
   private reactiveProps: P;
 
   public constructor(config: VueNodeConfig<P>) {
-    this.reactiveProps = { ...config.props };
+    this.reactiveProps = reactive({ ...config.props }) as P;
+
     this.mount(config.component);
   }
 
@@ -16,11 +17,20 @@ export class VueNode<P extends Record<string, unknown>> {
     this.container = document.createElement("div");
     document.body.appendChild(this.container);
 
-    this.app = createApp(component, this.reactiveProps);
+    // wrap in a render function so reactiveProps stays live
+    const wrapper = {
+      render: () => {
+        return h(component, this.reactiveProps);
+      },
+    };
+
+    this.app = createApp(wrapper);
     this.app.mount(this.container);
 
+    // exposed is on the child, not the wrapper
     const instance = this.app._instance;
-    this.exposedRef = instance?.exposed ?? {};
+    const child = instance?.subTree?.component;
+    this.exposedRef = child?.exposed ?? {};
   }
 
   public getHandle(): MolinianiHandle<P> {
