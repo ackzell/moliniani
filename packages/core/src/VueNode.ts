@@ -3,11 +3,13 @@ import { useScene } from "@motion-canvas/core";
 import type { VueNodeConfig, MolinianiHandle } from "./types";
 import { makeAnimatable } from "./bridge";
 
+let nodeCounter = 0;
 export class VueNode<P extends Record<string, any>> {
   private app: App | null = null;
   private container: HTMLElement | null = null;
   private exposed: Record<string, any> = {};
   private state: P;
+  private readonly nodeId = `moliniani-node-${nodeCounter++}`;
 
   constructor(config: VueNodeConfig<P>) {
     this.state = reactive({ ...config.props }) as P;
@@ -15,7 +17,11 @@ export class VueNode<P extends Record<string, any>> {
   }
 
   private mount(component: Component): void {
+    const existing = document.getElementById(this.nodeId);
+    if (existing) existing.remove();
+
     this.container = document.createElement("div");
+    this.container.id = this.nodeId;
 
     const canvas = document.querySelector("canvas");
     if (!canvas?.parentElement) {

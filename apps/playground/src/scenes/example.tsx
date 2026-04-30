@@ -1,6 +1,5 @@
-import { spawn, waitFor } from "@motion-canvas/core";
-import { mountVue, runGSAPTicker } from "@moliniani/core";
-import { makeScene2D } from "@motion-canvas/2d";
+import { waitFor } from "@motion-canvas/core";
+import { mountVue, makeScene } from "@moliniani/core";
 import { defineComponent, h } from "vue";
 
 const Box = defineComponent({
@@ -29,9 +28,7 @@ const Box = defineComponent({
   },
 });
 
-export default makeScene2D(function* (view) {
-  spawn(runGSAPTicker());
-
+export default makeScene(function* (view) {
   const box = yield mountVue(view, Box, { opacity: 1, label: "Hello" });
 
   yield* waitFor(0.5);
