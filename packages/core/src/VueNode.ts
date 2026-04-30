@@ -1,48 +1,66 @@
 import { createApp, h, reactive, type App, type Component } from "@vue/runtime-dom";
-import type { MolinianiHandle, VueNodeConfig } from "./types";
+import { useScene } from "@motion-canvas/core";
+import type { VueNodeConfig, MolinianiHandle } from "./types";
+import { makeAnimatable } from "./bridge";
 
-export class VueNode<P extends Record<string, unknown>> {
+export class VueNode<P extends Record<string, any>> {
   private app: App | null = null;
   private container: HTMLElement | null = null;
-  private exposedRef: Record<string, unknown> = {};
-  private reactiveProps: P;
+  private exposed: Record<string, any> = {};
+  private state: P;
 
-  public constructor(config: VueNodeConfig<P>) {
-    this.reactiveProps = reactive({ ...config.props }) as P;
-
+  constructor(config: VueNodeConfig<P>) {
+    this.state = reactive({ ...config.props }) as P;
     this.mount(config.component);
   }
 
   private mount(component: Component): void {
     this.container = document.createElement("div");
-    document.body.appendChild(this.container);
 
-    // wrap in a render function so reactiveProps stays live
-    const wrapper = {
-      render: () => {
-        return h(component, this.reactiveProps);
-      },
-    };
+    const canvas = document.querySelector("canvas");
+    if (!canvas?.parentElement) {
+      throw new Error("Motion Canvas canvas not found");
+    }
 
-    this.app = createApp(wrapper);
+    canvas.parentElement.appendChild(this.container);
+    this.container.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 9999;
+      pointer-events: none;
+    `;
+
+    this.app = createApp({
+      render: () => h(component, this.state),
+    });
+
     this.app.mount(this.container);
 
-    // exposed is on the child, not the wrapper
     const instance = this.app._instance;
     const child = instance?.subTree?.component;
-    this.exposedRef = child?.exposed ?? {};
+    this.exposed = child?.exposed ?? {};
+
+    // clean up when MC resets the scene
+    const scene = useScene() as any;
+    scene.afterReset.subscribe(() => {
+      this.app?.unmount();
+      this.container?.remove();
+      this.app = null;
+      this.container = null;
+    });
   }
 
-  public getHandle(): MolinianiHandle<P> {
-    return {
-      props: this.reactiveProps,
+  getHandle(): MolinianiHandle<P> & Record<string, any> {
+    const handle: any = {
+      props: this.state,
 
-      call: async <T>(method: string, ...args: unknown[]): Promise<T> => {
-        const fn = this.exposedRef[method];
+      call: async (name: string, ...args: any[]) => {
+        const fn = this.exposed[name];
         if (typeof fn !== "function") {
-          throw new Error(`Moliniani: method "${method}" is not exposed by this component`);
+          throw new Error(`Method "${name}" is not exposed`);
         }
-        return fn(...args) as Promise<T>;
+        return fn(...args);
       },
 
       unmount: () => {
@@ -52,5 +70,13 @@ export class VueNode<P extends Record<string, unknown>> {
         this.container = null;
       },
     };
+
+    for (const key in this.state) {
+      if (typeof this.state[key] === "number") {
+        handle[key] = makeAnimatable(this.state, key);
+      }
+    }
+
+    return handle;
   }
 }

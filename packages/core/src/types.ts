@@ -1,3 +1,4 @@
+import type { View2D } from "@motion-canvas/2d";
 import type { Component } from "vue";
 
 export interface MolinianiHandle<P extends Record<string, unknown>> {
@@ -9,6 +10,5 @@ export interface MolinianiHandle<P extends Record<string, unknown>> {
 export interface VueNodeConfig<P extends Record<string, unknown>> {
   component: Component;
   props: P;
-  // TODO: will be MC Node/View type once compositing layer is added
-  view: unknown;
+  view: View2D;
 }

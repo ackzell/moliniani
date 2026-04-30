@@ -11,7 +11,9 @@
     "@moliniani/core": "workspace:*",
     "@motion-canvas/2d": "^3.17.2",
     "@motion-canvas/core": "^3.17.2",
-    "@motion-canvas/ffmpeg": "^1.1.0"
+    "@motion-canvas/ffmpeg": "^1.1.0",
+    "gsap": "catalog:",
+    "vue": "catalog:"
   },
   "devDependencies": {
     "@motion-canvas/ui": "^3.17.2",

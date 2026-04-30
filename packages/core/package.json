@@ -1,6 +1,6 @@
 {
   "name": "@moliniani/core",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A starter for creating a TypeScript package.",
   "homepage": "https://github.com/author/library#readme",
   "bugs": {
@@ -31,7 +31,9 @@
     "prepublishOnly": "vp run build"
   },
   "dependencies": {
-    "@vue/runtime-dom": "catalog:"
+    "@vue/runtime-core": "catalog:",
+    "@vue/runtime-dom": "catalog:",
+    "gsap": "catalog:"
   },
   "devDependencies": {
     "@motion-canvas/2d": "catalog:",

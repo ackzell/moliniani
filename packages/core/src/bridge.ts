@@ -1,25 +1,27 @@
-import { decorate, threadable, useThread } from "@motion-canvas/core";
+// packages/core/src/bridge.ts
+import gsap from "gsap";
+import { decorate, threadable } from "@motion-canvas/core";
 import type { ThreadGenerator } from "@motion-canvas/core";
-import type { Ref } from "vue";
 
-decorate(tweenRef, threadable());
-export function* tweenRef(
-  ref: Ref<number>,
-  from: number,
-  to: number,
-  seconds: number,
-): ThreadGenerator {
-  const thread = useThread();
-  const startTime = thread.time();
-  const endTime = thread.time() + seconds;
+export function makeAnimatable(state: Record<string, any>, key: string) {
+  const fn = function* (to: number, duration = 0, ease = "power2.inOut"): ThreadGenerator {
+    let done = false;
 
-  ref.value = from;
+    gsap.to(state, {
+      [key]: to,
+      duration,
+      ease,
+      onComplete: () => {
+        done = true;
+      },
+      onUpdate: () => console.log("gsap update:", key, state[key]),
+    });
 
-  while (endTime > thread.fixed) {
-    const progress = (thread.fixed - startTime) / seconds;
-    ref.value = from + (to - from) * progress;
-    yield;
-  }
+    while (!done) {
+      yield;
+    }
+  };
 
-  ref.value = to;
+  decorate(fn, threadable());
+  return fn;
 }
