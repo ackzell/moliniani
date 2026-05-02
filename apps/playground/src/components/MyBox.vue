@@ -1,33 +1,38 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   label?: string;
-  opacity?: number;
+  width?: number;
+  height?: number;
 }>();
 </script>
 
 <template>
-  <div class="box" :style="{ opacity: opacity || 1 }">
+  <div class="box">
     <span class="my-label">
-      {{ label }}
+      {{ props.label }}
     </span>
   </div>
 </template>
 
 <style scoped>
 .box {
-  width: 200px;
-  height: 200px;
-  background: tomato;
+  width: v-bind('props.width ? `${props.width}px` : "100px"');
+  height: v-bind('props.height ? `${props.height}px` : "100px"');
+  background: green;
   position: absolute;
-  top: 100px;
-  left: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
 }
 
 .my-label {
-  color: gold;
+  padding: 20px;
+  color: greenyellow;
   font-size: 30px;
   text-align: center;
 }
