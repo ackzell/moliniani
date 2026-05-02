@@ -12,6 +12,9 @@ catalogs:
     '@motion-canvas/core':
       specifier: ^3.17.2
       version: 3.17.2
+    '@vitejs/plugin-vue':
+      specifier: ^6.0.6
+      version: 6.0.6
     '@vitest/coverage-v8':
       specifier: ^4.1.5
       version: 4.1.5
@@ -60,6 +63,9 @@ importers:
       '@motion-canvas/ffmpeg':
         specifier: ^1.1.0
         version: 1.1.1(@motion-canvas/core@3.17.2)(@motion-canvas/vite-plugin@3.17.2(@voidzero-dev/vite-plus-core@0.1.20(@types/node@25.6.0)(jiti@2.6.1)(typescript@5.2.2)(yaml@2.8.3)))(@voidzero-dev/vite-plus-core@0.1.20(@types/node@25.6.0)(jiti@2.6.1)(typescript@5.2.2)(yaml@2.8.3))
+      '@vitejs/plugin-vue':
+        specifier: 'catalog:'
+        version: 6.0.6(@voidzero-dev/vite-plus-core@0.1.20(@types/node@25.6.0)(jiti@2.6.1)(typescript@5.2.2)(yaml@2.8.3))(vue@3.5.33(typescript@5.2.2))
       gsap:
         specifier: 'catalog:'
         version: 3.15.0
@@ -781,6 +787,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@rolldown/pluginutils@1.0.0-rc.13':
+    resolution: {integrity: sha512-3ngTAv6F/Py35BsYbeeLeecvhMKdsKm4AoOETVhAA+Qc8nrA2I0kF7oa93mE9qnIurngOSpMnQ0x2nQY2FPviA==}
+
   '@rolldown/pluginutils@1.0.0-rc.17':
     resolution: {integrity: sha512-n8iosDOt6Ig1UhJ2AYqoIhHWh/isz0xpicHTzpKBeotdVsTEcxsSA/i3EVM7gQAj0rU27OLAxCjzlj15IWY7bg==}
 
@@ -849,6 +858,13 @@ packages:
   '@typescript/native-preview@7.0.0-dev.20260328.1':
     resolution: {integrity: sha512-e2f1LaETJ1wFIZSZAJwsAumWixGaRslUjESf0nSrZGUensq3ZwXddoDJPPoDLkSAr/Fa3v5aff+dJ39UbNfbNQ==}
     hasBin: true
+
+  '@vitejs/plugin-vue@6.0.6':
+    resolution: {integrity: sha512-u9HHgfrq3AjXlysn0eINFnWQOJQLO9WN6VprZ8FXl7A2bYisv3Hui9Ij+7QZ41F/WYWarHjwBbXtD7dKg3uxbg==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    peerDependencies:
+      vite: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+      vue: ^3.2.25
 
   '@vitest/coverage-v8@4.1.5':
     resolution: {integrity: sha512-38C0/Ddb7HcRG0Z4/DUem8x57d2p9jYgp18mkaYswEOQBGsI1CG4f/hjm0ZCeaJfWhSZ4k7jgs29V1Zom7Ki9A==}
@@ -2207,6 +2223,8 @@ snapshots:
   '@rolldown/binding-win32-x64-msvc@1.0.0-rc.17':
     optional: true
 
+  '@rolldown/pluginutils@1.0.0-rc.13': {}
+
   '@rolldown/pluginutils@1.0.0-rc.17': {}
 
   '@standard-schema/spec@1.1.0': {}
@@ -2267,6 +2285,12 @@ snapshots:
       '@typescript/native-preview-linux-x64': 7.0.0-dev.20260328.1
       '@typescript/native-preview-win32-arm64': 7.0.0-dev.20260328.1
       '@typescript/native-preview-win32-x64': 7.0.0-dev.20260328.1
+
+  '@vitejs/plugin-vue@6.0.6(@voidzero-dev/vite-plus-core@0.1.20(@types/node@25.6.0)(jiti@2.6.1)(typescript@5.2.2)(yaml@2.8.3))(vue@3.5.33(typescript@5.2.2))':
+    dependencies:
+      '@rolldown/pluginutils': 1.0.0-rc.13
+      vite: '@voidzero-dev/vite-plus-core@0.1.20(@types/node@25.6.0)(jiti@2.6.1)(typescript@5.2.2)(yaml@2.8.3)'
+      vue: 3.5.33(typescript@5.2.2)
 
   '@vitest/coverage-v8@4.1.5(@voidzero-dev/vite-plus-test@0.1.20)':
     dependencies:
