@@ -100,18 +100,12 @@ export class VueNode<P extends Record<string, any>> {
     // built-in transforms on the container element
     const container = this.container!;
     for (const key of Object.keys(BUILTIN_TRANSFORMS)) {
-      handle[key] = makeAnimatable(
-        container as unknown as Record<string, any>,
-        key,
-      );
+      handle[key] = makeAnimatable(container as unknown as Record<string, any>, key);
     }
 
     // numeric props — skip built-ins since they're on the container
     for (const key in this.state) {
-      if (
-        typeof this.state[key] === "number" &&
-        !(key in BUILTIN_TRANSFORMS)
-      ) {
+      if (typeof this.state[key] === "number" && !(key in BUILTIN_TRANSFORMS)) {
         handle[key] = makeAnimatable(this.state, key);
       }
     }

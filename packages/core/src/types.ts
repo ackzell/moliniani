@@ -22,8 +22,8 @@ export type MolinianiHandle<P extends Record<string, any>> = {
   call<T = void>(method: string, ...args: unknown[]): Promise<T>;
   unmount(): void;
 } & BuiltinTransforms & {
-  [K in NumericKeys<P>]: AnimatableMethod;
-};
+    [K in NumericKeys<P>]: AnimatableMethod;
+  };
 
 export interface VueNodeConfig<P extends Record<string, any>> {
   component: Component;

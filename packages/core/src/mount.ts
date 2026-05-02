@@ -11,8 +11,6 @@ export async function mountVue<P extends Record<string, any>>(
   ref: MnRef<P>,
   props: P,
 ): Promise<MolinianiHandle<P>> {
-
-
   const node = new VueNode({ component: ref._component, props, view });
   await nextTick();
 
