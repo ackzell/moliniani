@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@moliniani/core": "workspace:*",
+    "@moliniani/vite-plugin": "workspace:*",
     "@motion-canvas/2d": "^3.17.2",
     "@motion-canvas/core": "^3.17.2",
     "@motion-canvas/ffmpeg": "^1.1.0",

@@ -1,0 +1,28 @@
+{
+  "name": "@moliniani/vite-plugin",
+  "version": "0.0.1",
+  "description": "Vite plugin for Moliniani — auto-wraps .vue SFC imports with defineVueNode.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "check": "vp check"
+  },
+  "dependencies": {
+    "@moliniani/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "^5",
+    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+    "vite-plus": "latest"
+  },
+  "peerDependencies": {
+    "vite": "*"
+  }
+}

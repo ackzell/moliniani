@@ -3,6 +3,11 @@
   "include": ["src"],
   "compilerOptions": {
     "ignoreDeprecations": "5.0",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "paths": {
+      "@moliniani/core": ["../../packages/core/src/index.ts"],
+      "@/*": ["./src/*"]
+    }
   }
 }

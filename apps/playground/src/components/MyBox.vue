@@ -17,7 +17,7 @@ defineProps<{
 .box {
   width: 200px;
   height: 200px;
-  background: purple;
+  background: tomato;
   position: absolute;
   top: 100px;
   left: 100px;
@@ -27,7 +27,8 @@ defineProps<{
 }
 
 .my-label {
-  color: white;
+  color: gold;
   font-size: 30px;
+  text-align: center;
 }
 </style>
