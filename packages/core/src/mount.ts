@@ -1,11 +1,9 @@
 import { jsx } from "@motion-canvas/2d";
-import type { Node, NodeProps, View2D } from "@motion-canvas/2d";
+import type { Node, NodeProps } from "@motion-canvas/2d";
 import type { DefineComponent, ComponentInstance } from "vue";
-import { nextTick } from "vue";
 import { createRef, type Reference } from "@motion-canvas/core";
 import { VueNode } from "./VueNode";
-import type { MolinianiHandle, VueNodeConstructor } from "./types";
-import type { MnRef } from "./ref";
+import type { VueNodeConstructor } from "./types";
 import { makeAnimatable } from "./bridge";
 
 /**
@@ -143,24 +141,4 @@ export function defineVueNode<C extends DefineComponent<any, any, any>>(
   (DefinedVueNode as any).__mnWrapped = true;
 
   return DefinedVueNode as unknown as VueNodeConstructor<ComponentInstance<C>["$props"]>;
-}
-
-/**
- * Mounts a Vue SFC as a DOM overlay on the Motion Canvas stage.
- *
- * @deprecated Prefer the native JSX syntax via `defineVueNode` / the Vite
- *   plugin, which integrates with MC's scene graph: `view.add(<MyBox />)`.
- */
-export async function mountVue<P extends Record<string, any>>(
-  view: View2D,
-  ref: MnRef<P>,
-  props: P,
-): Promise<MolinianiHandle<P>> {
-  const node = new VueNode<P>(props as any, ref._component);
-  await nextTick();
-
-  const handle = node.getHandle() as MolinianiHandle<P>;
-  ref._setHandle(handle);
-
-  return handle;
 }

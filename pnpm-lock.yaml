@@ -106,6 +106,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@motion-canvas/ffmpeg':
+        specifier: ^1.1.1
+        version: 1.1.1(@motion-canvas/core@3.17.2)(@motion-canvas/vite-plugin@3.17.2(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(yaml@2.8.3)))(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(yaml@2.8.3))
       '@vue/runtime-core':
         specifier: 'catalog:'
         version: 3.5.33
@@ -2021,6 +2024,15 @@ snapshots:
       fluent-ffmpeg: 2.1.3
       vite: '@voidzero-dev/vite-plus-core@0.1.20(@types/node@25.6.0)(jiti@2.6.1)(typescript@5.2.2)(yaml@2.8.3)'
 
+  '@motion-canvas/ffmpeg@1.1.1(@motion-canvas/core@3.17.2)(@motion-canvas/vite-plugin@3.17.2(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(yaml@2.8.3)))(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(yaml@2.8.3))':
+    dependencies:
+      '@ffmpeg-installer/ffmpeg': 1.1.0
+      '@ffprobe-installer/ffprobe': 2.1.2
+      '@motion-canvas/core': 3.17.2
+      '@motion-canvas/vite-plugin': 3.17.2(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(yaml@2.8.3))
+      fluent-ffmpeg: 2.1.3
+      vite: 8.0.10(@types/node@25.6.0)(jiti@2.6.1)(yaml@2.8.3)
+
   '@motion-canvas/ui@3.17.2':
     dependencies:
       '@motion-canvas/core': 3.17.2
@@ -2034,6 +2046,16 @@ snapshots:
       mime-types: 2.1.35
       source-map: 0.6.1
       vite: '@voidzero-dev/vite-plus-core@0.1.20(@types/node@25.6.0)(jiti@2.6.1)(typescript@5.2.2)(yaml@2.8.3)'
+    transitivePeerDependencies:
+      - debug
+
+  '@motion-canvas/vite-plugin@3.17.2(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(yaml@2.8.3))':
+    dependencies:
+      fast-glob: 3.3.3
+      follow-redirects: 1.16.0
+      mime-types: 2.1.35
+      source-map: 0.6.1
+      vite: 8.0.10(@types/node@25.6.0)(jiti@2.6.1)(yaml@2.8.3)
     transitivePeerDependencies:
       - debug
 

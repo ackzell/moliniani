@@ -2,9 +2,11 @@
 import { Node, type NodeProps } from "@motion-canvas/2d";
 import { createApp, h, reactive, type App, type Component } from "@vue/runtime-dom";
 import { useScene } from "@motion-canvas/core";
-import gsap from "gsap";
-import type { MolinianiHandle } from "./types";
-import { makeAnimatable } from "./bridge";
+import {
+  ensureBridgeCanvas,
+  ensureHtmlInCanvasCompositor,
+  getSceneOverlayId,
+} from "./compositor";
 
 /**
  * All property keys defined on MC's NodeProps interface.
@@ -49,10 +51,19 @@ let nodeCounter = 0;
 export class VueNode<P extends Record<string, any> = {}> extends Node {
   private _app: App | null = null;
   private _container: HTMLElement | null = null;
-  private _exposed: Record<string, any> = {};
+  private _positioner: HTMLElement | null = null;
+  private _didSyncDom = false;
   /** Reactive Vue component prop state. */
   readonly _vueState: P;
   private readonly _nodeId: string;
+
+  private _cleanupDom(): void {
+    this._app?.unmount();
+    this._container?.remove();
+    this._app = null;
+    this._container = null;
+    this._positioner = null;
+  }
 
   constructor(props: NodeProps & P, component: Component) {
     super(props); // Node silently ignores props not registered as signals
@@ -68,58 +79,52 @@ export class VueNode<P extends Record<string, any> = {}> extends Node {
     this._mountVue(component, props);
   }
 
-  private _mountVue(component: Component, initialProps: Record<string, any>): void {
+  private _mountVue(component: Component, _initialProps: Record<string, any>): void {
     const existing = document.getElementById(this._nodeId);
     if (existing) existing.remove();
 
+    const scene = useScene() as any;
+    ensureHtmlInCanvasCompositor(scene);
+
+    // Mount as a DIRECT CHILD of the bridge canvas (which has the `layoutsubtree`
+    // attribute). This is required so the browser creates cached paint records
+    // for the element, making drawElementImage() work.
+    //
+    // _container: full-canvas-size wrapper so absolute positioning works from
+    //             the canvas origin.
+    // _positioner: moved to the correct MC world position each frame in draw().
     this._container = document.createElement("div");
     this._container.id = this._nodeId;
+    this._container.dataset.molinianiOverlay = "true";
+    this._container.dataset.molinianiScene = getSceneOverlayId(scene);
+    // Size/position set in draw() once we know the canvas dimensions.
+    this._container.style.cssText =
+      "position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;pointer-events:none;visibility:hidden;opacity:0";
 
-    const canvas = document.querySelector("canvas");
-    if (!canvas?.parentElement) {
-      throw new Error("Motion Canvas canvas not found");
-    }
+    this._positioner = document.createElement("div");
+    // transform-origin center so rotate/scale behave like MC nodes.
+    this._positioner.style.cssText =
+      "position:absolute;left:0;top:0;transform-origin:center center;pointer-events:none";
 
-    canvas.parentElement.appendChild(this._container);
+    this._container.appendChild(this._positioner);
 
-    // Anchor the overlay container to the stage's top-left corner so Vue
-    // components with `position: absolute` + `top/left` behave as expected.
-    this._container.style.cssText = `
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 0;
-      height: 0;
-      transform-origin: 0 0;
-      pointer-events: none;
-      z-index: 9999;
-    `;
-
-    // Apply initial transform via GSAP for the legacy mountVue() path
-    // (when this node is not added to the MC scene graph via view.add)
-    gsap.set(this._container, {
-      x: initialProps.x ?? 0,
-      y: initialProps.y ?? 0,
-      scale: typeof initialProps.scale === "number" ? initialProps.scale : 1,
-      rotation: initialProps.rotation ?? 0,
-      opacity: initialProps.opacity ?? 1,
-    });
+    // Attach to bridge canvas — must happen BEFORE the first render so the
+    // browser can build paint records during normal layout/paint.
+    const bridge = ensureBridgeCanvas(scene);
+    bridge.appendChild(this._container);
 
     const state = this._vueState;
     this._app = createApp({ render: () => h(component, state) });
-    this._app.mount(this._container);
+    this._app.mount(this._positioner);
 
-    const instance = this._app._instance;
-    const child = instance?.subTree?.component;
-    this._exposed = child?.exposed ?? {};
-
-    const scene = useScene() as any;
     scene.afterReset.subscribe(() => {
-      this._app?.unmount();
-      this._container?.remove();
-      this._app = null;
-      this._container = null;
+      this._cleanupDom();
     });
+  }
+
+  public override dispose(): void {
+    this._cleanupDom();
+    super.dispose();
   }
 
   /**
@@ -130,59 +135,23 @@ export class VueNode<P extends Record<string, any> = {}> extends Node {
    * Vue component visually tracks the node's position, scale, and rotation.
    */
   protected override draw(context: CanvasRenderingContext2D): void {
-    if (this._container) {
+    if (this._container && this._positioner) {
       const pos = this.absolutePosition();
       const sc = this.absoluteScale();
       const rot = this.absoluteRotation();
 
-      this._container.style.transform = `translate(${pos.x}px, ${pos.y}px) rotate(${rot}deg) scale(${sc.x}, ${sc.y})`;
+      // absolutePosition() is already in the scene's canvas pixel space.
+      // Adding half-canvas offsets shifts overlays to the bottom-right.
+      this._positioner.style.left = `${pos.x}px`;
+      this._positioner.style.top = `${pos.y}px`;
+      this._positioner.style.transform = `rotate(${rot}deg) scale(${sc.x}, ${sc.y})`;
       this._container.style.opacity = String(this.absoluteOpacity());
+      if (!this._didSyncDom) {
+        this._container.style.visibility = "visible";
+        this._didSyncDom = true;
+      }
     }
     super.draw(context);
   }
 
-  /**
-   * Returns an animatable handle for backward-compatible use with `mountVue()`.
-   *
-   * Built-in transforms (x, y, scale, rotation, opacity) are driven by GSAP
-   * directly on the container div — matching the original overlay behaviour.
-   * Numeric Vue-specific props are also animated via GSAP on the reactive state.
-   *
-   * @deprecated Prefer the native JSX syntax with `view.add(<MyComponent />)`.
-   */
-  getHandle(): MolinianiHandle<P> & Record<string, any> {
-    const handle: any = {
-      props: this._vueState,
-
-      call: async (name: string, ...args: any[]) => {
-        const fn = this._exposed[name];
-        if (typeof fn !== "function") {
-          throw new Error(`Method "${name}" is not exposed`);
-        }
-        return fn(...args);
-      },
-
-      unmount: () => {
-        this._app?.unmount();
-        this._container?.remove();
-        this._app = null;
-        this._container = null;
-      },
-    };
-
-    // Built-in transforms: GSAP on the container element (legacy overlay path)
-    const container = this._container!;
-    for (const key of ["x", "y", "scale", "rotation", "opacity"]) {
-      handle[key] = makeAnimatable(container as unknown as Record<string, any>, key);
-    }
-
-    // Numeric Vue-specific props
-    for (const key in this._vueState) {
-      if (typeof this._vueState[key] === "number") {
-        handle[key] = makeAnimatable(this._vueState as unknown as Record<string, any>, key);
-      }
-    }
-
-    return handle;
-  }
 }
