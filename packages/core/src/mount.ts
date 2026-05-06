@@ -181,6 +181,9 @@ export function defineVueNode<C extends DefineComponent<any, any, any>>(
   // Mark as wrapped so a second defineVueNode() call (e.g. explicit call in a
   // scene file when the Vite plugin has already transformed the import) is a no-op.
   (DefinedVueNode as any).__mnWrapped = true;
+  // Keep a reference to the original SFC so mnTres() can recover it when the
+  // Vite plugin has already wrapped this import as a VueNode.
+  (DefinedVueNode as any).__mnOriginalSFC = sfc;
 
   return DefinedVueNode as unknown as VueNodeConstructor<ComponentInstance<C>["$props"]>;
 }

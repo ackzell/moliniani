@@ -5,6 +5,19 @@ import vue from "@vitejs/plugin-vue";
 import { moliniani } from "@moliniani/vite-plugin";
 import path from "node:path";
 
+// Equivalent to TresJS template compiler options.
+// Keeps playground startup independent from direct @tresjs/core resolution in
+// vite.config while still treating Tres components as custom elements.
+const tresTemplateCompilerOptions = {
+  template: {
+    compilerOptions: {
+      isCustomElement: (tag: string) =>
+        ((/^Tres[A-Z]/.test(tag) || tag.startsWith("tres-")) && tag !== "Teleport") ||
+        tag === "primitive",
+    },
+  },
+};
+
 /**
  * Vite configuration for the playground.
  *
@@ -18,5 +31,5 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  plugins: [vue({}), moliniani(), motionCanvas(), ffmpeg()],
+  plugins: [vue({ ...tresTemplateCompilerOptions }), moliniani(), motionCanvas(), ffmpeg()],
 });

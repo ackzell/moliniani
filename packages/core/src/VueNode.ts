@@ -12,8 +12,10 @@ import { molinianiDebugLog } from "./debug";
  * Node.opacity signal so that `yield* node.opacity(0, 0.5)` lives on the
  * virtual timeline and scrubs correctly in both directions, exactly like
  * any native MC node (Rect, Circle, etc.).
+ *
+ * Exported so TresNode can reuse it without duplicating the list.
  */
-const KNOWN_NODE_KEYS = new Set<string>([
+export const KNOWN_NODE_KEYS = new Set<string>([
   "ref",
   "children",
   "spawner",

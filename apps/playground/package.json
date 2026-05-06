@@ -13,8 +13,10 @@
     "@motion-canvas/2d": "^3.17.2",
     "@motion-canvas/core": "^3.17.2",
     "@motion-canvas/ffmpeg": "^1.1.0",
+    "@tresjs/core": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "gsap": "catalog:",
+    "three": "catalog:",
     "vue": "catalog:"
   },
   "devDependencies": {
