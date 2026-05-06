@@ -1,5 +1,5 @@
 import { all, createRef, sequence, waitUntil } from "@motion-canvas/core";
-import { createVueRef, mnVue, makeScene } from "@moliniani/core";
+import { createVueRef, mnVue, makeScene, revealText } from "@moliniani/core";
 import { Layout, Rect, Txt } from "@motion-canvas/2d";
 import MyBox from "@/components/MyBox.vue";
 
@@ -33,7 +33,7 @@ export default makeScene(function* (view) {
         lineWidth={2}
         opacity={1}
       >
-        <Txt ref={textRef} fill="#87ff6f" fontSize={40}>
+        <Txt ref={textRef} fill="#87ff6f" fontSize={40} lineHeight={70}>
           Motion Canvas
         </Txt>
         <Txt fill="#87ff6f" fontFamily="monospace">
@@ -64,8 +64,8 @@ export default makeScene(function* (view) {
       boxRef2().textColor("hsl(0, 0%, 0%)", 3),
     ),
     rectRef().fill("#00cc3d", 0.5),
-    textRef().text("Changed Text", 0.5),
-    textRef().fill("#ffffff", 0.5),
+    all(textRef().fill("#ffffff", 3.5), revealText(textRef(), 1.5)),
+    boxRef2().label("Changed props!", 0.5),
     // boxRef2().scale(0, 0.5),
     // boxRef().scale(4.5, 0.5),
     // all(boxRef().width(1200, 0.5), boxRef().height(600, 0.5)),

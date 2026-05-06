@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    '@chenglou/pretext':
+      specifier: ^0.0.6
+      version: 0.0.6
     '@motion-canvas/2d':
       specifier: ^3.17.2
       version: 3.17.2
@@ -106,6 +109,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@chenglou/pretext':
+        specifier: 'catalog:'
+        version: 0.0.6
       '@motion-canvas/ffmpeg':
         specifier: ^1.1.1
         version: 1.1.1(@motion-canvas/core@3.17.2)(@motion-canvas/vite-plugin@3.17.2(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(yaml@2.8.3)))(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)(yaml@2.8.3))
@@ -213,6 +219,9 @@ packages:
   '@bramus/specificity@2.4.2':
     resolution: {integrity: sha512-ctxtJ/eA+t+6q2++vj5j7FYX3nRu311q1wfYH3xjlLOsczhlhxAg2FWNUXhpGvAw3BWo1xBcvOV6/YLc2r5FJw==}
     hasBin: true
+
+  '@chenglou/pretext@0.0.6':
+    resolution: {integrity: sha512-U10s4tFeyu3oVHfXuNWwZSKqHXefhaigpcBkGj60qQFRJ+yUoQ+ez3cGJelP7BWDAB58HCgjcTSmOcg+77afBQ==}
 
   '@codemirror/language@6.12.3':
     resolution: {integrity: sha512-QwCZW6Tt1siP37Jet9Tb02Zs81TQt6qQrZR2H+eGMcFsL1zMrk2/b9CLC7/9ieP1fjIUMgviLWMmgiHoJrj+ZA==}
@@ -1846,6 +1855,8 @@ snapshots:
   '@bramus/specificity@2.4.2':
     dependencies:
       css-tree: 3.2.1
+
+  '@chenglou/pretext@0.0.6': {}
 
   '@codemirror/language@6.12.3':
     dependencies:

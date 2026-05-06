@@ -75,6 +75,12 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
    */
   readonly _colorSignals = new Map<string, ColorSignal<void>>();
 
+  /**
+   * MC `SimpleSignal<string>` for each plain-string Vue prop, created by
+   * `defineVueNode`. Written into Vue reactive state each frame in `_syncDom()`.
+   */
+  readonly _stringSignals = new Map<string, SimpleSignal<string>>();
+
   private readonly _nodeId: string;
   private readonly _component: Component;
   private readonly _scene: any;
@@ -180,6 +186,11 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
         color && typeof (color as { serialize?: () => string }).serialize === "function"
           ? (color as { serialize: () => string }).serialize()
           : new Color(color as any).serialize();
+    }
+
+    // Push string signal values into Vue reactive state.
+    for (const [key, signal] of this._stringSignals) {
+      (this._vueState as Record<string, any>)[key] = signal();
     }
 
     if (typeof frame === "number") {

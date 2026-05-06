@@ -165,6 +165,12 @@ export function defineVueNode<C extends DefineComponent<any, any, any>>(
           // Expose signal as a method on the instance so scene authors can
           // write: yield* box().backgroundColor('#ff0000', 0.5)
           (this as Record<string, any>)[key] = signal;
+        } else if (typeof initial === "string") {
+          const signal = createSignal(initial);
+          this._stringSignals.set(key, signal);
+          // Expose signal as a method on the instance so scene authors can
+          // write: yield* box().label('World', 0.5)
+          (this as Record<string, any>)[key] = signal;
         }
       }
     }

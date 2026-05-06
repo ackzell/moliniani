@@ -5,3 +5,5 @@ export * from "./VueNode";
 export * from "./ticker";
 export * from "./scene";
 export * from "./exporter";
+export * from "./textAnimations";
+export * from "./PretextText";
