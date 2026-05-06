@@ -1,16 +1,16 @@
 // packages/core/src/VueNode.ts
 import { Node, type NodeProps } from "@motion-canvas/2d";
 import { createApp, h, reactive, type App, type Component } from "@vue/runtime-dom";
-import { useScene } from "@motion-canvas/core";
-import {
-  ensureBridgeCanvas,
-  ensureHtmlInCanvasCompositor,
-  getSceneOverlayId,
-} from "./compositor";
+import { useScene, type SimpleSignal } from "@motion-canvas/core";
+import { ensureBridgeCanvas, ensureHtmlInCanvasCompositor, getSceneOverlayId } from "./compositor";
 
 /**
- * All property keys defined on MC's NodeProps interface.
- * Any prop key NOT in this set is treated as a Vue component prop.
+ * NodeProps keys that belong to Motion Canvas — not passed to Vue as props.
+ *
+ * `opacity` is intentionally in this list: it is handled by MC's own
+ * Node.opacity signal so that `yield* node.opacity(0, 0.5)` lives on the
+ * virtual timeline and scrubs correctly in both directions, exactly like
+ * any native MC node (Rect, Circle, etc.).
  */
 const KNOWN_NODE_KEYS = new Set<string>([
   "ref",
@@ -53,9 +53,79 @@ export class VueNode<P extends Record<string, any> = {}> extends Node {
   private _container: HTMLElement | null = null;
   private _positioner: HTMLElement | null = null;
   private _didSyncDom = false;
-  /** Reactive Vue component prop state. */
+
+  /**
+   * Reactive Vue prop state. Each frame, numeric prop values are written here
+   * from _propSignals so that Vue re-renders with the correct frame value.
+   */
   readonly _vueState: P;
+
+  /**
+   * MC `SimpleSignal` for each numeric Vue-specific prop, created by
+   * `defineVueNode`. Signals live on MC's virtual timeline so tweening,
+   * seeking, and scrubbing in both directions work identically to native nodes.
+   */
+  readonly _propSignals = new Map<string, SimpleSignal<number>>();
+
   private readonly _nodeId: string;
+  private readonly _component: Component;
+  private readonly _scene: any;
+
+  constructor(props: NodeProps & P, component: Component) {
+    super(props);
+
+    this._nodeId = `moliniani-node-${nodeCounter++}`;
+    this._component = component;
+    this._scene = useScene() as any;
+
+    // Strip MC-owned keys; pass only Vue-specific props into reactive state.
+    // opacity is excluded — it lives on Node.opacity (MC signal).
+    const vueProps = Object.fromEntries(
+      Object.entries(props).filter(([k]) => !KNOWN_NODE_KEYS.has(k)),
+    ) as P;
+
+    this._vueState = reactive({ ...vueProps }) as P;
+    this._mountVue();
+  }
+
+  private _mountVue(): void {
+    const existing = document.getElementById(this._nodeId);
+    if (existing) existing.remove();
+
+    const scene = this._scene;
+    ensureHtmlInCanvasCompositor(scene);
+    this._createDom();
+  }
+
+  private _createDom(): void {
+    const scene = this._scene;
+
+    // _container: full-canvas div, direct child of the bridge canvas that has
+    //   the `layoutsubtree` attribute Chrome needs for drawElement() records.
+    // _positioner: translated to the node's MC world position each frame.
+    this._container = document.createElement("div");
+    this._container.id = this._nodeId;
+    this._container.dataset.molinianiOverlay = "true";
+    this._container.dataset.molinianiScene = getSceneOverlayId(scene);
+    this._container.style.cssText =
+      "position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;pointer-events:none;visibility:hidden";
+
+    this._positioner = document.createElement("div");
+    // Motion Canvas absolutePosition() is already in viewport/canvas space,
+    // so place the DOM node at that point and offset by its own size to match
+    // the default centred origin of native MC nodes.
+    this._positioner.style.cssText =
+      "position:absolute;left:0;top:0;transform-origin:center center;pointer-events:none";
+
+    this._container.appendChild(this._positioner);
+
+    const bridge = ensureBridgeCanvas(scene);
+    bridge.appendChild(this._container);
+
+    const state = this._vueState;
+    this._app = createApp({ render: () => h(this._component, state) });
+    this._app.mount(this._positioner);
+  }
 
   private _cleanupDom(): void {
     this._app?.unmount();
@@ -63,63 +133,7 @@ export class VueNode<P extends Record<string, any> = {}> extends Node {
     this._app = null;
     this._container = null;
     this._positioner = null;
-  }
-
-  constructor(props: NodeProps & P, component: Component) {
-    super(props); // Node silently ignores props not registered as signals
-
-    this._nodeId = `moliniani-node-${nodeCounter++}`;
-
-    // Extract only Vue-specific props (those absent from NodeProps)
-    const vueProps = Object.fromEntries(
-      Object.entries(props).filter(([k]) => !KNOWN_NODE_KEYS.has(k)),
-    ) as P;
-
-    this._vueState = reactive({ ...vueProps }) as P;
-    this._mountVue(component, props);
-  }
-
-  private _mountVue(component: Component, _initialProps: Record<string, any>): void {
-    const existing = document.getElementById(this._nodeId);
-    if (existing) existing.remove();
-
-    const scene = useScene() as any;
-    ensureHtmlInCanvasCompositor(scene);
-
-    // Mount as a DIRECT CHILD of the bridge canvas (which has the `layoutsubtree`
-    // attribute). This is required so the browser creates cached paint records
-    // for the element, making drawElementImage() work.
-    //
-    // _container: full-canvas-size wrapper so absolute positioning works from
-    //             the canvas origin.
-    // _positioner: moved to the correct MC world position each frame in draw().
-    this._container = document.createElement("div");
-    this._container.id = this._nodeId;
-    this._container.dataset.molinianiOverlay = "true";
-    this._container.dataset.molinianiScene = getSceneOverlayId(scene);
-    // Size/position set in draw() once we know the canvas dimensions.
-    this._container.style.cssText =
-      "position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;pointer-events:none;visibility:hidden;opacity:0";
-
-    this._positioner = document.createElement("div");
-    // transform-origin center so rotate/scale behave like MC nodes.
-    this._positioner.style.cssText =
-      "position:absolute;left:0;top:0;transform-origin:center center;pointer-events:none";
-
-    this._container.appendChild(this._positioner);
-
-    // Attach to bridge canvas — must happen BEFORE the first render so the
-    // browser can build paint records during normal layout/paint.
-    const bridge = ensureBridgeCanvas(scene);
-    bridge.appendChild(this._container);
-
-    const state = this._vueState;
-    this._app = createApp({ render: () => h(component, state) });
-    this._app.mount(this._positioner);
-
-    scene.afterReset.subscribe(() => {
-      this._cleanupDom();
-    });
+    this._didSyncDom = false;
   }
 
   public override dispose(): void {
@@ -127,31 +141,43 @@ export class VueNode<P extends Record<string, any> = {}> extends Node {
     super.dispose();
   }
 
-  /**
-   * Called every MC render frame when this node is part of the scene graph
-   * (i.e. added via `view.add(<MyBox />)`).
-   *
-   * Syncs MC world transform signals to the DOM overlay container so the
-   * Vue component visually tracks the node's position, scale, and rotation.
-   */
-  protected override draw(context: CanvasRenderingContext2D): void {
-    if (this._container && this._positioner) {
-      const pos = this.absolutePosition();
-      const sc = this.absoluteScale();
-      const rot = this.absoluteRotation();
+  private _syncDom(): void {
+    if (!this._container || !this._positioner) return;
 
-      // absolutePosition() is already in the scene's canvas pixel space.
-      // Adding half-canvas offsets shifts overlays to the bottom-right.
-      this._positioner.style.left = `${pos.x}px`;
-      this._positioner.style.top = `${pos.y}px`;
-      this._positioner.style.transform = `rotate(${rot}deg) scale(${sc.x}, ${sc.y})`;
-      this._container.style.opacity = String(this.absoluteOpacity());
-      if (!this._didSyncDom) {
-        this._container.style.visibility = "visible";
-        this._didSyncDom = true;
-      }
+    const pos = this.absolutePosition();
+    const sc = this.absoluteScale();
+    const rot = this.absoluteRotation();
+
+    this._positioner.style.left = `${pos.x}px`;
+    this._positioner.style.top = `${pos.y}px`;
+    this._positioner.style.transform = `translate(-50%, -50%) rotate(${rot}deg) scale(${sc.x}, ${sc.y})`;
+
+    // Store opacity as a data attribute so the compositor can apply it as
+    // context.globalAlpha — the same mechanism MC uses for canvas nodes.
+    // CSS opacity is unreliable with drawElement because the browser may not
+    // have run style recalculation before the paint snapshot is taken.
+    this._container.dataset.molinianiOpacity = String(this.absoluteOpacity());
+
+    // Push each signal's current frame value into Vue reactive state so the
+    // component re-renders with the correct animated value.
+    for (const [key, signal] of this._propSignals) {
+      (this._vueState as Record<string, any>)[key] = signal();
     }
-    super.draw(context);
+
+    if (!this._didSyncDom) {
+      this._container.style.visibility = "visible";
+      this._didSyncDom = true;
+    }
   }
 
+  public override render(context: CanvasRenderingContext2D): void {
+    // _syncDom lives in render(), not draw(), so it runs every frame even when
+    // MC's cache / opacity optimisations skip draw().
+    this._syncDom();
+    super.render(context);
+  }
+
+  protected override draw(context: CanvasRenderingContext2D): void {
+    super.draw(context);
+  }
 }

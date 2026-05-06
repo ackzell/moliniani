@@ -1,10 +1,9 @@
 import { jsx } from "@motion-canvas/2d";
 import type { Node, NodeProps } from "@motion-canvas/2d";
 import type { DefineComponent, ComponentInstance } from "vue";
-import { createRef, type Reference } from "@motion-canvas/core";
+import { createRef, createSignal, type Reference } from "@motion-canvas/core";
 import { VueNode } from "./VueNode";
 import type { VueNodeConstructor } from "./types";
-import { makeAnimatable } from "./bridge";
 
 /**
  * Creates a typed Motion Canvas ref for a Vue SFC.
@@ -121,14 +120,20 @@ export function defineVueNode<C extends DefineComponent<any, any, any>>(
     constructor(props: NodeProps & P) {
       super(props as NodeProps & P, sfc);
 
-      // Add GSAP-backed tween methods for numeric Vue-specific props so that
-      // `yield* box().myNumericProp(1, 0.5)` works alongside MC signal tweens.
+      // Create an MC signal for each numeric Vue-specific prop.
+      // MC signals live on the virtual timeline — they tween, seek, and scrub
+      // in both directions exactly like native Node signals (opacity, scale…).
+      // _syncDom() reads signal() each frame and pushes the value into Vue
+      // reactive state so the component re-renders with the correct frame value.
       for (const key in this._vueState) {
-        if (typeof (this._vueState as Record<string, any>)[key] === "number") {
-          (this as Record<string, any>)[key] = makeAnimatable(
-            this._vueState as unknown as Record<string, any>,
-            key,
-          );
+        const initial = (this._vueState as Record<string, any>)[key];
+        if (typeof initial === "number") {
+          const signal = createSignal(initial);
+          this._propSignals.set(key, signal);
+          // Expose signal as a method on the instance so scene authors can
+          // write: yield* box().width(600, 0.5)
+          // The signal itself is callable: signal() reads, signal(v, t, e) tweens.
+          (this as Record<string, any>)[key] = signal;
         }
       }
     }

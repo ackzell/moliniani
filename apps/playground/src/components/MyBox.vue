@@ -8,9 +8,7 @@ const props = defineProps<{
 
 <template>
   <div class="box">
-    <span class="my-label">
-      {{ props.label }}
-    </span>
+    <span class="my-label"> {{ props.label }}</span>
   </div>
 </template>
 
@@ -19,15 +17,9 @@ const props = defineProps<{
   width: v-bind('props.width ? `${props.width}px` : "100px"');
   height: v-bind('props.height ? `${props.height}px` : "100px"');
   background: green;
-  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  transform-origin: center center;
 }
 
 .my-label {

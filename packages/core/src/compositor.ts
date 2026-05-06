@@ -36,8 +36,7 @@ export function ensureBridgeCanvas(scene: object): LayoutSubtreeCanvas {
     // Must stay connected to the DOM layout tree for HTML-in-Canvas to work.
     // Keep it behind app content without opacity/transform tricks to avoid
     // introducing extra transform artifacts in drawn HTML output.
-    bridge.style.cssText =
-      "position:fixed;left:0;top:0;pointer-events:none;z-index:-1";
+    bridge.style.cssText = "position:fixed;left:0;top:0;pointer-events:none;z-index:-1";
     document.body.appendChild(bridge);
     sceneBridges.set(scene, bridge);
   }
@@ -86,6 +85,8 @@ export function ensureHtmlInCanvasCompositor(scene: any): void {
     // the DOM and their paint records are refreshed by requestPaint().
     if (bridge.width !== w) bridge.width = w;
     if (bridge.height !== h) bridge.height = h;
+    if (bridge.style.width !== `${w}px`) bridge.style.width = `${w}px`;
+    if (bridge.style.height !== `${h}px`) bridge.style.height = `${h}px`;
 
     // Force paint for current frame before capture.
     bridge.requestPaint?.();
@@ -96,15 +97,20 @@ export function ensureHtmlInCanvasCompositor(scene: any): void {
     // drawElementImage requires cached paint records and has been unstable here.
     // Prefer drawElement (live draw path) and do not fallback to drawElementImage.
     const draw =
-      typeof bridgeCtx.drawElement === "function"
-        ? bridgeCtx.drawElement.bind(bridgeCtx)
-        : null;
+      typeof bridgeCtx.drawElement === "function" ? bridgeCtx.drawElement.bind(bridgeCtx) : null;
     if (!draw) return;
 
     bridgeCtx.clearRect(0, 0, w, h);
     for (const overlay of overlays) {
       try {
+        // Apply opacity as globalAlpha — the same mechanism MC uses for canvas
+        // nodes. CSS opacity is unreliable with drawElement because the browser
+        // may not have processed style recalculation before the paint snapshot.
+        const opacity = parseFloat(overlay.dataset["molinianiOpacity"] ?? "1");
+        bridgeCtx.save();
+        bridgeCtx.globalAlpha = opacity;
         draw(overlay, 0, 0);
+        bridgeCtx.restore();
       } catch {
         // Paint record not yet available (e.g. first frame before browser paint).
         // Skip this overlay; it will be captured on the next frame.
