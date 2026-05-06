@@ -3,6 +3,7 @@ import { Layout, type LayoutProps } from "@motion-canvas/2d";
 import { createApp, h, reactive, type App, type Component } from "@vue/runtime-dom";
 import { useScene, type SimpleSignal } from "@motion-canvas/core";
 import { ensureBridgeCanvas, ensureHtmlInCanvasCompositor, getSceneOverlayId } from "./compositor";
+import { molinianiDebugLog } from "./debug";
 
 /**
  * NodeProps keys that belong to Motion Canvas — not passed to Vue as props.
@@ -53,6 +54,7 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
   private _container: HTMLElement | null = null;
   private _positioner: HTMLElement | null = null;
   private _didSyncDom = false;
+  private _lastFrame: number | null = null;
 
   /**
    * Reactive Vue prop state. Each frame, numeric prop values are written here
@@ -108,14 +110,14 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
     this._container.dataset.molinianiOverlay = "true";
     this._container.dataset.molinianiScene = getSceneOverlayId(scene);
     this._container.style.cssText =
-      "position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;pointer-events:none;visibility:hidden";
+      "position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;pointer-events:none";
 
     this._positioner = document.createElement("div");
     // Motion Canvas absolutePosition() is already in viewport/canvas space,
     // so place the DOM node at that point and offset by its own size to match
     // the default centred origin of native MC nodes.
     this._positioner.style.cssText =
-      "position:absolute;left:0;top:0;transform-origin:center center;pointer-events:none";
+      "position:absolute;left:0;top:0;transform:translate(-100000px,-100000px);transform-origin:center center;pointer-events:none";
 
     this._container.appendChild(this._positioner);
 
@@ -147,6 +149,7 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
     const pos = this.absolutePosition();
     const sc = this.absoluteScale();
     const rot = this.absoluteRotation();
+    const frame = this._scene?.playback?.frame;
 
     this._positioner.style.left = `${pos.x}px`;
     this._positioner.style.top = `${pos.y}px`;
@@ -164,9 +167,31 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
       (this._vueState as Record<string, any>)[key] = signal();
     }
 
+    if (typeof frame === "number") {
+      if (this._lastFrame !== null && frame < this._lastFrame) {
+        molinianiDebugLog("Backward frame jump in VueNode", {
+          nodeId: this._nodeId,
+          from: this._lastFrame,
+          to: frame,
+          pos: { x: pos.x, y: pos.y },
+          rot,
+          scale: { x: sc.x, y: sc.y },
+          opacity: this.absoluteOpacity(),
+        });
+      }
+      this._lastFrame = frame;
+    }
+
     if (!this._didSyncDom) {
-      this._container.style.visibility = "visible";
       this._didSyncDom = true;
+      molinianiDebugLog("VueNode first sync", {
+        nodeId: this._nodeId,
+        frame,
+        pos: { x: pos.x, y: pos.y },
+        rot,
+        scale: { x: sc.x, y: sc.y },
+        opacity: this.absoluteOpacity(),
+      });
     }
   }
 

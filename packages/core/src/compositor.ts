@@ -7,6 +7,9 @@ type LayoutSubtreeCanvas = HTMLCanvasElement & {
   requestPaint?: () => void;
 };
 
+import { molinianiDebugLog } from "./debug";
+import { DependencyContext } from "@motion-canvas/core";
+
 const sceneHooks = new WeakSet<object>();
 const sceneOverlayIds = new WeakMap<object, string>();
 const sceneBridges = new WeakMap<object, LayoutSubtreeCanvas>();
@@ -62,20 +65,41 @@ export function ensureBridgeCanvas(scene: object): LayoutSubtreeCanvas {
 export function ensureHtmlInCanvasCompositor(scene: any): void {
   if (!scene || sceneHooks.has(scene)) return;
   sceneHooks.add(scene);
+  const sceneId = getSceneOverlayId(scene);
+  let lastFrame: number | null = null;
+  let requestedRetryFrame: number | null = null;
 
   // SceneRenderEvent.AfterRender === 3
   const AFTER_RENDER = 3;
 
   scene.onRenderLifecycle.subscribe(([event, context]: [number, CanvasRenderingContext2D]) => {
     if (event !== AFTER_RENDER) return;
+    const frame = scene?.playback?.frame;
+
+    if (typeof frame === "number") {
+      if (lastFrame !== null && frame < lastFrame) {
+        molinianiDebugLog("Backward frame jump in compositor", {
+          sceneId,
+          from: lastFrame,
+          to: frame,
+        });
+      }
+      lastFrame = frame;
+      if (requestedRetryFrame !== frame) {
+        requestedRetryFrame = null;
+      }
+    }
 
     const bridge = ensureBridgeCanvas(scene);
 
     // Find all Vue overlay containers that are direct children of the bridge.
     const overlays = Array.from(
       bridge.querySelectorAll<HTMLElement>(":scope > [data-moliniani-overlay='true']"),
-    ).filter((el) => el.isConnected);
-    if (overlays.length === 0) return;
+    ).filter((el) => el.isConnected && el.dataset.molinianiScene === sceneId);
+    if (overlays.length === 0) {
+      molinianiDebugLog("No overlays for scene in compositor pass", { sceneId, frame });
+      return;
+    }
 
     const w = context.canvas.width;
     const h = context.canvas.height;
@@ -94,27 +118,99 @@ export function ensureHtmlInCanvasCompositor(scene: any): void {
     const bridgeCtx = bridge.getContext("2d") as DrawElementImageContext | null;
     if (!bridgeCtx) return;
 
-    // drawElementImage requires cached paint records and has been unstable here.
-    // Prefer drawElement (live draw path) and do not fallback to drawElementImage.
     const draw =
       typeof bridgeCtx.drawElement === "function" ? bridgeCtx.drawElement.bind(bridgeCtx) : null;
-    if (!draw) return;
+    const drawImage =
+      typeof bridgeCtx.drawElementImage === "function"
+        ? bridgeCtx.drawElementImage.bind(bridgeCtx)
+        : null;
+    if (!draw && !drawImage) return;
 
-    bridgeCtx.clearRect(0, 0, w, h);
-    for (const overlay of overlays) {
-      try {
-        // Apply opacity as globalAlpha — the same mechanism MC uses for canvas
-        // nodes. CSS opacity is unreliable with drawElement because the browser
-        // may not have processed style recalculation before the paint snapshot.
+    // Seek/scrub jumps may render only a single frame. drawElement can fail on
+    // that exact frame if the browser hasn't materialised paint records yet.
+    // Retry a couple of times in-frame with requestPaint() to improve
+    // determinism when jumping backward/forward to arbitrary frames.
+    let lastPassFailures = 0;
+    for (let pass = 0; pass < 3; pass++) {
+      let missingAny = false;
+      let failures = 0;
+      bridgeCtx.clearRect(0, 0, w, h);
+
+      for (const overlay of overlays) {
+        // Apply opacity as globalAlpha — the same mechanism MC uses for
+        // canvas nodes.
         const opacity = parseFloat(overlay.dataset["molinianiOpacity"] ?? "1");
         bridgeCtx.save();
         bridgeCtx.globalAlpha = opacity;
-        draw(overlay, 0, 0);
+
+        let captured = false;
+        if (draw) {
+          try {
+            draw(overlay, 0, 0);
+            captured = true;
+          } catch {
+            // Try drawElementImage fallback below.
+          }
+        }
+
+        if (!captured && drawImage) {
+          try {
+            drawImage(overlay, 0, 0);
+            captured = true;
+          } catch {
+            // Count as missing only if both capture paths fail.
+          }
+        }
+
         bridgeCtx.restore();
-      } catch {
-        // Paint record not yet available (e.g. first frame before browser paint).
-        // Skip this overlay; it will be captured on the next frame.
+
+        if (!captured) {
+          missingAny = true;
+          failures++;
+        }
       }
+      lastPassFailures = failures;
+
+      if (!missingAny) {
+        if (pass > 0) {
+          molinianiDebugLog("Compositor recovered after retry", {
+            sceneId,
+            frame,
+            pass,
+            overlays: overlays.length,
+          });
+        }
+        break;
+      }
+
+      bridge.requestPaint?.();
+    }
+
+    if (lastPassFailures > 0) {
+      molinianiDebugLog("Compositor overlays missing after retries", {
+        sceneId,
+        frame,
+        overlays: overlays.length,
+        failures: lastPassFailures,
+      });
+
+      // On seek jumps, the frame may be rendered only once. If capture misses
+      // that pass, request one extra render iteration after the browser gets a
+      // paint opportunity.
+      if (typeof frame === "number" && requestedRetryFrame !== frame) {
+        requestedRetryFrame = frame;
+        DependencyContext.collectPromise(
+          new Promise<void>((resolve) => {
+            requestAnimationFrame(() => resolve());
+          }),
+        );
+        molinianiDebugLog("Requested extra render iteration after capture miss", {
+          sceneId,
+          frame,
+        });
+      }
+    } else if (typeof frame === "number") {
+      requestedRetryFrame = null;
     }
 
     context.drawImage(bridge, 0, 0);
