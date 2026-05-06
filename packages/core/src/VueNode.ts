@@ -1,5 +1,5 @@
 // packages/core/src/VueNode.ts
-import { Node, type NodeProps } from "@motion-canvas/2d";
+import { Layout, type LayoutProps } from "@motion-canvas/2d";
 import { createApp, h, reactive, type App, type Component } from "@vue/runtime-dom";
 import { useScene, type SimpleSignal } from "@motion-canvas/core";
 import { ensureBridgeCanvas, ensureHtmlInCanvasCompositor, getSceneOverlayId } from "./compositor";
@@ -48,7 +48,7 @@ const KNOWN_NODE_KEYS = new Set<string>([
 
 let nodeCounter = 0;
 
-export class VueNode<P extends Record<string, any> = {}> extends Node {
+export class VueNode<P extends Record<string, any> = {}> extends Layout {
   private _app: App | null = null;
   private _container: HTMLElement | null = null;
   private _positioner: HTMLElement | null = null;
@@ -71,7 +71,7 @@ export class VueNode<P extends Record<string, any> = {}> extends Node {
   private readonly _component: Component;
   private readonly _scene: any;
 
-  constructor(props: NodeProps & P, component: Component) {
+  constructor(props: LayoutProps & P, component: Component) {
     super(props);
 
     this._nodeId = `moliniani-node-${nodeCounter++}`;

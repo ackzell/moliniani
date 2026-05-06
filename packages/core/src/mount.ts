@@ -1,7 +1,7 @@
 import { jsx } from "@motion-canvas/2d";
-import type { Node, NodeProps } from "@motion-canvas/2d";
+import type { LayoutProps, Node } from "@motion-canvas/2d";
 import type { DefineComponent, ComponentInstance } from "vue";
-import { createRef, createSignal, type Reference } from "@motion-canvas/core";
+import { createRef, createSignal, type Reference, type SimpleSignal } from "@motion-canvas/core";
 import { VueNode } from "./VueNode";
 import type { VueNodeConstructor } from "./types";
 
@@ -29,7 +29,7 @@ export function createVueRef(_sfcOrCls: any): Reference<any> {
   return createRef<any>();
 }
 
-type VueNodeProps<P> = Omit<NodeProps, "ref"> & P;
+type VueNodeProps<P> = Omit<LayoutProps, "ref"> & P;
 
 /**
  * Places a Vue SFC as a node in the Motion Canvas scene graph.
@@ -117,8 +117,8 @@ export function defineVueNode<C extends DefineComponent<any, any, any>>(
   type P = ComponentInstance<C>["$props"];
 
   class DefinedVueNode extends VueNode<P> {
-    constructor(props: NodeProps & P) {
-      super(props as NodeProps & P, sfc);
+    constructor(props: LayoutProps & P) {
+      super(props as LayoutProps & P, sfc);
 
       // Create an MC signal for each numeric Vue-specific prop.
       // MC signals live on the virtual timeline — they tween, seek, and scrub
@@ -128,12 +128,19 @@ export function defineVueNode<C extends DefineComponent<any, any, any>>(
       for (const key in this._vueState) {
         const initial = (this._vueState as Record<string, any>)[key];
         if (typeof initial === "number") {
-          const signal = createSignal(initial);
-          this._propSignals.set(key, signal);
-          // Expose signal as a method on the instance so scene authors can
-          // write: yield* box().width(600, 0.5)
-          // The signal itself is callable: signal() reads, signal(v, t, e) tweens.
-          (this as Record<string, any>)[key] = signal;
+          const existing = (this as Record<string, any>)[key] as SimpleSignal<number> | undefined;
+
+          if (typeof existing === "function" && existing.context) {
+            // Reuse native MC signal (e.g. width/height on Layout) so parent
+            // layout keeps working and scene code can animate as usual.
+            this._propSignals.set(key, existing);
+          } else {
+            const signal = createSignal(initial);
+            this._propSignals.set(key, signal);
+            // Expose signal as a method on the instance so scene authors can
+            // write: yield* box().myNumericProp(600, 0.5)
+            (this as Record<string, any>)[key] = signal;
+          }
         }
       }
     }
