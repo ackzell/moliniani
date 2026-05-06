@@ -3,7 +3,8 @@ const props = defineProps<{
   label?: string;
   width?: number;
   height?: number;
-  background?: string;
+  backgroundColor?: string;
+  textColor?: string;
 }>();
 </script>
 
@@ -17,7 +18,7 @@ const props = defineProps<{
 .box {
   width: v-bind('props.width ? `${props.width}px` : "100px"');
   height: v-bind('props.height ? `${props.height}px` : "100px"');
-  background: v-bind('props.background ? props.background : "green"');
+  background: v-bind('props.backgroundColor ? props.backgroundColor : "green"');
   display: flex;
   align-items: center;
   justify-content: center;
@@ -25,7 +26,7 @@ const props = defineProps<{
 
 .my-label {
   padding: 20px;
-  color: greenyellow;
+  color: v-bind('props.textColor ? props.textColor : "greenyellow"');
   font-size: 30px;
   text-align: center;
 }

@@ -1,4 +1,4 @@
-import { createRef, sequence, waitUntil } from "@motion-canvas/core";
+import { all, createRef, sequence, waitUntil } from "@motion-canvas/core";
 import { createVueRef, mnVue, makeScene } from "@moliniani/core";
 import { Layout, Rect, Txt } from "@motion-canvas/2d";
 import MyBox from "@/components/MyBox.vue";
@@ -9,6 +9,8 @@ export default makeScene(function* (view) {
   const rectRef = createRef<Rect>();
   const boxRef = createVueRef(MyBox);
   const boxRef2 = createVueRef(MyBox);
+
+  const textRef = createRef<Txt>();
 
   view.add(
     <Layout layout gap={20} alignItems={"center"} justifyContent={"center"}>
@@ -21,7 +23,9 @@ export default makeScene(function* (view) {
       })}
       <Rect
         layout
+        direction={"column"}
         alignItems={"center"}
+        justifyContent={"center"}
         ref={rectRef}
         width={300}
         height={300}
@@ -29,8 +33,11 @@ export default makeScene(function* (view) {
         lineWidth={2}
         opacity={1}
       >
-        <Txt fill="#87ff6f">
-          Motion Canvas <Txt fontFamily="monospace">&lt;Rect&gt;</Txt>
+        <Txt ref={textRef} fill="#87ff6f" fontSize={40}>
+          Motion Canvas
+        </Txt>
+        <Txt fill="#87ff6f" fontFamily="monospace">
+          &lt;Rect&gt;
         </Txt>
       </Rect>
       {mnVue(MyBox, boxRef2, {
@@ -38,7 +45,8 @@ export default makeScene(function* (view) {
         width: 500,
         height: 500,
         opacity: 1,
-        background: "#00a6bc",
+        backgroundColor: "#00a6bc",
+        textColor: "rgba(255, 255, 255, 0.98)",
       })}
     </Layout>,
   );
@@ -50,7 +58,14 @@ export default makeScene(function* (view) {
     // rectRef().scale(1.5, 0.5, easeInSine),
     boxRef().width(200, 0.5),
     boxRef2().width(600, 3),
-    boxRef2().height(300, 3),
+    all(
+      boxRef2().height(300, 3),
+      boxRef2().backgroundColor("#41998d", 3),
+      boxRef2().textColor("hsl(0, 0%, 0%)", 3),
+    ),
+    rectRef().fill("#00cc3d", 0.5),
+    textRef().text("Changed Text", 0.5),
+    textRef().fill("#ffffff", 0.5),
     // boxRef2().scale(0, 0.5),
     // boxRef().scale(4.5, 0.5),
     // all(boxRef().width(1200, 0.5), boxRef().height(600, 0.5)),

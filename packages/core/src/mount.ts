@@ -1,7 +1,13 @@
 import { jsx } from "@motion-canvas/2d";
 import type { LayoutProps, Node } from "@motion-canvas/2d";
 import type { DefineComponent, ComponentInstance } from "vue";
-import { createRef, createSignal, type Reference, type SimpleSignal } from "@motion-canvas/core";
+import {
+  createRef,
+  createSignal,
+  Color,
+  type Reference,
+  type SimpleSignal,
+} from "@motion-canvas/core";
 import { VueNode } from "./VueNode";
 import type { VueNodeConstructor } from "./types";
 
@@ -88,6 +94,18 @@ export function mnVue(
 }
 
 /**
+ * Returns true if `value` is a string that can be parsed as a CSS color.
+ */
+function isCSSColor(value: string): boolean {
+  try {
+    new Color(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Creates a Motion Canvas `Node` subclass for the given Vue SFC.
  *
  * The returned class can be used directly in MC JSX:
@@ -141,6 +159,12 @@ export function defineVueNode<C extends DefineComponent<any, any, any>>(
             // write: yield* box().myNumericProp(600, 0.5)
             (this as Record<string, any>)[key] = signal;
           }
+        } else if (typeof initial === "string" && isCSSColor(initial)) {
+          const signal = Color.createSignal(initial);
+          this._colorSignals.set(key, signal);
+          // Expose signal as a method on the instance so scene authors can
+          // write: yield* box().backgroundColor('#ff0000', 0.5)
+          (this as Record<string, any>)[key] = signal;
         }
       }
     }

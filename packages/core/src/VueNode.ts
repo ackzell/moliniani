@@ -1,7 +1,7 @@
 // packages/core/src/VueNode.ts
 import { Layout, type LayoutProps } from "@motion-canvas/2d";
 import { createApp, h, reactive, type App, type Component } from "@vue/runtime-dom";
-import { useScene, type SimpleSignal } from "@motion-canvas/core";
+import { useScene, Color, type ColorSignal, type SimpleSignal } from "@motion-canvas/core";
 import { ensureBridgeCanvas, ensureHtmlInCanvasCompositor, getSceneOverlayId } from "./compositor";
 import { molinianiDebugLog } from "./debug";
 
@@ -68,6 +68,12 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
    * seeking, and scrubbing in both directions work identically to native nodes.
    */
   readonly _propSignals = new Map<string, SimpleSignal<number>>();
+
+  /**
+   * MC `SimpleSignal<Color>` for each CSS-color Vue prop, created by
+   * `defineVueNode`. Serialized to a CSS string each frame in `_syncDom()`.
+   */
+  readonly _colorSignals = new Map<string, ColorSignal<void>>();
 
   private readonly _nodeId: string;
   private readonly _component: Component;
@@ -165,6 +171,15 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
     // component re-renders with the correct animated value.
     for (const [key, signal] of this._propSignals) {
       (this._vueState as Record<string, any>)[key] = signal();
+    }
+
+    // Serialize color signals to CSS strings so Vue sees valid color values.
+    for (const [key, signal] of this._colorSignals) {
+      const color = signal();
+      (this._vueState as Record<string, any>)[key] =
+        color && typeof (color as { serialize?: () => string }).serialize === "function"
+          ? (color as { serialize: () => string }).serialize()
+          : new Color(color as any).serialize();
     }
 
     if (typeof frame === "number") {
