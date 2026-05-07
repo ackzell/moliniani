@@ -10,10 +10,12 @@ import {
 } from "@motion-canvas/core";
 import { VueNode } from "./VueNode";
 import type { VueNodeConstructor } from "./types";
+import { defineTresNode } from "./TresNode";
 
 /**
  * Creates a typed Motion Canvas ref for a Vue SFC.
  *
+ * @deprecated Use `createMnRef` instead for a unified API across all Moliniani components.
  * Pass the raw `.vue` import — the argument is used only for type inference.
  * Use the ref with `mnVue()` to place the component in the scene:
  *
@@ -40,18 +42,25 @@ type VueNodeProps<P> = Omit<LayoutProps, "ref"> & P;
 /**
  * Places a Vue SFC as a node in the Motion Canvas scene graph.
  *
- * Accepts the raw `.vue` import directly — no manual `defineVueNode()` call
- * needed. The ref parameter is optional; omit it when you don't need to
- * animate the component:
+ * Automatically detects TresJS components and uses TresNode for 3D rendering.
+ * For regular Vue components, uses VueNode for HTML overlay rendering.
+ *
+ * Accepts the raw `.vue` import directly — no manual `defineVueNode()` or
+ * `defineTresNode()` call needed. The ref parameter is optional; omit it when
+ * you don't need to animate the component:
  *
  * ```tsx
  * import MyBox from '../components/MyBox.vue'
+ * import TresBox from '../components/TresBox.vue'
  *
- * // Without ref:
+ * // Regular Vue component (2D HTML overlay):
  * view.add(mnVue(MyBox, { label: 'Hello', x: -400 }))
  *
+ * // TresJS component (3D WebGL):
+ * view.add(mnVue(TresBox, { rotationY: 0, color: '#4488ff' }))
+ *
  * // With ref for animation:
- * const box = createVueRef(MyBox)
+ * const box = createMnRef(MyBox)
  * view.add(mnVue(MyBox, box, { label: 'Hello', opacity: 1, x: -400 }))
  * yield* box().opacity(0, 1)
  * ```
@@ -79,7 +88,23 @@ export function mnVue(
   refOrProps?: Reference<any> | Record<string, any>,
   maybeProps?: Record<string, any>,
 ): Node {
-  const cls = (sfc as any).isClass || (sfc as any).__mnWrapped ? sfc : defineVueNode(sfc);
+  // If the Vite plugin already wrapped this .vue import as a VueNode, recover the original SFC.
+  const rawSfc = (sfc as any).__mnWrapped ? ((sfc as any).__mnOriginalSFC ?? sfc) : sfc;
+
+  // Auto-detect TresJS components by checking if they're already wrapped as TresNode
+  // or by recovering the original SFC and checking if it's a TresJS component.
+  const isTres =
+    (rawSfc as any).__mnTresWrapped || (rawSfc === sfc && (sfc as any).__mnTresWrapped);
+
+  let cls: any;
+  if (isTres) {
+    // Use TresNode for TresJS components
+    cls = (rawSfc as any).__mnTresWrapped ? rawSfc : defineTresNode(rawSfc);
+  } else {
+    // Use VueNode for regular Vue components
+    cls = (sfc as any).isClass || (sfc as any).__mnWrapped ? sfc : defineVueNode(sfc);
+  }
+
   let ref: Reference<any> | undefined;
   let props: Record<string, any> = {};
 

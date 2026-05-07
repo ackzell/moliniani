@@ -8,3 +8,4 @@ export * from "./exporter";
 export * from "./textAnimations";
 export * from "./PretextText";
 export * from "./TresNode";
+export * from "./createRef";

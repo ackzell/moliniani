@@ -20,22 +20,23 @@ import { jsx, Layout, type LayoutProps } from "@motion-canvas/2d";
 import { createApp, h, reactive, nextTick, type App, type Component } from "@vue/runtime-dom";
 import {
   createSignal,
+  createRef,
   Color,
   useScene,
   DependencyContext,
   type ColorSignal,
   type SimpleSignal,
+  type Reference,
 } from "@motion-canvas/core";
 import { TresCanvas } from "@tresjs/core";
 import type { TresContext } from "@tresjs/core";
 import type { WebGLRenderer } from "three";
 import type { DefineComponent, ComponentInstance } from "vue";
-import type { Reference } from "@motion-canvas/core";
 import type { Node } from "@motion-canvas/2d";
 import { KNOWN_NODE_KEYS } from "./VueNode";
 import type { VueNodeConstructor } from "./types";
 
-let tresNodeCounter = 0;
+let _tresNodeCounter = 0;
 
 function isCSSColor(value: string): boolean {
   try {
@@ -81,7 +82,7 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
 
   constructor(props: LayoutProps & P, component: Component) {
     super(props);
-    tresNodeCounter++; // Increment counter for debugging
+    _tresNodeCounter++; // Increment counter for debugging
     this._component = component;
     this._scene = useScene() as any;
 
@@ -293,14 +294,14 @@ export function defineTresNode<C extends DefineComponent<any, any, any>>(
       for (const key in this._vueState) {
         const initial = (this._vueState as Record<string, any>)[key];
 
-        if (typeof initial === "number") {
+        if (typeof initial === "number" || initial === undefined) {
           const existing = (this as Record<string, any>)[key] as SimpleSignal<number> | undefined;
 
           if (typeof existing === "function" && existing.context) {
             // Reuse native MC signal (e.g. width/height inherited from Layout).
             this._propSignals.set(key, existing);
           } else {
-            const signal = createSignal(initial);
+            const signal = createSignal(initial ?? 0);
             this._propSignals.set(key, signal);
             (this as Record<string, any>)[key] = signal;
           }
@@ -328,6 +329,7 @@ type TresNodeProps<P> = Omit<LayoutProps, "ref"> & P;
 /**
  * Places a TresJS scene SFC as a node in the Motion Canvas scene graph.
  *
+ * @deprecated Use `mnVue()` instead for a unified API that auto-detects TresJS components.
  * Analogous to `mnVue()` but creates a `TresNode` (WebGL → `drawImage`)
  * instead of a `VueNode` (HTML → `drawElement`).
  *
@@ -378,4 +380,29 @@ export function mnTres(
   }
 
   return jsx(cls, { ref, ...props }) as Node;
+}
+
+/**
+ * Creates a typed Motion Canvas ref for a TresJS scene SFC.
+ *
+ * @deprecated Use `createMnRef` instead for a unified API across all Moliniani components.
+ * Pass the raw `.vue` import — the argument is used only for type inference.
+ * Use the ref with `mnTres()` to place the component in the scene:
+ *
+ * ```tsx
+ * import TresBox from '../components/TresBox.vue'
+ *
+ * const box = createTresRef(TresBox)
+ * view.add(mnTres(TresBox, box, { rotationY: 0, color: '#4488ff', width: 700, height: 500 }))
+ * yield* box().rotationY(Math.PI * 2, 3)
+ * ```
+ */
+export function createTresRef<P extends Record<string, any>>(
+  cls: VueNodeConstructor<P>,
+): Reference<InstanceType<VueNodeConstructor<P>>>;
+export function createTresRef<C extends DefineComponent<any, any, any>>(
+  sfc: C,
+): Reference<InstanceType<VueNodeConstructor<ComponentInstance<C>["$props"]>>>;
+export function createTresRef(_sfcOrCls: any): Reference<any> {
+  return createRef<any>();
 }
