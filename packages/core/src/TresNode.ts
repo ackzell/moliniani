@@ -17,12 +17,12 @@
 // <TresCanvas> in your SFC.
 
 import { jsx, Layout, type LayoutProps } from "@motion-canvas/2d";
-import { createApp, h, reactive, type App, type Component } from "@vue/runtime-dom";
+import { createApp, h, reactive, nextTick, type App, type Component } from "@vue/runtime-dom";
 import {
   createSignal,
   Color,
-  DependencyContext,
   useScene,
+  DependencyContext,
   type ColorSignal,
   type SimpleSignal,
 } from "@motion-canvas/core";
@@ -34,6 +34,9 @@ import type { Reference } from "@motion-canvas/core";
 import type { Node } from "@motion-canvas/2d";
 import { KNOWN_NODE_KEYS } from "./VueNode";
 import type { VueNodeConstructor } from "./types";
+import { molinianiDebugLog } from "./debug";
+
+let tresNodeCounter = 0;
 
 function isCSSColor(value: string): boolean {
   try {
@@ -61,15 +64,17 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
   private _tresCtx: TresCtx | null = null;
   private _lastScene: object | null = null;
   private _lastCamera: object | null = null;
-  private _requestedRetryFrame: number | null = null;
+  private _lastFrame: number | null = null;
+  private _onReadyFired: boolean = false;
+  private readonly _nodeId: string = "";
   private readonly _scene: any;
 
-  readonly _vueState: P;
+  readonly _vueState: P = {} as P;
   readonly _propSignals = new Map<string, SimpleSignal<number>>();
   readonly _colorSignals = new Map<string, ColorSignal<void>>();
   readonly _stringSignals = new Map<string, SimpleSignal<string>>();
 
-  private readonly _component: Component;
+  private readonly _component: Component = null as any;
 
   private isNativeMcSignalKey(key: string): boolean {
     const existing = (this as Record<string, any>)[key];
@@ -78,6 +83,7 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
 
   constructor(props: LayoutProps & P, component: Component) {
     super(props);
+    this._nodeId = `moliniani-tres-node-${tresNodeCounter++}`;
     this._component = component;
     this._scene = useScene() as any;
 
@@ -118,7 +124,12 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
             // copies it onto the MC canvas in the same synchronous draw() call.
             preserveDrawingBuffer: true,
             onReady: (ctx: TresContext) => {
+              console.log(`[TresNode] TresJS onReady callback - nodeId: ${this._nodeId}`);
               this._tresCtx = ctx as unknown as TresCtx;
+              this._onReadyFired = true;
+            },
+            onError: (error: any) => {
+              console.error(`[TresNode] TresJS error - nodeId: ${this._nodeId}:`, error);
             },
           },
           // The user's SFC is the scene content (camera, lights, meshes).
@@ -134,81 +145,124 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
   // Push current signal values into Vue reactive state so TresJS reactive
   // watchers can update Three.js object properties before the next render.
   private _syncState(): void {
-    for (const [key, signal] of this._propSignals) {
-      (this._vueState as Record<string, any>)[key] = signal();
+    const frame = this._scene?.playback?.frame;
+    let isBackward = false;
+
+    // Detect backward frame jumps for debugging and proper state synchronization
+    if (typeof frame === "number") {
+      if (this._lastFrame !== null && frame < this._lastFrame) {
+        isBackward = true;
+        console.log(
+          `[TresNode] Backward frame jump detected - nodeId: ${this._nodeId}, from: ${this._lastFrame}, to: ${frame}`,
+        );
+        molinianiDebugLog("Backward frame jump in TresNode", {
+          nodeId: this._nodeId,
+          from: this._lastFrame,
+          to: frame,
+        });
+      }
+      this._lastFrame = frame;
     }
+
+    // Update all signals with proper reactivity handling
+    for (const [key, signal] of this._propSignals) {
+      const value = signal();
+      if (isBackward) {
+        // Force Vue reactivity during backward seeking by using a temporary different value
+        (this._vueState as Record<string, any>)[key] = value + 0.0001; // Tiny change to force reactivity
+        nextTick(() => {
+          (this._vueState as Record<string, any>)[key] = value;
+        });
+      } else {
+        (this._vueState as Record<string, any>)[key] = value;
+      }
+    }
+
     for (const [key, signal] of this._colorSignals) {
       const color = signal();
-      (this._vueState as Record<string, any>)[key] =
+      const serializedColor =
         color && typeof (color as { serialize?: () => string }).serialize === "function"
           ? (color as { serialize: () => string }).serialize()
           : new Color(color as any).serialize();
+
+      if (isBackward) {
+        // Force Vue reactivity during backward seeking by temporarily changing the color
+        (this._vueState as Record<string, any>)[key] = "#000000"; // Temporary different color
+        nextTick(() => {
+          (this._vueState as Record<string, any>)[key] = serializedColor;
+        });
+      } else {
+        (this._vueState as Record<string, any>)[key] = serializedColor;
+      }
     }
+
     for (const [key, signal] of this._stringSignals) {
-      (this._vueState as Record<string, any>)[key] = signal();
+      const value = signal();
+      if (isBackward) {
+        // Force Vue reactivity during backward seeking by temporarily changing the string
+        (this._vueState as Record<string, any>)[key] = value + "_temp"; // Temporary suffix
+        nextTick(() => {
+          (this._vueState as Record<string, any>)[key] = value;
+        });
+      } else {
+        (this._vueState as Record<string, any>)[key] = value;
+      }
     }
+  }
+
+  public override render(context: CanvasRenderingContext2D): void {
+    // _syncState lives in render(), not draw(), so it runs every frame even when
+    // MC's cache / opacity optimisations skip draw().
+    this._syncState();
+    super.render(context);
   }
 
   protected override draw(context: CanvasRenderingContext2D): void {
     const frame = this._scene?.playback?.frame;
-    const scheduleRetry = () => {
-      if (typeof frame !== "number") return;
-      if (this._requestedRetryFrame === frame) return;
-      this._requestedRetryFrame = frame;
+    console.log(
+      `[TresNode] draw called - nodeId: ${this._nodeId}, frame: ${frame}, onReadyFired: ${this._onReadyFired}`,
+    );
+
+    const ctx = this._tresCtx;
+    const r = ctx?.renderer.instance;
+    const currentScene = ctx?.scene.value ?? null;
+    const currentCamera = ctx?.camera.activeCamera.value ?? null;
+
+    console.log(
+      `[TresNode] Context ready: ${!!ctx}, renderer ready: ${!!r}, scene: ${!!currentScene}, camera: ${!!currentCamera}, nodeId: ${this._nodeId}`,
+    );
+
+    if (currentScene) this._lastScene = currentScene;
+    if (currentCamera) this._lastCamera = currentCamera;
+    const scene = currentScene ?? this._lastScene;
+    const camera = currentCamera ?? this._lastCamera;
+
+    // Only render if we have all required components
+    let rendered = false;
+    if (ctx && r && scene && camera) {
+      const w = this.width();
+      const h = this.height();
+
+      if (w > 0 && h > 0) {
+        r.setSize(w, h, false);
+        r.render(scene as any, camera as any);
+        context.drawImage(r.domElement, w / -2, h / -2, w, h);
+        rendered = true;
+        console.log(`[TresNode] Rendered successfully - nodeId: ${this._nodeId}`);
+      }
+    }
+
+    // If rendering failed because TresJS context isn't ready, keep requesting render iterations
+    // until it becomes ready (no frame-based limit to handle rapid backward scrubbing)
+    if (!rendered && !this._onReadyFired) {
+      console.log(
+        `[TresNode] Requesting extra render iteration - nodeId: ${this._nodeId}, frame: ${frame}, onReadyFired: ${this._onReadyFired}`,
+      );
       DependencyContext.collectPromise(
         new Promise<void>((resolve) => {
           requestAnimationFrame(() => resolve());
         }),
       );
-    };
-
-    const ctx = this._tresCtx;
-    if (!ctx) {
-      scheduleRetry();
-      super.draw(context);
-      return;
-    }
-
-    const r = ctx.renderer.instance;
-    if (!r) {
-      scheduleRetry();
-      super.draw(context);
-      return;
-    }
-
-    const currentScene = ctx.scene.value ?? null;
-    const currentCamera = ctx.camera.activeCamera.value ?? null;
-    if (currentScene) this._lastScene = currentScene;
-    if (currentCamera) this._lastCamera = currentCamera;
-    const scene = currentScene ?? this._lastScene;
-    const camera = currentCamera ?? this._lastCamera;
-    if (!scene || !camera) {
-      scheduleRetry();
-    }
-
-    this._syncState();
-
-    const w = this.width();
-    const h = this.height();
-    if (w <= 0 || h <= 0) {
-      super.draw(context);
-      return;
-    }
-
-    // Resize the WebGL canvas to match this node's layout size, then render.
-    // false = don't update CSS style on the renderer's canvas element.
-    r.setSize(w, h, false);
-    if (scene && camera) {
-      r.render(scene as any, camera as any);
-    }
-
-    // Blit the full WebGL canvas onto the MC render context, centered at the
-    // node's origin. Use the 4-arg overload so we don't accidentally crop when
-    // the renderer uses DPR-scaled backing resolution.
-    context.drawImage(r.domElement, w / -2, h / -2, w, h);
-
-    if (typeof frame === "number" && this._requestedRetryFrame !== frame) {
-      this._requestedRetryFrame = null;
     }
 
     super.draw(context);
