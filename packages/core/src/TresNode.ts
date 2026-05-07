@@ -20,7 +20,6 @@ import { jsx, Layout, type LayoutProps } from "@motion-canvas/2d";
 import { createApp, h, reactive, nextTick, type App, type Component } from "@vue/runtime-dom";
 import {
   createSignal,
-  createRef,
   Color,
   useScene,
   DependencyContext,
@@ -35,6 +34,8 @@ import type { DefineComponent, ComponentInstance } from "vue";
 import type { Node } from "@motion-canvas/2d";
 import { KNOWN_NODE_KEYS } from "./VueNode";
 import type { VueNodeConstructor } from "./types";
+import { createMnRef } from "./createRef";
+export { createMnRef } from "./createRef";
 
 let _tresNodeCounter = 0;
 
@@ -327,20 +328,42 @@ export function defineTresNode<C extends DefineComponent<any, any, any>>(
 type TresNodeProps<P> = Omit<LayoutProps, "ref"> & P;
 
 /**
+ * Internal implementation of placing a TresJS scene SFC as a node in the
+ * Motion Canvas scene graph. Called by the unified `mn()` dispatcher.
+ */
+export function _mnTres(
+  sfc: any,
+  refOrProps?: Reference<any> | Record<string, any>,
+  maybeProps?: Record<string, any>,
+): Node {
+  console.log("[moliniani] _mnTres called, sfc.__mnWrapped:", (sfc as any).__mnWrapped);
+
+  // If the Moliniani Vite plugin already wrapped this .vue import as a VueNode,
+  // recover the original SFC so TresJS's Vue renderer can mount it correctly.
+  const rawSfc = (sfc as any).__mnWrapped ? ((sfc as any).__mnOriginalSFC ?? sfc) : sfc;
+  console.log("[moliniani] _mnTres rawSfc:", rawSfc?.name ?? "no name");
+
+  const cls = (rawSfc as any).__mnTresWrapped ? rawSfc : defineTresNode(rawSfc);
+  console.log("[moliniani] _mnTres created class, __mnTresWrapped:", (cls as any).__mnTresWrapped);
+
+  let ref: Reference<any> | undefined;
+  let props: Record<string, any> = {};
+
+  if (typeof refOrProps === "function") {
+    ref = refOrProps as Reference<any>;
+    props = maybeProps ?? {};
+  } else {
+    props = refOrProps ?? {};
+  }
+
+  console.log("[moliniani] _mnTres calling jsx with props:", Object.keys(props));
+  return jsx(cls, { ref, ...props }) as Node;
+}
+
+/**
  * Places a TresJS scene SFC as a node in the Motion Canvas scene graph.
  *
- * @deprecated Use `mnVue()` instead for a unified API that auto-detects TresJS components.
- * Analogous to `mnVue()` but creates a `TresNode` (WebGL → `drawImage`)
- * instead of a `VueNode` (HTML → `drawElement`).
- *
- * ```tsx
- * import TresBox from '../components/TresBox.vue'
- * import { createRef } from '@motion-canvas/core'
- *
- * const boxRef = createRef<InstanceType<ReturnType<typeof defineTresNode<typeof TresBox>>>>()
- * view.add(mnTres(TresBox, boxRef, { rotationY: 0, color: '#4488ff', width: 700, height: 500 }))
- * yield* boxRef().rotationY(Math.PI * 2, 3, easeInOutCubic)
- * ```
+ * @deprecated Use `mn()` instead for a unified API.
  */
 export function mnTres<P extends Record<string, any>>(
   cls: VueNodeConstructor<P>,
@@ -365,37 +388,13 @@ export function mnTres(
   refOrProps?: Reference<any> | Record<string, any>,
   maybeProps?: Record<string, any>,
 ): Node {
-  // If the Moliniani Vite plugin already wrapped this .vue import as a VueNode,
-  // recover the original SFC so TresJS's Vue renderer can mount it correctly.
-  const rawSfc = (sfc as any).__mnWrapped ? ((sfc as any).__mnOriginalSFC ?? sfc) : sfc;
-  const cls = (rawSfc as any).__mnTresWrapped ? rawSfc : defineTresNode(rawSfc);
-  let ref: Reference<any> | undefined;
-  let props: Record<string, any> = {};
-
-  if (typeof refOrProps === "function") {
-    ref = refOrProps as Reference<any>;
-    props = maybeProps ?? {};
-  } else {
-    props = refOrProps ?? {};
-  }
-
-  return jsx(cls, { ref, ...props }) as Node;
+  return _mnTres(sfc, refOrProps, maybeProps);
 }
 
 /**
  * Creates a typed Motion Canvas ref for a TresJS scene SFC.
  *
- * @deprecated Use `createMnRef` instead for a unified API across all Moliniani components.
- * Pass the raw `.vue` import — the argument is used only for type inference.
- * Use the ref with `mnTres()` to place the component in the scene:
- *
- * ```tsx
- * import TresBox from '../components/TresBox.vue'
- *
- * const box = createTresRef(TresBox)
- * view.add(mnTres(TresBox, box, { rotationY: 0, color: '#4488ff', width: 700, height: 500 }))
- * yield* box().rotationY(Math.PI * 2, 3)
- * ```
+ * @deprecated Use `createMnRef()` instead for a unified API.
  */
 export function createTresRef<P extends Record<string, any>>(
   cls: VueNodeConstructor<P>,
@@ -403,6 +402,6 @@ export function createTresRef<P extends Record<string, any>>(
 export function createTresRef<C extends DefineComponent<any, any, any>>(
   sfc: C,
 ): Reference<InstanceType<VueNodeConstructor<ComponentInstance<C>["$props"]>>>;
-export function createTresRef(_sfcOrCls: any): Reference<any> {
-  return createRef<any>();
+export function createTresRef(sfcOrCls: any): Reference<any> {
+  return createMnRef(sfcOrCls);
 }

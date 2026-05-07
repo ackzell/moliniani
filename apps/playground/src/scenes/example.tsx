@@ -1,5 +1,5 @@
 import { all, createRef, sequence, waitUntil } from "@motion-canvas/core";
-import { createVueRef, mnVue, makeScene, revealText } from "@moliniani/core";
+import { createMnRef, mn, makeScene, revealText } from "@moliniani/core";
 import { Layout, Rect, Txt } from "@motion-canvas/2d";
 import MyBox from "@/components/MyBox.vue";
 
@@ -7,15 +7,15 @@ export default makeScene(function* (view) {
   view.fill("#203128");
 
   const rectRef = createRef<Rect>();
-  const boxRef = createVueRef(MyBox);
-  const boxRef2 = createVueRef(MyBox);
+  const boxRef = createMnRef(MyBox);
+  const boxRef2 = createMnRef(MyBox);
 
   const textRef = createRef<Txt>();
 
   view.add(
     <Layout layout gap={20} alignItems={"center"} justifyContent={"center"}>
       ,
-      {mnVue(MyBox, boxRef, {
+      {mn(MyBox, boxRef, {
         label: "Vue Component",
         width: 500,
         height: 500,
@@ -40,7 +40,7 @@ export default makeScene(function* (view) {
           &lt;Rect&gt;
         </Txt>
       </Rect>
-      {mnVue(MyBox, boxRef2, {
+      {mn(MyBox, boxRef2, {
         label: "Another one",
         width: 500,
         height: 500,

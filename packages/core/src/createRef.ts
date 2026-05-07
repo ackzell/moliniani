@@ -3,7 +3,7 @@ import type { DefineComponent, ComponentInstance } from "vue";
 import type { VueNodeConstructor } from "./types";
 
 /**
- * Creates a typed Motion Canvas ref for a Moliniani component (VueNode or TresNode).
+ * Creates a typed Motion Canvas ref for a Moliniani component (Vue or TresJS).
  *
  * Pass the raw `.vue` import — the argument is used only for type inference.
  * Use the ref with `mnVue()` or `mnTres()` to place the component in the scene:

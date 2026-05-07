@@ -1,5 +1,5 @@
 import { all, easeInOutCubic, waitFor } from "@motion-canvas/core";
-import { createMnRef, makeScene, mnVue } from "@moliniani/core";
+import { createMnRef, makeScene, mn } from "@moliniani/core";
 import TresBoxSFC from "@/components/TresBox.vue";
 import MyBox from "@/components/MyBox.vue";
 
@@ -11,19 +11,22 @@ export default makeScene(function* (view) {
 
   view.add(
     <>
-      {mnVue(TresBoxSFC, boxRef, {
+      {mn(TresBoxSFC, boxRef, {
         rotationY: 0,
         rotationX: 0,
         color: "#4488ff",
-        width: 810,
-        height: 540,
+        width: 700,
+        height: 500,
         cameraX: 0,
-        cameraY: 0,
-        cameraZ: 0,
+        cameraY: 2,
+        cameraZ: 7,
+        lookAtX: 0,
+        lookAtY: 0,
+        lookAtZ: 0,
         x: -500,
       })}
       ,
-      {mnVue(MyBox, vueBoxRef, {
+      {mn(MyBox, vueBoxRef, {
         x: 500,
       })}
     </>,
