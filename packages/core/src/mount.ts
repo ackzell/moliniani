@@ -33,27 +33,24 @@ type VueNodeProps<P> = Omit<LayoutProps, "ref"> & P;
  * are treated as TresJS.
  */
 function isTresComponent(sfc: any): boolean {
-  const originalFileName = sfc?.__mnOriginalName ?? "";
-  const rawSfc = sfc?.__mnWrapped ? (sfc.__mnOriginalSFC ?? sfc) : sfc;
-  const originalName = rawSfc?.name ?? "";
-  const wrappedName = sfc?.name ?? "";
-
-  console.log("[moliniani] isTresComponent check:", {
-    originalFileName,
-    originalName,
-    wrappedName,
-    __mnTresWrapped: sfc?.__mnTresWrapped,
-    __mnWrapped: sfc?.__mnWrapped,
-    __mnTres: rawSfc?.__mnTres,
-  });
-
   if (sfc?.__mnTresWrapped) return true;
+
+  // Check the original filename stored by Vite plugin (e.g., "TresBox" from "TresBox.vue")
+  const originalFileName = sfc?.__mnOriginalName ?? "";
   if (/Tres/.test(originalFileName)) return true;
+
+  // If wrapped by Vite plugin, check the original SFC
+  const rawSfc = sfc?.__mnWrapped ? (sfc.__mnOriginalSFC ?? sfc) : sfc;
   if (rawSfc?.__mnTres) return true;
+
+  // Check the original SFC name if available
+  const originalName = rawSfc?.name ?? "";
   if (/Tres/.test(originalName)) return true;
+
+  // Also check the wrapped class name as fallback
+  const wrappedName = sfc?.name ?? "";
   if (/Tres/.test(wrappedName)) return true;
 
-  console.log("[moliniani] isTresComponent: NOT a Tres component");
   return false;
 }
 
@@ -104,9 +101,9 @@ export function mn(
   refOrProps?: Reference<any> | Record<string, any>,
   maybeProps?: Record<string, any>,
 ): Node {
-  const isTres = isTresComponent(sfc);
-  console.log("[moliniani] mn() routing:", isTres ? "→ _mnTres" : "→ _mnVue");
-  return isTres ? _mnTres(sfc, refOrProps, maybeProps) : _mnVue(sfc, refOrProps, maybeProps);
+  return isTresComponent(sfc)
+    ? _mnTres(sfc, refOrProps, maybeProps)
+    : _mnVue(sfc, refOrProps, maybeProps);
 }
 
 /**
@@ -143,13 +140,6 @@ function _mnVue(
   refOrProps?: Reference<any> | Record<string, any>,
   maybeProps?: Record<string, any>,
 ): Node {
-  console.log(
-    "[moliniani] _mnVue called, sfc.__mnWrapped:",
-    (sfc as any).__mnWrapped,
-    "sfc.__mnOriginalName:",
-    (sfc as any).__mnOriginalName,
-  );
-
   const cls = (sfc as any).isClass || (sfc as any).__mnWrapped ? sfc : defineVueNode(sfc);
   let ref: Reference<any> | undefined;
   let props: Record<string, any> = {};
@@ -161,7 +151,6 @@ function _mnVue(
     props = refOrProps ?? {};
   }
 
-  console.log("[moliniani] _mnVue calling jsx with props:", Object.keys(props));
   return jsx(cls, { ref, ...props }) as Node;
 }
 

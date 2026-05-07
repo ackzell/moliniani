@@ -336,16 +336,10 @@ export function _mnTres(
   refOrProps?: Reference<any> | Record<string, any>,
   maybeProps?: Record<string, any>,
 ): Node {
-  console.log("[moliniani] _mnTres called, sfc.__mnWrapped:", (sfc as any).__mnWrapped);
-
   // If the Moliniani Vite plugin already wrapped this .vue import as a VueNode,
   // recover the original SFC so TresJS's Vue renderer can mount it correctly.
   const rawSfc = (sfc as any).__mnWrapped ? ((sfc as any).__mnOriginalSFC ?? sfc) : sfc;
-  console.log("[moliniani] _mnTres rawSfc:", rawSfc?.name ?? "no name");
-
   const cls = (rawSfc as any).__mnTresWrapped ? rawSfc : defineTresNode(rawSfc);
-  console.log("[moliniani] _mnTres created class, __mnTresWrapped:", (cls as any).__mnTresWrapped);
-
   let ref: Reference<any> | undefined;
   let props: Record<string, any> = {};
 
@@ -356,7 +350,6 @@ export function _mnTres(
     props = refOrProps ?? {};
   }
 
-  console.log("[moliniani] _mnTres calling jsx with props:", Object.keys(props));
   return jsx(cls, { ref, ...props }) as Node;
 }
 

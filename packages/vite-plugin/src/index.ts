@@ -43,8 +43,6 @@ export function moliniani() {
       if (!/\bexport\s+default\b/.test(code)) return null;
       if (code.includes("__mn_defineVueNode")) return null;
 
-      console.log("[moliniani-vite] Transforming:", id);
-
       // Emit a .d.ts file that declares this .vue component as a VueNodeConstructor.
       // This helps TypeScript and Volar understand the wrapped component type.
       const dtsPath = id + ".d.ts";
@@ -60,7 +58,6 @@ export default _default;
 
       // Extract filename for Tres detection (e.g., "TresBox" from "TresBox.vue")
       const fileName = path.basename(id).replace(/\.vue$/, "");
-      console.log("[moliniani-vite] File name:", fileName);
 
       // Rewrite the final default export, regardless of expression shape.
       const marker = "export default";
@@ -73,11 +70,8 @@ export default _default;
         `${before}const __mn_sfc_default =${after}\n` +
         `export default __mn_defineVueNode(__mn_sfc_default, ${JSON.stringify(fileName)});`;
 
-      const finalCode = `import { defineVueNode as __mn_defineVueNode } from '@moliniani/core';\n${replaced}`;
-      console.log("[moliniani-vite] Generated code snippet:", finalCode.slice(0, 200));
-
       return {
-        code: finalCode,
+        code: `import { defineVueNode as __mn_defineVueNode } from '@moliniani/core';\n${replaced}`,
         map: null,
       };
     },
