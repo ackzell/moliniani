@@ -34,7 +34,6 @@ import type { Reference } from "@motion-canvas/core";
 import type { Node } from "@motion-canvas/2d";
 import { KNOWN_NODE_KEYS } from "./VueNode";
 import type { VueNodeConstructor } from "./types";
-import { molinianiDebugLog } from "./debug";
 
 let tresNodeCounter = 0;
 
@@ -66,7 +65,6 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
   private _lastCamera: object | null = null;
   private _lastFrame: number | null = null;
   private _onReadyFired: boolean = false;
-  private readonly _nodeId: string = "";
   private readonly _scene: any;
 
   readonly _vueState: P = {} as P;
@@ -83,7 +81,7 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
 
   constructor(props: LayoutProps & P, component: Component) {
     super(props);
-    this._nodeId = `moliniani-tres-node-${tresNodeCounter++}`;
+    tresNodeCounter++; // Increment counter for debugging
     this._component = component;
     this._scene = useScene() as any;
 
@@ -124,12 +122,11 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
             // copies it onto the MC canvas in the same synchronous draw() call.
             preserveDrawingBuffer: true,
             onReady: (ctx: TresContext) => {
-              console.log(`[TresNode] TresJS onReady callback - nodeId: ${this._nodeId}`);
               this._tresCtx = ctx as unknown as TresCtx;
               this._onReadyFired = true;
             },
             onError: (error: any) => {
-              console.error(`[TresNode] TresJS error - nodeId: ${this._nodeId}:`, error);
+              console.error("[TresNode] TresJS error:", error);
             },
           },
           // The user's SFC is the scene content (camera, lights, meshes).
@@ -148,18 +145,10 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
     const frame = this._scene?.playback?.frame;
     let isBackward = false;
 
-    // Detect backward frame jumps for debugging and proper state synchronization
+    // Detect backward frame jumps for proper state synchronization
     if (typeof frame === "number") {
       if (this._lastFrame !== null && frame < this._lastFrame) {
         isBackward = true;
-        console.log(
-          `[TresNode] Backward frame jump detected - nodeId: ${this._nodeId}, from: ${this._lastFrame}, to: ${frame}`,
-        );
-        molinianiDebugLog("Backward frame jump in TresNode", {
-          nodeId: this._nodeId,
-          from: this._lastFrame,
-          to: frame,
-        });
       }
       this._lastFrame = frame;
     }
@@ -170,7 +159,7 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
       if (isBackward) {
         // Force Vue reactivity during backward seeking by using a temporary different value
         (this._vueState as Record<string, any>)[key] = value + 0.0001; // Tiny change to force reactivity
-        nextTick(() => {
+        void nextTick(() => {
           (this._vueState as Record<string, any>)[key] = value;
         });
       } else {
@@ -188,7 +177,7 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
       if (isBackward) {
         // Force Vue reactivity during backward seeking by temporarily changing the color
         (this._vueState as Record<string, any>)[key] = "#000000"; // Temporary different color
-        nextTick(() => {
+        void nextTick(() => {
           (this._vueState as Record<string, any>)[key] = serializedColor;
         });
       } else {
@@ -201,7 +190,7 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
       if (isBackward) {
         // Force Vue reactivity during backward seeking by temporarily changing the string
         (this._vueState as Record<string, any>)[key] = value + "_temp"; // Temporary suffix
-        nextTick(() => {
+        void nextTick(() => {
           (this._vueState as Record<string, any>)[key] = value;
         });
       } else {
@@ -218,19 +207,10 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
   }
 
   protected override draw(context: CanvasRenderingContext2D): void {
-    const frame = this._scene?.playback?.frame;
-    console.log(
-      `[TresNode] draw called - nodeId: ${this._nodeId}, frame: ${frame}, onReadyFired: ${this._onReadyFired}`,
-    );
-
     const ctx = this._tresCtx;
     const r = ctx?.renderer.instance;
     const currentScene = ctx?.scene.value ?? null;
     const currentCamera = ctx?.camera.activeCamera.value ?? null;
-
-    console.log(
-      `[TresNode] Context ready: ${!!ctx}, renderer ready: ${!!r}, scene: ${!!currentScene}, camera: ${!!currentCamera}, nodeId: ${this._nodeId}`,
-    );
 
     if (currentScene) this._lastScene = currentScene;
     if (currentCamera) this._lastCamera = currentCamera;
@@ -248,16 +228,12 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
         r.render(scene as any, camera as any);
         context.drawImage(r.domElement, w / -2, h / -2, w, h);
         rendered = true;
-        console.log(`[TresNode] Rendered successfully - nodeId: ${this._nodeId}`);
       }
     }
 
     // If rendering failed because TresJS context isn't ready, keep requesting render iterations
     // until it becomes ready (no frame-based limit to handle rapid backward scrubbing)
     if (!rendered && !this._onReadyFired) {
-      console.log(
-        `[TresNode] Requesting extra render iteration - nodeId: ${this._nodeId}, frame: ${frame}, onReadyFired: ${this._onReadyFired}`,
-      );
       DependencyContext.collectPromise(
         new Promise<void>((resolve) => {
           requestAnimationFrame(() => resolve());
