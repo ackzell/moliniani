@@ -71,8 +71,12 @@ export default makeScene(function* (view) {
     // all(boxRef().width(1200, 0.5), boxRef().height(600, 0.5)),
   );
 
-  yield* boxRef().opacity(1, 0.5);
-  yield* boxRef().opacity(0, 0.5);
+  yield* sequence(
+    0.5,
+    boxRef2().opacity(0, 0.5),
+    rectRef().opacity(0, 0.5),
+    boxRef().opacity(0, 0.5),
+  );
 
   yield* waitUntil("end");
 });

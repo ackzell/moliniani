@@ -1,4 +1,11 @@
-import { all, easeInOutCubic, waitFor } from "@motion-canvas/core";
+import {
+  all,
+  Direction,
+  easeInOutCubic,
+  slideTransition,
+  waitFor,
+  waitUntil,
+} from "@motion-canvas/core";
 import { createMnRef, makeScene, mn } from "@moliniani/core";
 import TresBoxSFC from "@/components/TresBox.vue";
 import MyBox from "@/components/MyBox.vue";
@@ -32,7 +39,9 @@ export default makeScene(function* (view) {
     </>,
   );
 
-  yield* waitFor(0.5);
+  yield* slideTransition(Direction.Left);
+
+  yield* waitUntil("begin");
 
   yield* all(
     boxRef().cameraX(10, 5, easeInOutCubic),
