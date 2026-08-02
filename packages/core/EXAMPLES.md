@@ -1,6 +1,7 @@
 # @moliniani/core — Examples
 
-Copy-paste recipes for common authoring patterns. All examples assume a Motion Canvas scene using `makeScene`.
+Copy-paste recipes for common authoring patterns. All examples assume a Motion Canvas
+scene using `makeScene`.
 
 ---
 
@@ -21,12 +22,12 @@ defineProps<{ text: string }>();
 ```ts
 // scenes/hello.tsx
 import { waitFor } from "@motion-canvas/core";
-import { makeScene, createMnRef, mountVue } from "@moliniani/core";
+import { makeScene, mn, createMnRef } from "@moliniani/core";
 import Label from "../components/Label.vue";
 
 export default makeScene(function* (view) {
   const label = createMnRef(Label);
-  yield mountVue(view, label, { text: "Hello, Moliniani", opacity: 0 });
+  view.add(mn(Label, label, { text: "Hello, Moliniani", opacity: 0 }));
 
   yield* label().opacity(1, 0.5);
   yield* waitFor(2);
@@ -36,81 +37,47 @@ export default makeScene(function* (view) {
 
 ---
 
-## Animate built-in transforms
+## Animate props
 
-All handles expose `x`, `y`, `scale`, `rotation`, `opacity` regardless of component props.
-
-```ts
-yield mountVue(view, box, { opacity: 1 });
-
-yield * box().y(-100, 0.4); // slide up
-yield * box().scale(1.5, 0.3); // scale up
-yield * box().rotation(45, 0.5); // rotate
-yield * box().x(200, 1, "bounce.out"); // slide right with bounce
-```
-
-Easing strings are standard [GSAP easing syntax](https://gsap.com/docs/v3/Eases/).
-
----
-
-## Animate a numeric prop
-
-Any `number` prop declared on the component gets an animatable method on the handle.
+Numeric, color, and string props declared on the SFC become Motion Canvas signals,
+so any of them can be tweened on the virtual timeline:
 
 ```vue
 <!-- components/ProgressBar.vue -->
 <script setup lang="ts">
-defineProps<{ progress: number }>();
+defineProps<{ progress: number; color: string; label: string }>();
 </script>
 <template>
-  <div :style="{ width: progress + 'px', height: '8px', background: '#4caf50' }" />
+  <div
+    :style="{
+      width: progress + 'px',
+      height: '8px',
+      background: color,
+      color: '#fff',
+      textAlign: 'center',
+    }"
+  >
+    {{ label }}
+  </div>
 </template>
 ```
 
 ```ts
 const bar = createMnRef(ProgressBar);
-yield mountVue(view, bar, { progress: 0 });
+view.add(mn(ProgressBar, bar, { progress: 0, color: "#4caf50", label: "Start" }));
 
-yield * bar().progress(480, 2); // animates from 0 → 480 over 2s
+yield * bar().progress(480, 2); // animate numeric prop
+yield * bar().color("#ff6644", 1); // animate color prop
+yield * bar().label("Almost there", 0.5); // animate string prop
 ```
 
----
-
-## Update a non-numeric prop reactively
-
-String and boolean props are not auto-animated. Mutate `handle.props` directly — Vue picks it up on the next microtask.
+`opacity` and the other MC transform keys are owned by Motion Canvas — animate them on
+the node like any native MC node:
 
 ```ts
-yield mountVue(view, label, { text: "Step 1" });
-yield * waitFor(1);
-
-label().props.text = "Step 2"; // instant reactive update
-yield * waitFor(1);
-```
-
----
-
-## Call an exposed component method
-
-Components can expose imperative methods via `expose()`. Call them on the handle with `await handle.call(name, ...args)`.
-
-```vue
-<script setup lang="ts">
-import { ref } from "vue";
-const count = ref(0);
-defineExpose({ increment: () => count.value++, getCount: () => count.value });
-</script>
-<template>
-  <div>{{ count }}</div>
-</template>
-```
-
-```ts
-yield mountVue(view, counter, {});
-yield * waitFor(0.5);
-await counter().call("increment");
-await counter().call("increment");
-const n = await counter().call<number>("getCount"); // 2
+yield * bar().opacity(0, 0.5);
+yield * bar().x(200, 1);
+yield * bar().scale(1.5, 0.3);
 ```
 
 ---
@@ -122,60 +89,154 @@ Use Motion Canvas's `all()` to run multiple animations simultaneously.
 ```ts
 import { all } from "@motion-canvas/core";
 
-yield * all(box().x(300, 1), box().opacity(0.5, 1));
-```
-
----
-
-## Chain animations in sequence
-
-Use `chain()` for a sequential series.
-
-```ts
-import { chain } from "@motion-canvas/core";
-
-yield * chain(box().opacity(1, 0.3), box().x(200, 0.8), box().scale(1.5, 0.4));
+yield * all(bar().progress(480, 2), bar().opacity(0.5, 1));
 ```
 
 ---
 
 ## Mix Vue components with MC 2D nodes
 
-Moliniani does not replace Motion Canvas — it adds Vue on top. The full MC API (`createRef`, `Rect`, `all`, `chain`, `waitFor`, signals, transitions, easing functions) is available in every scene and can be mixed freely with Vue handles.
+Moliniani does not replace Motion Canvas — it adds Vue on top. The full MC API
+(`createRef`, `Rect`, `all`, `chain`, `waitFor`, signals, transitions) is available in
+every scene and can be mixed freely with Vue nodes.
 
 ```ts
 import { all, createRef, waitFor } from '@motion-canvas/core'
 import { Rect } from '@motion-canvas/2d'
+import { makeScene, mn, createMnRef } from '@moliniani/core'
+import MyBox from '../components/MyBox.vue'
 
-const box = createMnRef(MyBox)
-const rect = createRef<Rect>()
+export default makeScene(function* (view) {
+  const box = createMnRef(MyBox)
+  const rect = createRef<Rect>()
 
-view.add(<Rect ref={rect} width={200} height={200} fill="#333" opacity={0} />)
-yield mountVue(view, box, { opacity: 0 })
+  view.add(
+    <>
+      {mn(MyBox, box, { opacity: 0 })}
+      <Rect ref={rect} width={200} height={200} fill="#333" opacity={0} />
+    </>,
+  )
 
-yield* all(
-  box().opacity(1, 0.5),
-  rect().opacity(1, 0.5),   // MC node animates with its own API
-)
-yield* waitFor(1)
-yield* all(
-  box().x(300, 1),
-  rect().position.x(300, 1),
-)
+  yield* all(
+    box().opacity(1, 0.5),
+    rect().opacity(1, 0.5),   // MC node animates with its own API
+  )
+  yield* waitFor(1)
+  yield* all(
+    box().x(300, 1),
+    rect().position.x(300, 1),
+  )
+})
 ```
 
-> **Current limitation**: the Vue overlay renders above all MC 2D shapes (z-ordering between the two layers is not possible until compositing lands). See [ROADMAP.md](ROADMAP.md) Track B.
+> **Current limitation**: the Vue overlay always composites **above** all MC 2D shapes
+> — z-ordering between the two layers is not possible yet (see `ROADMAP.md`).
+
+---
+
+## TresJS 3D scene
+
+A TresJS SFC contains only the Three.js scene content — camera, lights, meshes. Do
+**not** include `<TresCanvas>`; `TresNode` provides it.
+
+```vue
+<!-- components/TresBox.vue -->
+<script setup lang="ts">
+defineProps<{
+  rotationY?: number;
+  color?: string;
+  cameraX?: number;
+  cameraY?: number;
+  cameraZ?: number;
+}>();
+</script>
+
+<template>
+  <TresPerspectiveCamera :position="[props.cameraX ?? 0, props.cameraY ?? 2, props.cameraZ ?? 7]" />
+  <TresAmbientLight :intensity="1.2" />
+  <TresMesh :rotation-y="props.rotationY ?? 0">
+    <TresBoxGeometry :args="[2, 2, 2]" />
+    <TresMeshStandardMaterial :color="props.color ?? '#4488ff'" />
+  </TresMesh>
+</template>
+```
+
+```ts
+import { easeInOutCubic } from "@motion-canvas/core";
+import { makeScene, mn, createMnRef } from "@moliniani/core";
+import TresBox from "../components/TresBox.vue";
+
+export default makeScene(function* (view) {
+  const box = createMnRef(TresBox);
+
+  view.add(
+    mn(TresBox, box, {
+      rotationY: 0,
+      color: "#4488ff",
+      width: 700,
+      height: 500,
+      cameraX: 0,
+      cameraY: 2,
+      cameraZ: 7,
+    }),
+  );
+
+  yield* box().rotationY(Math.PI * 2, 3, easeInOutCubic);
+  yield* box().color("#ff6644", 1, easeInOutCubic);
+});
+```
+
+`mn()` auto-detects the TresJS component by its `Tres`-prefixed name; name 3D scene
+components accordingly.
+
+---
+
+## Text reveal
+
+Reveal the text of an MC `Txt` node character by character:
+
+```ts
+import { createRef } from "@motion-canvas/core";
+import { Txt } from "@motion-canvas/2d";
+import { revealText } from "@moliniani/core";
+
+const textRef = createRef<Txt>();
+view.add(<Txt ref={textRef} fill="#fff">Hello, world!</Txt>);
+
+yield* revealText(textRef(), 1.5);
+```
 
 ---
 
 ## Early unmount
 
-Unmount a component before the scene ends.
+Remove a node before the scene ends:
 
 ```ts
-yield mountVue(view, tooltip, { text: "Hover info" });
+view.add(mn(Tooltip, tooltipRef, { text: "Hover info" }));
 yield * waitFor(2);
-tooltip().unmount(); // removed immediately; no animation
+tooltipRef().dispose(); // removed immediately
 ```
 
-The scene's `afterReset` hook also cleans up automatically — manual unmount is only needed when you want to remove the component mid-scene.
+The scene's reset lifecycle also cleans up automatically — manual `dispose()` is only
+needed when you want to remove the node mid-scene.
+
+---
+
+## Exporting video
+
+Add the Moliniani exporter plugin to your project so composited Vue overlays appear in
+exported frames:
+
+```ts
+// project.ts
+import { makeProject } from "@motion-canvas/core";
+import { molinianiExporterPlugin } from "@moliniani/core";
+
+export default makeProject({
+  plugins: [molinianiExporterPlugin],
+  scenes: [...],
+});
+```
+
+The exporter is `@moliniani/core/ffmpeg` (set it in the project's render settings).

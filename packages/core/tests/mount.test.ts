@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
-import { defineComponent, ref } from "vue";
-import { createMnRef } from "../src/ref";
-import { createVueRef, mnVue, mountVue } from "../src/mount";
+import { defineComponent } from "vue";
+import { createMnRef, defineVueNode, mn } from "../src/mount";
 
 vi.mock("@motion-canvas/core", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@motion-canvas/core")>();
@@ -9,6 +8,8 @@ vi.mock("@motion-canvas/core", async (importOriginal) => {
     ...actual,
     useScene: vi.fn(() => ({
       afterReset: { subscribe: vi.fn() },
+      onRenderLifecycle: { subscribe: vi.fn() },
+      playback: { frame: 0 },
     })),
   };
 });
@@ -52,25 +53,22 @@ vi.mock("@motion-canvas/2d", () => {
     return node;
   }
 
-  return { Node, jsx };
+  return { Node, Layout: Node, jsx };
 });
 
 const TestComponent = defineComponent({
   props: {
-    opacity: Number,
     label: String,
+    count: Number,
+    color: String,
   },
-  setup(props, { expose }) {
-    const internalCount = ref(0);
-    expose({
-      increment: () => internalCount.value++,
-      getCount: () => internalCount.value,
-    });
+  setup(props) {
+    return () => `<div>${props.label}</div>`;
   },
   template: "<div>{{ label }}</div>",
 });
 
-describe("mountVue()", () => {
+describe("mn()", () => {
   beforeAll(() => {
     const canvas = document.createElement("canvas");
     document.body.appendChild(canvas);
@@ -80,46 +78,43 @@ describe("mountVue()", () => {
     document.querySelector("canvas")?.remove();
   });
 
-  it("returns a typed handle", async () => {
-    const mnRef = createMnRef(TestComponent);
-    const handle = await mountVue({} as any, mnRef, { opacity: 0, label: "Hello" });
-
-    expect(handle).toBeDefined();
-    expect(typeof handle.call).toBe("function");
-    expect(typeof handle.unmount).toBe("function");
-  });
-
-  it("props are reactive after mount", async () => {
-    const mnRef = createMnRef(TestComponent);
-    const handle = await mountVue({} as any, mnRef, { opacity: 0, label: "Hello" });
-
-    (handle.props as Record<string, any>).opacity = 1;
-    expect(handle.props.opacity).toBe(1);
-  });
-
-  it("can call exposed methods after mount", async () => {
-    const mnRef = createMnRef(TestComponent);
-    const handle = await mountVue({} as any, mnRef, { opacity: 0, label: "Hello" });
-
-    await handle.call("increment");
-    const count = await handle.call<number>("getCount");
-    expect(count).toBe(1);
-  });
-
-  it("unmount cleans up", async () => {
-    const mnRef = createMnRef(TestComponent);
-    const handle = await mountVue({} as any, mnRef, { opacity: 0, label: "Hello" });
-
-    expect(() => handle.unmount()).not.toThrow();
-  });
-
-  it("mnVue populates the Motion Canvas ref", () => {
-    const vueRef = createVueRef(TestComponent);
-
-    const node = mnVue(TestComponent, vueRef, { opacity: 0, label: "Hello" });
+  it("wraps a plain Vue SFC and returns a Motion Canvas node", () => {
+    const node = mn(TestComponent, { label: "Hello" });
 
     expect(node).toBeDefined();
-    expect(vueRef()).toBe(node);
-    expect(typeof vueRef().opacity).toBe("function");
+    expect(typeof (node as any).opacity).toBe("function");
+  });
+
+  it("populates a createMnRef ref with the node instance", () => {
+    const ref = createMnRef(TestComponent);
+
+    const node = mn(TestComponent, ref, { label: "Hello", count: 0 });
+
+    expect(ref()).toBe(node);
+    expect(typeof (ref() as any).count).toBe("function");
+  });
+
+  it("creates animatable signal methods for numeric, color and string props", () => {
+    const node = mn(TestComponent, { label: "Hello", count: 0, color: "#ff0000" }) as any;
+
+    expect(typeof node.count).toBe("function");
+    expect(typeof node.label).toBe("function");
+    expect(typeof node.color).toBe("function");
+  });
+});
+
+describe("defineVueNode()", () => {
+  it("is idempotent", () => {
+    const Cls = defineVueNode(TestComponent);
+
+    expect(defineVueNode(Cls as any)).toBe(Cls);
+  });
+
+  it("strips Motion Canvas-owned keys from Vue prop state", () => {
+    const Cls = defineVueNode(TestComponent);
+    const node = new Cls({ opacity: 0.5, label: "x" }) as any;
+
+    expect(node._vueState.label).toBe("x");
+    expect(node._vueState.opacity).toBeUndefined();
   });
 });

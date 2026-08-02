@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
-import { defineComponent, nextTick, ref } from "vue";
-import { VueNode } from "../src/VueNode";
+import { defineComponent, nextTick } from "vue";
+import { defineVueNode } from "../src/mount";
 
 vi.mock("@motion-canvas/core", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@motion-canvas/core")>();
@@ -8,6 +8,8 @@ vi.mock("@motion-canvas/core", async (importOriginal) => {
     ...actual,
     useScene: vi.fn(() => ({
       afterReset: { subscribe: vi.fn() },
+      onRenderLifecycle: { subscribe: vi.fn() },
+      playback: { frame: 0 },
     })),
   };
 });
@@ -43,21 +45,15 @@ vi.mock("@motion-canvas/2d", () => {
     }
     draw(_context: CanvasRenderingContext2D) {}
   }
-  return { Node };
+
+  return { Node, Layout: Node };
 });
 
 const TestComponent = defineComponent({
   props: {
     title: String,
-  },
-  setup(_, { expose }) {
-    const count = ref(0);
-    expose({
-      increment: () => count.value++,
-      getCount: () => count.value,
-      getTitle: () => _.title,
-    });
-    return { count };
+    count: Number,
+    color: String,
   },
   template: "<div>{{ title }}</div>",
 });
@@ -72,41 +68,31 @@ describe("VueNode", () => {
     document.querySelector("canvas")?.remove();
   });
 
-  it("mounts a Vue component and returns a handle", () => {
-    const node = new VueNode({ title: "Hello" }, TestComponent);
+  it("mounts a Vue component with reactive prop state", () => {
+    const Cls = defineVueNode(TestComponent);
+    const node = new Cls({ title: "Hello" }) as any;
 
-    const handle = node.getHandle();
-    expect(handle).toBeDefined();
-    expect(typeof handle.call).toBe("function");
-    expect(typeof handle.unmount).toBe("function");
+    expect(node._vueState.title).toBe("Hello");
   });
 
-  it("exposes methods via getHandle", async () => {
-    const node = new VueNode({ title: "Hello" }, TestComponent);
+  it("creates MC signals for numeric, color and string props", () => {
+    const Cls = defineVueNode(TestComponent);
+    const node = new Cls({ title: "Hello", count: 0, color: "#ff0000" }) as any;
 
-    const handle = node.getHandle();
-    await handle.call("increment");
-    const count = await handle.call<number>("getCount");
-    expect(count).toBe(1);
-  });
-
-  it("throws when calling a method that is not exposed", async () => {
-    const node = new VueNode({ title: "Hello" }, TestComponent);
-
-    const handle = node.getHandle();
-    await expect(handle.call("nonExistent")).rejects.toThrow("not exposed");
+    expect(typeof node.count).toBe("function");
+    expect(typeof node.title).toBe("function");
+    expect(typeof node.color).toBe("function");
   });
 
   it("prop changes are reactive", async () => {
-    const node = new VueNode({ title: "Hello" }, TestComponent);
+    const Cls = defineVueNode(TestComponent);
+    const node = new Cls({ title: "Hello" }) as any;
 
-    const handle = node.getHandle();
-    handle.props.title = "World";
+    node._vueState.title = "World";
 
-    // wait for Vue to flush
     await nextTick();
 
-    const title = await handle.call<string>("getTitle");
-    expect(title).toBe("World");
+    expect(node._vueState.title).toBe("World");
+    expect(node._positioner.textContent).toContain("World");
   });
 });

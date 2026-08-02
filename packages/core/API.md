@@ -18,13 +18,14 @@ export default defineConfig({
 });
 ```
 
-The plugin automatically wraps every `.vue` import with `defineVueNode()`, making it a Motion Canvas `Node` subclass usable directly in JSX.
+The plugin automatically wraps every `.vue` import with `defineVueNode()`, making it
+a Motion Canvas `Node` subclass usable directly in JSX or via `mn()`.
 
 ---
 
 ## `makeScene(runner)`
 
-Wraps Motion Canvas `makeScene2D`. Spawns `runGSAPTicker` as a sibling thread before handing control to `runner`, so GSAP animations are clock-synced for the lifetime of the scene.
+Wraps Motion Canvas `makeScene2D` so Vue/MC nodes mount and reset correctly.
 
 ```ts
 function makeScene(runner: (view: View2D) => ThreadGenerator): Scene;
@@ -40,133 +41,233 @@ export default makeScene(function* (view) {
 });
 ```
 
-> Always use `makeScene` instead of `makeScene2D` directly. Omitting it means GSAP runs on wall-clock time and breaks scrubbing and export.
+> Always use `makeScene` instead of `makeScene2D` directly when a scene uses
+> Moliniani nodes, so cleanup hooks stay wired up.
 
 ---
 
-## `createVueRef(WrappedClass)`
+## `mn(sfc, props?)` / `mn(sfc, ref?, props?)`
 
-Creates a typed Motion Canvas ref for a Vue component that has been wrapped by `defineVueNode()` (done automatically by the Vite plugin).
+Places a Vue SFC as a node in the Motion Canvas scene graph. Auto-detects whether the
+component is a 2D Vue overlay or a TresJS 3D scene and routes to the right renderer.
 
 ```ts
-function createVueRef<T extends VueNodeConstructor<any>>(cls: T): Reference<InstanceType<T>>;
+function mn<P>(sfc: Component, props?: P): Node;
+function mn<P>(sfc: Component, ref: Reference<InstanceType<...>>, props?: P): Node;
 ```
 
 **Usage**
 
 ```ts
-import { createVueRef, makeScene } from "@moliniani/core";
+import MyBox from "./components/MyBox.vue"; // 2D Vue overlay
+import TresBox from "./components/TresBox.vue"; // 3D TresJS scene
+
+view.add(mn(MyBox, { label: "Hello", x: -400 }));
+view.add(mn(TresBox, { rotationY: 0, color: "#4488ff", width: 700, height: 500 }));
+
+// with a ref, for animating:
+const box = createMnRef(MyBox);
+view.add(mn(MyBox, box, { label: "Hello", opacity: 1 }));
+yield * box().opacity(0, 1);
+```
+
+### TresJS auto-detection
+
+`mn()` treats a component as a TresJS 3D scene when:
+
+- it carries the `__mnTresWrapped` / `__mnTres` markers (set by `defineTresNode()`), or
+- its filename or name contains `Tres` (e.g. `TresBox.vue`).
+
+Name 3D scene components accordingly (e.g. `TresBox.vue`), or set an explicit marker.
+
+---
+
+## `createMnRef(sfc)`
+
+Creates a typed Motion Canvas ref for a Vue SFC (2D or TresJS 3D). Pass the raw
+`.vue` import — it is used only for type inference.
+
+```ts
+function createMnRef<C extends DefineComponent<any, any, any>>(
+  sfc: C,
+): Reference<InstanceType<VueNodeConstructor<ComponentInstance<C>["$props"]>>>;
+```
+
+**Usage**
+
+```ts
+import { createMnRef, makeScene, mn } from "@moliniani/core";
 import MyBox from "./components/MyBox.vue";
 
 export default makeScene(function* (view) {
-  const box = createVueRef(MyBox);
+  const box = createMnRef(MyBox);
 
-  view.add(<MyBox ref={box} label="Hello" opacity={1} />);
+  view.add(mn(MyBox, box, { label: "Hello", opacity: 0 }));
 
-  yield* box().opacity(0, 0.5);
+  yield* box().opacity(1, 0.5);
 });
 ```
 
-The ref is populated by Motion Canvas when the node is added to the scene graph via `view.add()`. It is safe to call `box()` after the `view.add()` call.
+The ref is populated by Motion Canvas when the node is added to the scene graph via
+`view.add()`. It is safe to call `box()` after `view.add()`.
 
 ---
 
 ## `defineVueNode(sfc)`
 
-Factory that wraps a raw Vue SFC in an anonymous class extending `VueNode`, making it a valid Motion Canvas `Node` constructor.
+Wraps a raw Vue SFC in an anonymous class extending `VueNode`, making it a valid
+Motion Canvas `Node` constructor for the 2D overlay path.
 
 ```ts
 function defineVueNode<C extends Component>(sfc: C): VueNodeConstructor<Props<C>>;
 ```
 
-You typically do **not** call this directly — the `@moliniani/vite-plugin` calls it automatically for every `.vue` import. It is exported for advanced use cases (e.g. dynamically wrapping components at runtime, or building your own tooling).
+You typically do **not** call this directly — the `@moliniani/vite-plugin` calls it
+automatically for every `.vue` import. It is exported for advanced use cases (e.g.
+dynamically wrapping components at runtime, or building your own tooling). Calling it
+on an already-wrapped SFC is a no-op (idempotent).
 
 ---
 
-## `VueNode<P>`
+## `defineTresNode(sfc)`
 
-The Motion Canvas `Node` subclass that Moliniani creates for each Vue component. Extends `Node` from `@motion-canvas/2d`.
-
-- Mounts the Vue app into a `div` overlay positioned above the MC canvas
-- Exposes animatable methods for numeric props (via GSAP tweens as `ThreadGenerator`)
-- Cleans up on `scene.afterReset`
-
-You do not instantiate `VueNode` directly. It is returned as the instance type of the class produced by `defineVueNode()`.
-
-### Animatable methods
-
-Every instance has built-in animatable methods matching `Node`'s transform signals:
-
-| Method                           | Description        |
-| -------------------------------- | ------------------ |
-| `x(to, duration?, ease?)`        | Translate X (px)   |
-| `y(to, duration?, ease?)`        | Translate Y (px)   |
-| `scale(to, duration?, ease?)`    | Uniform scale      |
-| `rotation(to, duration?, ease?)` | Rotation (degrees) |
-| `opacity(to, duration?, ease?)`  | CSS opacity        |
-
-For each **numeric prop** declared on the component, a matching animatable method is also generated:
+Wraps a raw Vue SFC in an anonymous class extending `TresNode`, making it a valid
+Motion Canvas `Node` constructor for the TresJS 3D path.
 
 ```ts
-// Component: defineProps<{ progress: number }>()
-yield * chart().progress(100, 1.5);
+function defineTresNode<C extends Component>(sfc: C): VueNodeConstructor<Props<C>>;
 ```
 
-All methods return `ThreadGenerator`. Use `yield*` to wait for completion.
-
----
-
-## `makeAnimatable(target, key)`
-
-Low-level primitive. Returns a `ThreadGenerator`-yielding function that animates a single numeric key on any plain object or DOM element via GSAP.
-
-```ts
-function makeAnimatable(
-  target: Record<string, any> | HTMLElement,
-  key: string,
-): (to: number, duration?: number, ease?: string) => ThreadGenerator;
-```
+The SFC should contain only the Three.js scene **content** — camera, lights, and
+meshes as TresJS components. Do **not** include `<TresCanvas>` in the SFC; `TresNode`
+provides the canvas internally.
 
 **Usage**
 
-```ts
-const animateOpacity = makeAnimatable(myElement, "opacity");
-yield * animateOpacity(0, 0.3);
+```tsx
+import TresBoxSFC from "./components/TresBox.vue";
+import { defineTresNode, createMnRef, mn, makeScene } from "@moliniani/core";
+import { easeInOutCubic } from "@motion-canvas/core";
+
+export default makeScene(function* (view) {
+  const TresBox = defineTresNode(TresBoxSFC);
+  const box = createMnRef(TresBox);
+
+  view.add(mn(TresBox, box, { rotationY: 0, color: "#4488ff", width: 600, height: 400 }));
+  yield* box().rotationY(Math.PI * 2, 3, easeInOutCubic);
+});
 ```
 
-This is the primitive `VueNode` uses internally to build both the built-in transform methods and the numeric prop methods. You only need it directly if building custom animatable abstractions.
+> With the Vite plugin, `mn()` handles `defineTresNode` automatically — you only call
+> it directly when building your own tooling.
 
 ---
 
-## `runGSAPTicker()`
+## `VueNode<P>` / `TresNode<P>`
 
-A `ThreadGenerator` that runs for the lifetime of the scene. Each frame it calls `gsap.updateRoot(thread.time())`, syncing GSAP's internal clock to Motion Canvas's synthetic time.
+The Motion Canvas `Node` subclasses that Moliniani creates for each component. Both
+extend `Layout` from `@motion-canvas/2d`.
+
+- `VueNode` mounts the Vue app into a positioned DOM overlay that is composited into
+  the canvas each frame.
+- `TresNode` mounts a `TresCanvas` in manual render mode and blits the WebGL output
+  onto the canvas in `draw()`.
+
+You do not instantiate these directly — they are the instance types of the classes
+produced by `defineVueNode()` / `defineTresNode()`.
+
+### Prop signals
+
+For each **numeric**, **CSS-color**, or **plain-string** prop declared on the SFC, a
+matching Motion Canvas signal is created and exposed as an animatable method on the
+instance:
 
 ```ts
-function* runGSAPTicker(): ThreadGenerator;
+// Component: defineProps<{ progress: number, color: string, label: string }>()
+yield * chart().progress(100, 1.5);
+yield * chart().color("#ff0000", 1);
+yield * chart().label("World", 0.5);
 ```
 
-On first call it removes `gsap.updateRoot` from GSAP's own `requestAnimationFrame` tick (once, via an `initialized` flag). Subsequent calls from other scenes are no-ops for the removal step.
+All methods return `ThreadGenerator`. Use `yield*` to wait for completion. Because
+they are MC signals on the virtual timeline, they tween, seek, and scrub in both
+directions exactly like native MC node signals.
 
-`makeScene()` spawns this automatically. You should never need to call it directly unless composing a custom scene wrapper.
+`opacity` (and the other MC node transform keys) are **owned by Motion Canvas** — they
+are not passed to Vue as props, and are animated on the MC timeline like any native
+node: `yield* box().opacity(1, 0.5)`.
 
 ---
 
-## Deprecated API
+## `revealText(node, duration, ease?)`
 
-The following exports remain for backward compatibility but are superseded by the JSX-first approach above.
+Reveals the text of a `Txt` node character by character over `duration` seconds.
 
-### `createMnRef(Component)` _(deprecated)_
+```ts
+function revealText(node: Txt, duration: number, timingFunction?: TimingFunction): ThreadGenerator;
+```
 
-Use `createVueRef(WrappedClass)` instead.
+The node's text is temporarily replaced while animating and restored to the full
+string when done, so MC's own layout always reflects the correct final value.
 
-### `mountVue(view, ref, props)` _(deprecated)_
+```ts
+const label = createRef<Txt>();
+view.add(<Txt ref={label} fill="#fff">Hello, world!</Txt>);
 
-Use `view.add(<MyComponent ref={ref} ...props />)` instead.
+yield* revealText(label(), 1.5);
+```
 
-### `MolinianiHandle<P>` _(deprecated)_
+---
 
-The handle type returned by the old `mountVue` API. The new approach uses the `VueNode` instance directly via `ref()`.
+## `molinianiExporterPlugin`
+
+A Motion Canvas project plugin that registers the Moliniani FFmpeg exporter
+(`@moliniani/core/ffmpeg`), which composites Vue overlays into exported video.
+
+```ts
+const molinianiExporterPlugin = {
+  name: "@moliniani/core/exporter",
+  exporters(): ExporterClass[] {
+    /* ... */
+  },
+};
+```
+
+**Usage** — add it to your project:
+
+```ts
+// project.ts
+import { makeProject } from "@motion-canvas/core";
+import { molinianiExporterPlugin } from "@moliniani/core";
+
+export default makeProject({
+  plugins: [molinianiExporterPlugin],
+  scenes: [...],
+});
+```
+
+The exporter is selected in the render settings as `@moliniani/core/ffmpeg` (the
+playground's `project.meta` already configures it).
+
+---
+
+## Text layout engine
+
+Low-level hooks for a pluggable text-layout engine (Pretext integration). These are
+infrastructure for future text-around-shapes / variable-width-line features and are
+not yet consumed by components.
+
+```ts
+type TextLayoutEngine = (input: TextLayoutInput) => TextLayoutResult;
+
+function setTextLayoutEngine(engine: TextLayoutEngine | null): void;
+function getTextLayoutEngine(): TextLayoutEngine | null;
+async function enablePretextLayout(): Promise<boolean>;
+```
+
+`enablePretextLayout()` dynamically loads `@chenglou/pretext` and registers it as the
+active layout engine. It is safe to call when the package is absent — it returns
+`false` silently.
 
 ---
 
@@ -174,19 +275,18 @@ The handle type returned by the old `mountVue` API. The new approach uses the `V
 
 ### `VueNodeConstructor<P>`
 
+The constructor type produced by `defineVueNode()` / `defineTresNode()`.
+
 ```ts
 type VueNodeConstructor<P extends Record<string, any>> = {
   isClass: true;
-  new (props: Record<string, any>): VueNode<P> & {
+  new (props: NodeProps & P): Node & {
+    readonly _vueState: P;
+    [key: string]: any;
+  } & {
     [K in NumericKeys<P>]: AnimatableMethod;
   };
 };
-```
-
-### `AnimatableMethod`
-
-```ts
-type AnimatableMethod = (to: number, duration?: number, ease?: string) => ThreadGenerator;
 ```
 
 ### `NumericKeys<P>`
@@ -197,209 +297,20 @@ type NumericKeys<P> = {
 }[keyof P];
 ```
 
-Wraps Motion Canvas `makeScene2D`. Spawns `runGSAPTicker` as a sibling thread before handing control to `runner`, so GSAP animations are clock-synced for the lifetime of the scene.
+### `AnimatableMethod`
 
 ```ts
-function makeScene(runner: (view: View2D) => ThreadGenerator): Scene;
-```
-
-**Usage**
-
-```ts
-import { makeScene } from "@moliniani/core";
-
-export default makeScene(function* (view) {
-  // your scene logic here
-});
-```
-
-> Always use `makeScene` instead of `makeScene2D` directly. Omitting it means GSAP runs on wall-clock time and breaks scrubbing and export.
-
----
-
-## `createMnRef(Component)`
-
-Creates a typed reference to a Vue component. The ref is a callable that returns the `MolinianiHandle` once the component has been mounted.
-
-```ts
-function createMnRef<C extends DefineComponent<any, any, any>>(
-  component: C,
-): MnRef<ComponentInstance<C>["$props"]>;
-```
-
-**`MnRef<P>`** is a callable `() => MolinianiHandle<P>` with two internal properties used by `mountVue`:
-
-- `_component` — the raw Vue component definition
-- `_setHandle(h)` — called by `mountVue` to populate the ref
-
-**Usage**
-
-```ts
-const box = createMnRef(MyBox);
-// box() will throw until after mountVue() resolves
-yield mountVue(view, box, { label: "Hello" });
-box(); // now safe — returns MolinianiHandle<{ label?: string }>
-```
-
-**Typing note**: Prop types are extracted via `ComponentInstance<C>['$props']` (Vue 3.5+). This works correctly with `<script setup>` SFCs where `ExtractPropTypes` does not.
-
----
-
-## `mountVue(view, ref, props)`
-
-Mounts the Vue component referenced by `ref` into a positioned `div` above the Motion Canvas canvas. Waits for Vue's `nextTick` before populating the ref and returning the handle.
-
-```ts
-async function mountVue<P extends Record<string, any>>(
-  view: View2D,
-  ref: MnRef<P>,
-  props: P,
-): Promise<MolinianiHandle<P>>;
-```
-
-**Parameters**
-| Param | Type | Description |
-|-------|------|-------------|
-| `view` | `View2D` | The scene view passed by the MC runner |
-| `ref` | `MnRef<P>` | Created via `createMnRef()` |
-| `props` | `P` | Initial props; becomes the reactive state object |
-
-**Usage**
-
-```ts
-yield mountVue(view, box, { label: "Hello", opacity: 0 });
-// After this line, box() is safe to call
-```
-
-> In a Motion Canvas generator, use `yield mountVue(...)` (not `yield*`). It returns a Promise and MC knows how to unwrap it.
-
----
-
-## `MolinianiHandle<P>`
-
-The handle returned by `mountVue`. It exposes:
-
-### Built-in transforms
-
-Applied directly to the container `div` element via GSAP. Available on every handle regardless of component props.
-
-| Method                           | Default | Description        |
-| -------------------------------- | ------- | ------------------ |
-| `x(to, duration?, ease?)`        | `0`     | Translate X (px)   |
-| `y(to, duration?, ease?)`        | `0`     | Translate Y (px)   |
-| `scale(to, duration?, ease?)`    | `1`     | Uniform scale      |
-| `rotation(to, duration?, ease?)` | `0`     | Rotation (degrees) |
-| `opacity(to, duration?, ease?)`  | `1`     | CSS opacity        |
-
-All return `ThreadGenerator`. Use `yield*` to wait for completion.
-
-```ts
-yield * box().opacity(1, 0.5); // 0.5s fade in
-yield * box().x(300, 1, "power2.inOut"); // 1s slide right
-```
-
-### Numeric prop animators
-
-For each numeric prop declared on the component, the handle gets a matching method. The method mutates the reactive `props` object directly via GSAP.
-
-```ts
-// Component declares: defineProps<{ progress: number }>()
-yield * chart().progress(100, 1.5);
-```
-
-Currently only `number`-typed props get animatable methods. Color, CSS, and other GSAP-native value types are planned (see [ROADMAP.md](ROADMAP.md) A2). For now, update non-numeric props directly via `handle.props`.
-
-### `props`
-
-The reactive props object. Mutating it triggers Vue's reactivity system.
-
-```ts
-box().props.label = "Updated";
-```
-
-### `call(method, ...args)`
-
-Calls a method exposed by the component via `expose()`. Returns a `Promise`.
-
-```ts
-// Component: expose({ reset: () => { ... } })
-await box().call("reset");
-const value = await box().call<number>("getValue");
-```
-
-Throws if the method name is not in `exposed`.
-
-### `unmount()`
-
-Removes the Vue app and container element from the DOM. The `afterReset` subscription in `VueNode` calls this automatically on scene reset — manual calls are only needed for early teardown.
-
-```ts
-box().unmount();
+type AnimatableMethod = (
+  to: number,
+  duration?: number,
+  ease?: string | ((t: number) => number),
+) => ThreadGenerator;
 ```
 
 ---
 
-## `makeAnimatable(target, key)`
+## Migration note
 
-Low-level primitive. Returns a `ThreadGenerator`-yielding function that animates a single numeric key on any plain object or DOM element via GSAP.
-
-```ts
-function makeAnimatable(
-  target: Record<string, any> | HTMLElement,
-  key: string,
-): (to: number, duration?: number, ease?: string) => ThreadGenerator;
-```
-
-**Usage**
-
-```ts
-const animateOpacity = makeAnimatable(myElement, "opacity");
-yield * animateOpacity(0, 0.3);
-```
-
-This is the primitive `VueNode.getHandle()` uses internally to build both the built-in transform methods and the numeric prop methods on a `MolinianiHandle`. You only need it directly if building custom animatable abstractions.
-
----
-
-## `runGSAPTicker()`
-
-A `ThreadGenerator` that runs for the lifetime of the scene. Each frame it calls `gsap.updateRoot(thread.time())`, syncing GSAP's internal clock to Motion Canvas's synthetic time.
-
-```ts
-function* runGSAPTicker(): ThreadGenerator
-```
-
-On first call it removes `gsap.updateRoot` from GSAP's own `requestAnimationFrame` tick (once, via an `initialized` flag). Subsequent calls from other scenes are no-ops for the removal step.
-
-`makeScene()` spawns this automatically. You should never need to call it directly unless composing a custom scene wrapper.
-
----
-
-## Types
-
-### `MolinianiHandle<P>`
-
-```ts
-type MolinianiHandle<P extends Record<string, any>> = {
-  props: P;
-  call<T = void>(method: string, ...args: unknown[]): Promise<T>;
-  unmount(): void;
-  x: AnimatableMethod;
-  y: AnimatableMethod;
-  scale: AnimatableMethod;
-  rotation: AnimatableMethod;
-  opacity: AnimatableMethod;
-} & { [K in NumericKeys<P>]: AnimatableMethod };
-
-type AnimatableMethod = (to: number, duration?: number, ease?: string) => ThreadGenerator;
-```
-
-### `VueNodeConfig<P>`
-
-```ts
-interface VueNodeConfig<P extends Record<string, any>> {
-  component: Component;
-  props: P;
-  view?: View2D;
-}
-```
+Older Moliniani APIs — `mountVue`, `MolinianiHandle`, `createVueRef`, `mnVue`,
+`mnTres`, `createTresRef` — have been removed or deprecated. Use `mn()` +
+`createMnRef()` instead. See `EXAMPLES.md` and `ARCHITECTURE.md`.

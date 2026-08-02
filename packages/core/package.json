@@ -17,11 +17,7 @@
   ],
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "import": "./dist/index.mjs",
-      "default": "./dist/index.mjs"
-    },
+    ".": "./dist/index.mjs",
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -38,8 +34,7 @@
     "@chenglou/pretext": "catalog:",
     "@motion-canvas/ffmpeg": "^1.1.1",
     "@vue/runtime-core": "catalog:",
-    "@vue/runtime-dom": "catalog:",
-    "gsap": "catalog:"
+    "@vue/runtime-dom": "catalog:"
   },
   "devDependencies": {
     "@motion-canvas/2d": "catalog:",
@@ -61,5 +56,17 @@
     "@motion-canvas/2d": "catalog:",
     "@motion-canvas/core": "catalog:",
     "vue": "catalog:"
+  },
+  "inlinedDependencies": {
+    "@pmndrs/pointer-events": "6.6.29",
+    "@tresjs/core": "5.8.0",
+    "@vue/devtools-kit": "7.7.9",
+    "@vue/devtools-shared": "7.7.9",
+    "@vueuse/core": "13.9.0",
+    "@vueuse/shared": "13.9.0",
+    "hookable": "5.5.3",
+    "perfect-debounce": "1.0.0",
+    "radashi": "12.9.0",
+    "three": "0.184.0"
   }
 }

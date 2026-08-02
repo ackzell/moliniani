@@ -15,7 +15,6 @@
     "@motion-canvas/ffmpeg": "^1.1.0",
     "@tresjs/core": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
-    "gsap": "catalog:",
     "three": "catalog:",
     "vue": "catalog:"
   },

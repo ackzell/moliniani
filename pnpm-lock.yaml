@@ -36,9 +36,6 @@ catalogs:
     '@vue/runtime-dom':
       specifier: ^3.5.33
       version: 3.5.33
-    gsap:
-      specifier: ^3.15.0
-      version: 3.15.0
     jsdom:
       specifier: ^29.1.0
       version: 29.1.0
@@ -81,12 +78,15 @@ importers:
       '@motion-canvas/ffmpeg':
         specifier: ^1.1.0
         version: 1.1.1(@motion-canvas/core@3.17.2)(@motion-canvas/vite-plugin@3.17.2(@voidzero-dev/vite-plus-core@0.1.20(@types/node@25.6.0)(jiti@2.6.1)(typescript@5.2.2)(yaml@2.8.3)))(@voidzero-dev/vite-plus-core@0.1.20(@types/node@25.6.0)(jiti@2.6.1)(typescript@5.2.2)(yaml@2.8.3))
+      '@tresjs/core':
+        specifier: 'catalog:'
+        version: 5.8.0(three@0.184.0)(vue@3.5.33(typescript@5.2.2))
       '@vitejs/plugin-vue':
         specifier: 'catalog:'
         version: 6.0.6(@voidzero-dev/vite-plus-core@0.1.20(@types/node@25.6.0)(jiti@2.6.1)(typescript@5.2.2)(yaml@2.8.3))(vue@3.5.33(typescript@5.2.2))
-      gsap:
+      three:
         specifier: 'catalog:'
-        version: 3.15.0
+        version: 0.184.0
       vue:
         specifier: 'catalog:'
         version: 3.5.33(typescript@5.2.2)
@@ -130,9 +130,6 @@ importers:
       '@vue/runtime-dom':
         specifier: 'catalog:'
         version: 3.5.33
-      gsap:
-        specifier: 'catalog:'
-        version: 3.15.0
     devDependencies:
       '@motion-canvas/2d':
         specifier: 'catalog:'
@@ -1341,9 +1338,6 @@ packages:
     resolution: {integrity: sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow==}
     engines: {node: '>= 6'}
 
-  gsap@3.15.0:
-    resolution: {integrity: sha512-dMW4CWBTUK1AEEDeZc1g4xpPGIrSf9fJF960qbTZmN/QwZIWY5wgliS6JWl9/25fpTGJrMRtSjGtOmPnfjZB+A==}
-
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
@@ -2408,6 +2402,15 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
+  '@tresjs/core@5.8.0(three@0.184.0)(vue@3.5.33(typescript@5.2.2))':
+    dependencies:
+      '@pmndrs/pointer-events': 6.6.29
+      '@vue/devtools-api': 7.7.9
+      '@vueuse/core': 13.9.0(vue@3.5.33(typescript@5.2.2))
+      radashi: 12.9.0
+      three: 0.184.0
+      vue: 3.5.33(typescript@5.2.2)
+
   '@tresjs/core@5.8.0(three@0.184.0)(vue@3.5.33(typescript@6.0.3))':
     dependencies:
       '@pmndrs/pointer-events': 6.6.29
@@ -2840,6 +2843,13 @@ snapshots:
 
   '@vue/shared@3.5.33': {}
 
+  '@vueuse/core@13.9.0(vue@3.5.33(typescript@5.2.2))':
+    dependencies:
+      '@types/web-bluetooth': 0.0.21
+      '@vueuse/metadata': 13.9.0
+      '@vueuse/shared': 13.9.0(vue@3.5.33(typescript@5.2.2))
+      vue: 3.5.33(typescript@5.2.2)
+
   '@vueuse/core@13.9.0(vue@3.5.33(typescript@6.0.3))':
     dependencies:
       '@types/web-bluetooth': 0.0.21
@@ -2848,6 +2858,10 @@ snapshots:
       vue: 3.5.33(typescript@6.0.3)
 
   '@vueuse/metadata@13.9.0': {}
+
+  '@vueuse/shared@13.9.0(vue@3.5.33(typescript@5.2.2))':
+    dependencies:
+      vue: 3.5.33(typescript@5.2.2)
 
   '@vueuse/shared@13.9.0(vue@3.5.33(typescript@6.0.3))':
     dependencies:
@@ -2992,8 +3006,6 @@ snapshots:
   glob-parent@5.1.2:
     dependencies:
       is-glob: 4.0.3
-
-  gsap@3.15.0: {}
 
   has-flag@4.0.0: {}
 

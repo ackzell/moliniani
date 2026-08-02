@@ -6,10 +6,10 @@ import {
   type ThreadGenerator,
 } from "@motion-canvas/core";
 
-const segmenter = new Intl.Segmenter();
-
+// Split into Unicode code points (handles surrogate pairs / astral characters)
+// without requiring a specific ES lib for Intl.Segmenter.
 function graphemes(text: string): string[] {
-  return Array.from(segmenter.segment(text), (s) => s.segment);
+  return Array.from(text);
 }
 
 /**
