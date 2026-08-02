@@ -19,8 +19,8 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "^5",
-    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
-    "vite-plus": "latest"
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "vite": "*"

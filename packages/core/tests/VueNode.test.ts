@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vite-plus/test";
 import { defineComponent, nextTick } from "vue";
 import { defineVueNode } from "../src/mount";
 

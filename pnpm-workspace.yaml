@@ -4,32 +4,27 @@ packages:
   - tools/*
 
 catalog:
-  "@chenglou/pretext": ^0.0.6
+  "@chenglou/pretext": ^0.0.8
   "@motion-canvas/2d": ^3.17.2
   "@motion-canvas/core": ^3.17.2
-  "@tresjs/core": ^5.8.0
+  "@tresjs/core": ^5.8.3
   "@types/node": ^24
-  "@types/three": ^0.184.0
-  "@vitejs/plugin-vue": ^6.0.6
-  "@vitest/coverage-v8": ^4.1.5
-  "@vue/runtime-core": ^3.5.33
-  "@vue/runtime-dom": ^3.5.33
+  "@types/three": ^0.185.0
+  "@vitejs/plugin-vue": ^6.0.8
+  "@vue/runtime-core": ^3.5.40
+  "@vue/runtime-dom": ^3.5.40
   jsdom: ^29.1.0
-  three: ^0.184.0
+  three: ^0.185.0
   typescript: ^5
-  vite: npm:@voidzero-dev/vite-plus-core@latest
-  vite-plus: latest
-  vitest: npm:@voidzero-dev/vite-plus-test@^0.1.20
-  vue: ^3.5.33
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.7
+  vite-plus: 0.2.7
+  vue: ^3.5.40
 
 catalogMode: prefer
 overrides:
   vite: "catalog:"
-  vitest: "catalog:"
 peerDependencyRules:
   allowAny:
     - vite
-    - vitest
   allowedVersions:
     vite: "*"
-    vitest: "*"

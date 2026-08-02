@@ -31,5 +31,16 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  plugins: [vue({ ...tresTemplateCompilerOptions }), moliniani(), motionCanvas(), ffmpeg()],
+  plugins: [
+    vue({ ...tresTemplateCompilerOptions }),
+    moliniani(),
+    motionCanvas(),
+    ffmpeg(),
+    {
+      name: "moliniani:rolldown-target-fix",
+      config() {
+        return { build: { target: "esnext" } };
+      },
+    },
+  ],
 });

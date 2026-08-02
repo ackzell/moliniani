@@ -91,7 +91,8 @@ localStorage.setItem("moliniani:debug", "1");
 - The core package's `package.json` still carries default "author/library" metadata
   placeholders; publishing is future work (see `packages/core/ROADMAP.md`).
 - `vp run -r build` builds `core`, `vite-plugin`, and `website`. The playground's
-  production `vite build` (video export) currently fails because the Motion Canvas
-  plugin sets `target: "modules"`, which the Rolldown-backed Vite in this repo's
-  catalog rejects — pre-existing dependency drift, unrelated to source changes.
-  The playground dev server (`pnpm playground`) is unaffected.
+  production build (`pnpm --filter playground build`) works because its
+  `vite.config.ts` ends with a small `moliniani:rolldown-target-fix` plugin whose
+  `config` hook overrides the Motion Canvas plugin's `build.target: "modules"` with
+  `"esnext"` (Rolldown rejects the esbuild-only `"modules"` target). Keep that
+  override last in the plugins array or the build fails again.

@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@chenglou/pretext": "catalog:",
-    "@motion-canvas/ffmpeg": "^1.1.1",
+    "@motion-canvas/ffmpeg": "^3.17.2",
     "@vue/runtime-core": "catalog:",
     "@vue/runtime-dom": "catalog:"
   },
@@ -42,14 +42,13 @@
     "@tresjs/core": "catalog:",
     "@types/node": "^25.5.0",
     "@types/three": "catalog:",
-    "@typescript/native-preview": "7.0.0-dev.20260328.1",
-    "@vitest/coverage-v8": "catalog:",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "bumpp": "^11.0.1",
     "jsdom": "catalog:",
     "three": "catalog:",
     "typescript": "^6.0.2",
-    "vite-plus": "^0.1.14",
-    "vitest": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
     "vue": "catalog:"
   },
   "peerDependencies": {
