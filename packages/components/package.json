@@ -25,7 +25,8 @@
     "prepublishOnly": "vp run build"
   },
   "dependencies": {
-    "@moliniani/core": "workspace:*"
+    "@moliniani/core": "workspace:*",
+    "animejs": "catalog:"
   },
   "devDependencies": {
     "@motion-canvas/2d": "catalog:",

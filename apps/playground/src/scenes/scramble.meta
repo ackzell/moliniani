@@ -1,0 +1,18 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "scramble",
+      "targetTime": 0.6352693389015271
+    },
+    {
+      "name": "scrambleDur",
+      "targetTime": 3.809849789213213
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 9.240153018353757
+    }
+  ],
+  "seed": 556083379
+}

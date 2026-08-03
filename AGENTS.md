@@ -71,6 +71,11 @@ pnpm playground
 
 - Use only the **current public API**: `makeScene()`, `mn()`, `createMnRef()`,
   `defineVueNode()`, `defineTresNode()`, `revealText()`, `molinianiExporterPlugin`.
+  From `@moliniani/components`: `useAnime()` is the escape hatch for driving an
+  animejs timeline from MC virtual time (see the porting guide in
+  `packages/components/README.md`). The low-level per-frame hook is the
+  `MOLINIANI_VUE_NODE_CONTEXT` seam (`registerFrameUpdater` / `readProp`),
+  documented in `packages/core/API.md`.
   Older APIs (`mountVue`, `createVueRef`, `mnVue`, `mnTres`, `createTresRef`,
   `MolinianiHandle`) were removed or deprecated — do not use or document them.
 - **In scenes, use Vue SFCs directly as JSX tags** (`<MyBox label="Hello" x={-400} />`).

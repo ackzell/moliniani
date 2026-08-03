@@ -1,6 +1,13 @@
 // packages/core/src/VueNode.ts
 import { Layout, type LayoutProps } from "@motion-canvas/2d";
-import { createApp, h, reactive, type App, type Component } from "@vue/runtime-dom";
+import {
+  createApp,
+  h,
+  reactive,
+  type App,
+  type Component,
+  type InjectionKey,
+} from "@vue/runtime-dom";
 import { useScene, Color, type ColorSignal, type SimpleSignal } from "@motion-canvas/core";
 import { ensureBridgeCanvas, ensureHtmlInCanvasCompositor, getSceneOverlayId } from "./compositor";
 import { molinianiDebugLog } from "./debug";
@@ -49,6 +56,39 @@ export const KNOWN_NODE_KEYS = new Set<string>([
   "shadowOffset",
 ]);
 
+/**
+ * Context provided by a Moliniani `VueNode` to the Vue SFC it hosts.
+ *
+ * Lets components register per-frame DOM updaters that run synchronously in the
+ * node's `render()` pass, right after the MC signal → Vue prop sync and before
+ * the compositor captures the overlay into the canvas. Because updaters run on
+ * MC's virtual timeline (never a wall clock), effects driven from here are
+ * deterministic in the editor, on scrub, and in exported video.
+ *
+ * `readProp` reads a prop's current frame value. Note that reading the SFC's
+ * own `props` inside an updater is stale by one Vue microtask flush — `readProp`
+ * reads the reactive state `_syncDom()` wrote just before the updaters run, so
+ * it is always the current frame value.
+ */
+export interface MolinianiVueNodeContext {
+  registerFrameUpdater(updater: (time: number) => void): void;
+  unregisterFrameUpdater(updater: (time: number) => void): void;
+  readProp(name: string): unknown;
+}
+
+/**
+ * Injection key for `MolinianiVueNodeContext`. Inject it from any component
+ * mounted inside a Moliniani `VueNode` overlay:
+ *
+ * ```ts
+ * const ctx = inject(MOLINIANI_VUE_NODE_CONTEXT);
+ * ctx?.registerFrameUpdater((time) => timeline.seek(time * 1000));
+ * ```
+ */
+export const MOLINIANI_VUE_NODE_CONTEXT: InjectionKey<MolinianiVueNodeContext> = Symbol(
+  "moliniani-vue-node-context",
+);
+
 let nodeCounter = 0;
 
 export class VueNode<P extends Record<string, any> = {}> extends Layout {
@@ -86,6 +126,7 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
   private readonly _nodeId: string;
   private readonly _component: Component;
   private readonly _scene: any;
+  private readonly _frameUpdaters = new Set<(time: number) => void>();
 
   constructor(props: LayoutProps & P, component: Component) {
     super(props);
@@ -140,6 +181,11 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
 
     const state = this._vueState;
     this._app = createApp({ render: () => h(this._component, state) });
+    this._app.provide(MOLINIANI_VUE_NODE_CONTEXT, {
+      registerFrameUpdater: (updater) => this._frameUpdaters.add(updater),
+      unregisterFrameUpdater: (updater) => this._frameUpdaters.delete(updater),
+      readProp: (name) => (this._vueState as Record<string, any>)[name],
+    });
     this._app.mount(this._positioner);
   }
 
@@ -149,6 +195,7 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
     this._app = null;
     this._container = null;
     this._positioner = null;
+    this._frameUpdaters.clear();
     this._didSyncDom = false;
   }
 
@@ -227,7 +274,24 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
     // _syncDom lives in render(), not draw(), so it runs every frame even when
     // MC's cache / opacity optimisations skip draw().
     this._syncDom();
+
+    // Run per-frame DOM updaters (registered by hosted SFCs) synchronously so
+    // their effects land before the compositor captures the overlay.
+    if (this._frameUpdaters.size > 0) {
+      const time = this._virtualTime();
+      for (const updater of this._frameUpdaters) {
+        updater(time);
+      }
+    }
+
     super.render(context);
+  }
+
+  private _virtualTime(): number {
+    const playback = this._scene?.playback;
+    const frame = typeof playback?.frame === "number" ? playback.frame : 0;
+    const fps = playback?.fps;
+    return typeof fps === "number" && fps > 0 ? frame / fps : frame;
   }
 
   protected override draw(context: CanvasRenderingContext2D): void {

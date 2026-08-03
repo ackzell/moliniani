@@ -9,6 +9,14 @@ Ready-made Motion Canvas nodes and pre-wrapped Vue SFCs for `@moliniani/core`.
 - **`Typewriter`** (`./vue` entry) — the same effect shipped as a pre-wrapped
   Vue SFC. Use it in a scene with `mn(Typewriter, ref, { text, fontSize, color })`
   and tween its props like any MC signal.
+- **`ScrambleText`** (`./vue` entry) — an animejs `scrambleText()` reveal driven
+  from MC virtual time. Every animejs param is a tweenable prop; `progress`
+  (`0 → 1`) plays the scramble. See the `scramble` scene in the playground.
+- **`GlowText`** (`./vue` entry) — a CSS-params animejs port that ramps a
+  text-shadow glow (and optional color cycle) as `progress` goes `0 → 1`.
+- **`useAnime()`** (root entry) — the generic driver that ports _any_ animejs
+  `animate()` timeline onto MC's virtual timeline. Use it to build your own
+  components — see [Authoring your own animejs components](#authoring-your-own-animejs-components).
 
 ```tsx
 import { TypewriterText } from "@moliniani/components";
@@ -28,6 +36,85 @@ view.add(
 yield * twRef().type("Native TypewriterText", 1.5);
 yield * vueRef().text("Vue <Typewriter>", 1.5);
 ```
+
+## Authoring your own animejs components
+
+`useAnime()` runs an animejs `animate()` timeline from Motion Canvas virtual time:
+the timeline is created with `autoplay: false` and seeked once per rendered frame
+by the Moliniani `VueNode` frame-updater seam. No wall clock, no `requestAnimationFrame`
+— so the effect is deterministic in the editor, on scrub, and in exported video.
+
+```ts
+useAnime(
+  target, // ref to the HTMLElement that receives the effect
+  () => ({ ...params }), // () => AnimationParams, re-evaluated on rebuild
+  { progress: "progress" }, // drive from the SFC's `progress` prop (0 → 1)
+);
+```
+
+The minimal port is a tiny SFC:
+
+```vue
+<script setup lang="ts">
+import { ref } from "vue";
+import { useAnime } from "@moliniani/components";
+import { someEffect } from "animejs/text";
+
+const props = defineProps<{
+  text?: string;
+  seed?: number;
+  progress?: number; // 0 → 1; tween it from the scene to play the effect
+}>();
+
+const el = ref<HTMLElement | null>(null);
+
+const anime = useAnime(
+  el,
+  () => ({
+    innerHTML: someEffect({
+      text: props.text ?? "",
+      ...(props.seed !== undefined ? { seed: props.seed } : {}),
+    }),
+  }),
+  { progress: "progress" },
+);
+
+// Rebuild the timeline when params that change its shape (text, seed…) change.
+watch(
+  () => [props.text, props.seed],
+  () => anime.rebuild(),
+);
+</script>
+
+<template>
+  <span ref="el" class="my-effect" />
+</template>
+
+<style scoped>
+.my-effect {
+  display: inline-block;
+  white-space: pre;
+}
+</style>
+```
+
+Rules of the road:
+
+- **`progress` is a 0 → 1 signal, not a duration.** Trigger the effect by tweening
+  it from the scene: `yield* ref().progress(1, 2)`. `progress = 1` seeks the
+  timeline to its end (the settled state). Omit `progress` from `useAnime` options
+  to drive from absolute virtual time instead.
+- **Numeric props only become tweenable MC signals when passed with a numeric
+  initial.** `_vueState` is built from the JSX props before Vue mounts, so
+  `scrambleRef().progress(...)` throws unless the scene passes `progress={0}`.
+  Always pass a numeric initial for every prop you want to tween.
+- **`progress: "progress"` reads the live frame value** via the seam's `readProp`,
+  avoiding Vue's one-microtask-stale props copy. A getter also works
+  (`progress: () => props.progress ?? 0`) but reads one frame behind.
+- **Register the component**: export it from `src/vue/index.ts` (via
+  `defineVueNode(...)` with an explicit props type), then run `pnpm gen`.
+- `ScrambleText.vue` and `GlowText.vue` in `src/vue/` are worked examples;
+  `GlowText` is the closest template for CSS-property ports.
 
 ## Generated SFCs
 

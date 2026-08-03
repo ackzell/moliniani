@@ -233,6 +233,39 @@ directions exactly like native MC node signals.
 are not passed to Vue as props, and are animated on the MC timeline like any native
 node: `yield* box().opacity(1, 0.5)`.
 
+> **Prop signals are only created from props that are actually passed with a
+> numeric/CSS-color/string initial value.** `_vueState` is built from the JSX props
+> before Vue mounts, so `scrambleRef().progress(...)` throws if the scene didn't
+> pass `progress={0}` (a `withDefaults()` in the SFC does not help). Always pass a
+> numeric initial for every prop you want to tween.
+
+### Frame-updater seam
+
+A `VueNode` provides a per-frame hook to the Vue SFCs it hosts. Any component
+mounted inside a Moliniani overlay can inject it:
+
+```ts
+import { MOLINIANI_VUE_NODE_CONTEXT } from "@moliniani/core";
+
+const ctx = inject(MOLINIANI_VUE_NODE_CONTEXT);
+ctx?.registerFrameUpdater((time) => timeline.seek(time * 1000));
+```
+
+The context (`MolinianiVueNodeContext`) exposes:
+
+- `registerFrameUpdater(updater)` / `unregisterFrameUpdater(updater)` — register a
+  callback that runs **synchronously inside the node's `render()` pass**, right
+  after the MC signals are pushed into Vue state (`_syncDom`) and before the
+  compositor captures the overlay into the canvas. Updaters receive the virtual
+  time in seconds (`playback.frame / fps`), so they are deterministic in the
+  editor, on scrub, and in exported video — never a wall clock.
+- `readProp(name)` — the current frame value of a prop. `_syncDom()` writes it just
+  before updaters run, so this is always this frame's signal value. Reading the
+  SFC's own `props` inside an updater is stale by one Vue microtask flush.
+
+`useAnime()` from `@moliniani/components` is the ready-made driver built on this
+seam; see the porting guide in `packages/components/README.md`.
+
 ---
 
 ## `revealText(node, duration, ease?)`

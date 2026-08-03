@@ -1,17 +1,22 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vite-plus/test";
-import { defineComponent } from "vue";
+import { defineComponent, inject } from "vue";
 import { jsx } from "@motion-canvas/2d";
 import { createMnRef, defineVueNode, mn } from "../src/mount";
+import { MOLINIANI_VUE_NODE_CONTEXT } from "../src/VueNode";
+
+// Shared, mutable scene stub so tests can drive `playback.frame`/`fps` and
+// observe the seam's virtual-time mapping.
+const scene = {
+  afterReset: { subscribe: vi.fn() },
+  onRenderLifecycle: { subscribe: vi.fn() },
+  playback: { frame: 0, fps: 30 },
+};
 
 vi.mock("@motion-canvas/core", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@motion-canvas/core")>();
   return {
     ...actual,
-    useScene: vi.fn(() => ({
-      afterReset: { subscribe: vi.fn() },
-      onRenderLifecycle: { subscribe: vi.fn() },
-      playback: { frame: 0 },
-    })),
+    useScene: vi.fn(() => scene),
   };
 });
 
@@ -44,6 +49,7 @@ vi.mock("@motion-canvas/2d", () => {
     absoluteOpacity() {
       return 1;
     }
+    render(_context: CanvasRenderingContext2D) {}
     draw(_context: CanvasRenderingContext2D) {}
   }
 
@@ -133,5 +139,66 @@ describe("defineVueNode()", () => {
 
     expect(node._vueState.label).toBe("x");
     expect(node._vueState.opacity).toBeUndefined();
+  });
+});
+
+describe("frame-updater seam", () => {
+  const captured: { ctx?: import("../src/VueNode").MolinianiVueNodeContext } = {};
+
+  const InjectedComponent = defineComponent({
+    setup() {
+      captured.ctx = inject(MOLINIANI_VUE_NODE_CONTEXT);
+      return () => null;
+    },
+  });
+
+  const renderNode = (node: any) => {
+    node.render({} as CanvasRenderingContext2D);
+  };
+
+  it("provides a context SFCs can register per-frame updaters on", () => {
+    const node = mn(InjectedComponent);
+
+    expect(captured.ctx).toBeDefined();
+
+    const updater = vi.fn();
+    captured.ctx!.registerFrameUpdater(updater);
+
+    scene.playback.frame = 60;
+    renderNode(node);
+    expect(updater).toHaveBeenCalledTimes(1);
+    expect(updater).toHaveBeenCalledWith(60 / 30);
+
+    // Unregistering stops further calls.
+    captured.ctx!.unregisterFrameUpdater(updater);
+    renderNode(node);
+    expect(updater).toHaveBeenCalledTimes(1);
+  });
+
+  it("readProp returns the current frame value synchronously inside updaters", () => {
+    const seen: { progress?: unknown } = {};
+
+    const ProgressComponent = defineComponent({
+      props: { progress: Number },
+      setup(props) {
+        const ctx = inject(MOLINIANI_VUE_NODE_CONTEXT);
+        ctx?.registerFrameUpdater(() => {
+          seen.progress = ctx.readProp("progress");
+          void props;
+        });
+        return () => null;
+      },
+    });
+
+    const node = mn(ProgressComponent, { progress: 0 }) as any;
+
+    // Tween the MC signal to a new value; _syncDom() writes it into the Vue
+    // state before the updaters run, so readProp must already see 0.5 even
+    // though Vue's own props object hasn't flushed to a microtask yet.
+    node.progress(0.5);
+    scene.playback.frame = 30;
+    renderNode(node);
+
+    expect(seen.progress).toBe(0.5);
   });
 });
