@@ -93,7 +93,25 @@ export class TresNode<P extends Record<string, any> = {}> extends Layout {
       ),
     ) as P;
 
-    this._vueState = reactive({ ...vueProps }) as P;
+    // Seed withDefaults() defaults from the component's runtime prop
+    // descriptors so a defaulted prop gets an MC signal in defineTresNode even
+    // when the scene omits it. An explicit JSX value always wins.
+    const vueState: Record<string, any> = { ...vueProps };
+    const propOptions = (
+      this._component as {
+        props?: Record<string, { default?: unknown } | null | undefined> | string[];
+      }
+    ).props;
+    if (propOptions && !Array.isArray(propOptions)) {
+      for (const [key, descriptor] of Object.entries(propOptions)) {
+        const defaultVal = descriptor?.default;
+        if (defaultVal === undefined) continue;
+        if (key in vueState && vueState[key] !== undefined) continue;
+        vueState[key] = typeof defaultVal === "function" ? defaultVal() : defaultVal;
+      }
+    }
+
+    this._vueState = reactive(vueState) as P;
     this._mountTres();
   }
 

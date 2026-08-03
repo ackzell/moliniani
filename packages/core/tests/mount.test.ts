@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vite-plus/test";
-import { defineComponent, inject } from "vue";
+import { defineComponent, inject, type DefineComponent } from "vue";
 import { jsx } from "@motion-canvas/2d";
 import { createMnRef, defineVueNode, mn } from "../src/mount";
 import { MOLINIANI_VUE_NODE_CONTEXT } from "../src/VueNode";
@@ -200,5 +200,55 @@ describe("frame-updater seam", () => {
     renderNode(node);
 
     expect(seen.progress).toBe(0.5);
+  });
+});
+
+describe("withDefaults() prop defaults", () => {
+  // Mirrors what a compiled `withDefaults(defineProps<...>(), { progress: 0 })`
+  // produces at runtime: descriptor `default` entries on the component's props.
+  // Object-descriptor props don't infer as assignable to the `mn()` SFC
+  // overloads (Vue's LooseRequired typing), so pin it like `vue/index.ts` does.
+  const DefaultedComponent = defineComponent({
+    props: {
+      progress: { type: Number, default: 0 },
+      count: { type: Number, default: () => 42 },
+      label: { type: String, default: "fallback" },
+    },
+    template: "<div>{{ progress }} {{ label }}</div>",
+  }) as unknown as DefineComponent<any, any, any>;
+
+  const renderNode = (node: any) => {
+    node.render({} as CanvasRenderingContext2D);
+  };
+
+  it("creates a tweenable signal for an omitted prop using its descriptor default", () => {
+    const node = mn(DefaultedComponent) as any;
+
+    expect(typeof node.progress).toBe("function");
+    expect(node._vueState.progress).toBe(0);
+
+    // Tween the MC signal; _syncDom() lands the new value in Vue state.
+    node.progress(0.5);
+    renderNode(node);
+    expect(node._vueState.progress).toBe(0.5);
+  });
+
+  it("an explicit JSX value wins over the descriptor default", () => {
+    const node = mn(DefaultedComponent, { progress: 0.25 }) as any;
+
+    expect(node._vueState.progress).toBe(0.25);
+    expect(node.progress()).toBe(0.25);
+  });
+
+  it("invokes function defaults", () => {
+    const node = mn(DefaultedComponent) as any;
+
+    expect(node._vueState.count).toBe(42);
+  });
+
+  it("seeds non-numeric defaults so Vue sees them", () => {
+    const node = mn(DefaultedComponent) as any;
+
+    expect(node._vueState.label).toBe("fallback");
   });
 });

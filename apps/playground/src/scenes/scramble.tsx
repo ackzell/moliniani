@@ -14,7 +14,6 @@ export default makeScene(function* (view) {
       <ScrambleText
         ref={scrambleRef}
         text="scramble text from animejs"
-        progress={0}
         seed={42}
         fontSize={48}
         color="#ff8c42"

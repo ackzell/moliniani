@@ -141,7 +141,27 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
       Object.entries(props).filter(([k]) => !KNOWN_NODE_KEYS.has(k)),
     ) as P;
 
-    this._vueState = reactive({ ...vueProps }) as P;
+    // Seed withDefaults() defaults from the component's runtime prop
+    // descriptors so a defaulted prop (e.g. `progress: 0`) gets an MC signal
+    // in defineVueNode even when the scene omits it. An explicit JSX value
+    // always wins; non-signal-eligible defaults are still seeded so Vue sees
+    // them, and defineVueNode only turns number/CSS-color/string into signals.
+    const vueState: Record<string, any> = { ...vueProps };
+    const propOptions = (
+      this._component as {
+        props?: Record<string, { default?: unknown } | null | undefined> | string[];
+      }
+    ).props;
+    if (propOptions && !Array.isArray(propOptions)) {
+      for (const [key, descriptor] of Object.entries(propOptions)) {
+        const defaultVal = descriptor?.default;
+        if (defaultVal === undefined) continue;
+        if (key in vueState && vueState[key] !== undefined) continue;
+        vueState[key] = typeof defaultVal === "function" ? defaultVal() : defaultVal;
+      }
+    }
+
+    this._vueState = reactive(vueState) as P;
     this._mountVue();
   }
 

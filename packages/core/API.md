@@ -233,11 +233,13 @@ directions exactly like native MC node signals.
 are not passed to Vue as props, and are animated on the MC timeline like any native
 node: `yield* box().opacity(1, 0.5)`.
 
-> **Prop signals are only created from props that are actually passed with a
-> numeric/CSS-color/string initial value.** `_vueState` is built from the JSX props
-> before Vue mounts, so `scrambleRef().progress(...)` throws if the scene didn't
-> pass `progress={0}` (a `withDefaults()` in the SFC does not help). Always pass a
-> numeric initial for every prop you want to tween.
+> **Prop signals are created from the JSX props actually passed, plus every prop
+> the SFC declares a `withDefaults()` default for.** `_vueState` is built from the
+> JSX props before Vue mounts and seeded with the component's runtime prop
+> defaults, so a defaulted prop (e.g. `progress: 0`) gets an MC signal even when
+> the scene omits it — `scrambleRef().progress(...)` just works. An explicit JSX
+> value always wins over the default. A prop with neither a passed initial nor a
+> `withDefaults()` default gets no signal.
 
 ### Frame-updater seam
 

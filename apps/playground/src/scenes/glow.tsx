@@ -14,7 +14,6 @@ export default makeScene(function* (view) {
       <GlowText
         ref={glowRef}
         text="power up"
-        progress={0}
         fontSize={64}
         color="#ffffff"
         glowColor="rgba(255, 180, 90, 0.95)"

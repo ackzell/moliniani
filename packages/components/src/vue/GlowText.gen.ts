@@ -8,13 +8,13 @@ import { useAnime } from "../useAnime";
 const _sfc_main = /*@__PURE__*/_defineComponent({
   __name: 'GlowText',
   props: {
-    text: { type: String, required: false },
-    fontSize: { type: Number, required: false },
-    fontFamily: { type: String, required: false },
-    color: { type: String, required: false },
-    glowColor: { type: String, required: false },
-    glowRadius: { type: Number, required: false },
-    progress: { type: Number, required: false }
+    text: { type: String, required: false, default: "" },
+    fontSize: { type: Number, required: false, default: 48 },
+    fontFamily: { type: String, required: false, default: "monospace" },
+    color: { type: String, required: false, default: "#ffffff" },
+    glowColor: { type: String, required: false, default: "rgba(255, 140, 66, 0.9)" },
+    glowRadius: { type: Number, required: false, default: 24 },
+    progress: { type: Number, required: false, default: 0 }
   },
   setup(__props: any, { expose: __expose }) {
   __expose();
@@ -29,9 +29,9 @@ const el = ref<HTMLElement | null>(null);
 useAnime(
   el,
   () => {
-    const base = props.color ?? "#ffffff";
-    const glow = props.glowColor ?? "rgba(255, 140, 66, 0.9)";
-    const radius = props.glowRadius ?? 24;
+    const base = props.color;
+    const glow = props.glowColor;
+    const radius = props.glowRadius;
     return {
       textShadow: [
         "0 0 0px rgba(0, 0, 0, 0)",
@@ -59,8 +59,8 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     ref: "el",
     class: "glow-text",
     style: _normalizeStyle({
-      fontFamily: $setup.props.fontFamily ?? 'monospace',
-      fontSize: `${$setup.props.fontSize ?? 48}px`,
+      fontFamily: $setup.props.fontFamily,
+      fontSize: `${$setup.props.fontSize}px`,
     })
   }, _toDisplayString($setup.props.text), 5 /* TEXT, STYLE */))
 }

@@ -104,10 +104,12 @@ Rules of the road:
   it from the scene: `yield* ref().progress(1, 2)`. `progress = 1` seeks the
   timeline to its end (the settled state). Omit `progress` from `useAnime` options
   to drive from absolute virtual time instead.
-- **Numeric props only become tweenable MC signals when passed with a numeric
-  initial.** `_vueState` is built from the JSX props before Vue mounts, so
-  `scrambleRef().progress(...)` throws unless the scene passes `progress={0}`.
-  Always pass a numeric initial for every prop you want to tween.
+- **Declare a default via `withDefaults()` (recommended) or pass a numeric initial
+  to make a prop tweenable.** Props with a `withDefaults()` default get an MC
+  signal automatically even when the scene omits them, so
+  `scrambleRef().progress(...)` works without the scene passing `progress={0}`.
+  Otherwise pass a numeric initial; a prop with neither default nor initial gets
+  no signal.
 - **`progress: "progress"` reads the live frame value** via the seam's `readProp`,
   avoiding Vue's one-microtask-stale props copy. A getter also works
   (`progress: () => props.progress ?? 0`) but reads one frame behind.

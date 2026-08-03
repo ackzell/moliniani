@@ -2,15 +2,26 @@
 import { ref } from "vue";
 import { useAnime } from "../useAnime";
 
-const props = defineProps<{
-  text?: string;
-  fontSize?: number;
-  fontFamily?: string;
-  color?: string;
-  glowColor?: string;
-  glowRadius?: number;
-  progress?: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    text?: string;
+    fontSize?: number;
+    fontFamily?: string;
+    color?: string;
+    glowColor?: string;
+    glowRadius?: number;
+    progress?: number;
+  }>(),
+  {
+    text: "",
+    fontSize: 48,
+    fontFamily: "monospace",
+    color: "#ffffff",
+    glowColor: "rgba(255, 140, 66, 0.9)",
+    glowRadius: 24,
+    progress: 0,
+  },
+);
 
 const el = ref<HTMLElement | null>(null);
 
@@ -20,9 +31,9 @@ const el = ref<HTMLElement | null>(null);
 useAnime(
   el,
   () => {
-    const base = props.color ?? "#ffffff";
-    const glow = props.glowColor ?? "rgba(255, 140, 66, 0.9)";
-    const radius = props.glowRadius ?? 24;
+    const base = props.color;
+    const glow = props.glowColor;
+    const radius = props.glowRadius;
     return {
       textShadow: [
         "0 0 0px rgba(0, 0, 0, 0)",
@@ -43,8 +54,8 @@ useAnime(
     ref="el"
     class="glow-text"
     :style="{
-      fontFamily: props.fontFamily ?? 'monospace',
-      fontSize: `${props.fontSize ?? 48}px`,
+      fontFamily: props.fontFamily,
+      fontSize: `${props.fontSize}px`,
     }"
     >{{ props.text }}</span
   >
