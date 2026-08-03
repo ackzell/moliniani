@@ -5,6 +5,7 @@ const props = defineProps<{
   height?: number;
   backgroundColor?: string;
   textColor?: string;
+  borderRadius?: number;
 }>();
 </script>
 
@@ -22,6 +23,7 @@ const props = defineProps<{
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: v-bind('props.borderRadius ? `${props.borderRadius}px` : "10px"');
 }
 
 .my-label {

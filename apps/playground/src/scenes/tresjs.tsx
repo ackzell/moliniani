@@ -6,7 +6,7 @@ import {
   waitFor,
   waitUntil,
 } from "@motion-canvas/core";
-import { createMnRef, makeScene, mn } from "@moliniani/core";
+import { createMnRef, makeScene } from "@moliniani/core";
 import TresBoxSFC from "@/components/TresBox.vue";
 import MyBox from "@/components/MyBox.vue";
 
@@ -18,24 +18,20 @@ export default makeScene(function* (view) {
 
   view.add(
     <>
-      {mn(TresBoxSFC, boxRef, {
-        rotationY: 0,
-        rotationX: 0,
-        color: "#4488ff",
-        width: 700,
-        height: 500,
-        cameraX: 0,
-        cameraY: 2,
-        cameraZ: 7,
-        lookAtX: 0,
-        lookAtY: 0,
-        lookAtZ: 0,
-        x: -500,
-      })}
-      ,
-      {mn(MyBox, vueBoxRef, {
-        x: 500,
-      })}
+      <TresBoxSFC
+        ref={boxRef}
+        rotationY={0}
+        rotationX={0}
+        color="#4488ff"
+        cameraX={0}
+        cameraY={2}
+        cameraZ={7}
+        lookAtX={0}
+        lookAtY={0}
+        lookAtZ={0}
+        x={-500}
+      />
+      <MyBox ref={vueBoxRef} x={500} />
     </>,
   );
 
@@ -51,7 +47,8 @@ export default makeScene(function* (view) {
     vueBoxRef().x(0, 5, easeInOutCubic),
   );
 
-  // Spin the box and tilt it on the MC timeline — no imperative Three.js code.
+  // Spin the box and tilt it on the MC timeline
+  // — no imperative Three.js code.
   yield* all(
     boxRef().rotationY(Math.PI * 2, 3, easeInOutCubic),
     boxRef().rotationX(Math.PI * 0.3, 1.5, easeInOutCubic),
@@ -61,7 +58,7 @@ export default makeScene(function* (view) {
 
   yield* all(
     boxRef().cameraX(2, 5, easeInOutCubic),
-    boxRef().cameraY(2, 5, easeInOutCubic),
+    boxRef().cameraY(5, 5, easeInOutCubic),
     boxRef().cameraZ(2, 5, easeInOutCubic),
   );
 

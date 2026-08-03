@@ -1,13 +1,14 @@
 /// <reference types="@motion-canvas/core/project" />
 
 /**
- * Authoring shim for `*.vue` in Motion Canvas scene files.
+ * Fallback authoring shim for `*.vue` in Motion Canvas scene files.
  *
  * At runtime, Moliniani's Vite plugin wraps SFC default exports with
- * `defineVueNode()`. In editor/TS tooling, Vue language services can override
- * stricter constructor typings with component-instance types, which breaks JSX
- * NodeConstructor checks. Keep this declaration permissive so scene syntax can
- * remain 1:1 and cast-free.
+ * `defineVueNode()` / `defineTresNode()` and emits a *typed* declaration next to
+ * each `.vue` file (e.g. `MyBox.vue.d.ts`), so processed components get full
+ * prop IntelliSense. This wildcard only applies to `.vue` files the plugin has
+ * not emitted a declaration for yet (e.g. brand-new SFCs before the first
+ * dev-server run); keep it permissive so scene syntax stays 1:1 and cast-free.
  */
 declare module "*.vue" {
   const VueNodeClass: new (props: Record<string, any>) => any;

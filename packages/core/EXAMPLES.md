@@ -19,15 +19,15 @@ defineProps<{ text: string }>();
 </template>
 ```
 
-```ts
+```tsx
 // scenes/hello.tsx
 import { waitFor } from "@motion-canvas/core";
-import { makeScene, mn, createMnRef } from "@moliniani/core";
+import { createMnRef, makeScene } from "@moliniani/core";
 import Label from "../components/Label.vue";
 
 export default makeScene(function* (view) {
   const label = createMnRef(Label);
-  view.add(mn(Label, label, { text: "Hello, Moliniani", opacity: 0 }));
+  view.add(<Label ref={label} text="Hello, Moliniani" opacity={0} />);
 
   yield* label().opacity(1, 0.5);
   yield* waitFor(2);
@@ -62,9 +62,9 @@ defineProps<{ progress: number; color: string; label: string }>();
 </template>
 ```
 
-```ts
+```tsx
 const bar = createMnRef(ProgressBar);
-view.add(mn(ProgressBar, bar, { progress: 0, color: "#4caf50", label: "Start" }));
+view.add(<ProgressBar ref={bar} progress={0} color="#4caf50" label="Start" />);
 
 yield * bar().progress(480, 2); // animate numeric prop
 yield * bar().color("#ff6644", 1); // animate color prop
@@ -100,33 +100,30 @@ Moliniani does not replace Motion Canvas — it adds Vue on top. The full MC API
 (`createRef`, `Rect`, `all`, `chain`, `waitFor`, signals, transitions) is available in
 every scene and can be mixed freely with Vue nodes.
 
-```ts
-import { all, createRef, waitFor } from '@motion-canvas/core'
-import { Rect } from '@motion-canvas/2d'
-import { makeScene, mn, createMnRef } from '@moliniani/core'
-import MyBox from '../components/MyBox.vue'
+```tsx
+import { all, createRef, waitFor } from "@motion-canvas/core";
+import { Rect } from "@motion-canvas/2d";
+import { createMnRef, makeScene } from "@moliniani/core";
+import MyBox from "../components/MyBox.vue";
 
 export default makeScene(function* (view) {
-  const box = createMnRef(MyBox)
-  const rect = createRef<Rect>()
+  const box = createMnRef(MyBox);
+  const rect = createRef<Rect>();
 
   view.add(
     <>
-      {mn(MyBox, box, { opacity: 0 })}
+      <MyBox ref={box} opacity={0} />
       <Rect ref={rect} width={200} height={200} fill="#333" opacity={0} />
     </>,
-  )
+  );
 
   yield* all(
     box().opacity(1, 0.5),
-    rect().opacity(1, 0.5),   // MC node animates with its own API
-  )
-  yield* waitFor(1)
-  yield* all(
-    box().x(300, 1),
-    rect().position.x(300, 1),
-  )
-})
+    rect().opacity(1, 0.5), // MC node animates with its own API
+  );
+  yield* waitFor(1);
+  yield* all(box().x(300, 1), rect().position.x(300, 1));
+});
 ```
 
 > **Current limitation**: the Vue overlay always composites **above** all MC 2D shapes
@@ -161,24 +158,25 @@ defineProps<{
 </template>
 ```
 
-```ts
+```tsx
 import { easeInOutCubic } from "@motion-canvas/core";
-import { makeScene, mn, createMnRef } from "@moliniani/core";
+import { createMnRef, makeScene } from "@moliniani/core";
 import TresBox from "../components/TresBox.vue";
 
 export default makeScene(function* (view) {
   const box = createMnRef(TresBox);
 
   view.add(
-    mn(TresBox, box, {
-      rotationY: 0,
-      color: "#4488ff",
-      width: 700,
-      height: 500,
-      cameraX: 0,
-      cameraY: 2,
-      cameraZ: 7,
-    }),
+    <TresBox
+      ref={box}
+      rotationY={0}
+      color="#4488ff"
+      width={700}
+      height={500}
+      cameraX={0}
+      cameraY={2}
+      cameraZ={7}
+    />,
   );
 
   yield* box().rotationY(Math.PI * 2, 3, easeInOutCubic);
@@ -186,8 +184,8 @@ export default makeScene(function* (view) {
 });
 ```
 
-`mn()` auto-detects the TresJS component by its `Tres`-prefixed name; name 3D scene
-components accordingly.
+TresJS 3D components are detected by their `Tres`-prefixed filename and wrapped with
+`defineTresNode()` by the Vite plugin; name 3D scene components accordingly.
 
 ---
 
@@ -212,8 +210,8 @@ yield* revealText(textRef(), 1.5);
 
 Remove a node before the scene ends:
 
-```ts
-view.add(mn(Tooltip, tooltipRef, { text: "Hover info" }));
+```tsx
+view.add(<Tooltip ref={tooltipRef} text="Hover info" />);
 yield * waitFor(2);
 tooltipRef().dispose(); // removed immediately
 ```

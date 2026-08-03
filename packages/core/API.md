@@ -18,8 +18,9 @@ export default defineConfig({
 });
 ```
 
-The plugin automatically wraps every `.vue` import with `defineVueNode()`, making it
-a Motion Canvas `Node` subclass usable directly in JSX or via `mn()`.
+The plugin automatically wraps every `.vue` import with `defineVueNode()` /
+`defineTresNode()`, making it a Motion Canvas `Node` subclass usable directly in
+JSX or via `mn()`.
 
 ---
 
@@ -46,10 +47,42 @@ export default makeScene(function* (view) {
 
 ---
 
+## Using components as JSX tags (recommended)
+
+Because the Vite plugin turns every `.vue` import into a Motion Canvas `Node`
+constructor, you can use your components directly as JSX tags — no `mn()` wrapper
+needed:
+
+```tsx
+import MyBox from "./components/MyBox.vue"; // 2D Vue overlay
+import TresBox from "./components/TresBox.vue"; // 3D TresJS scene
+
+view.add(<MyBox label="Hello" x={-400} opacity={1} />);
+view.add(<TresBox rotationY={0} color="#4488ff" width={700} height={500} />);
+```
+
+- Props declared on the SFC are **type-checked and autocompleted** — the plugin
+  emits a typed declaration (`MyBox.vue.d.ts`) next to each `.vue` file carrying
+  the `defineProps` types.
+- `ref={box}` works exactly like `mn()`: `box()` returns the node and its
+  animatable prop methods.
+- `opacity`, `x`, `y`, `scale`, ... are Motion Canvas node keys — they are not
+  passed to Vue and are animated on the MC timeline like any native node.
+- TresJS 3D components are detected by their `Tres`-prefixed filename and wrapped
+  with `defineTresNode()`, so `<TresBox ... />` mounts as a WebGL node.
+- `.vue` files imported by other `.vue` files are treated as nested components and
+  left untouched, so SFC-in-SFC composition keeps working.
+
+`mn()` remains fully supported as a shorthand for `jsx()` — the two forms are
+equivalent.
+
+---
+
 ## `mn(sfc, props?)` / `mn(sfc, ref?, props?)`
 
-Places a Vue SFC as a node in the Motion Canvas scene graph. Auto-detects whether the
-component is a 2D Vue overlay or a TresJS 3D scene and routes to the right renderer.
+Shorthand for placing a Vue SFC as a node via MC's `jsx()` runtime — equivalent to
+writing the component as a JSX tag. Auto-detects whether the component is a 2D Vue
+overlay or a TresJS 3D scene and routes to the right renderer.
 
 ```ts
 function mn<P>(sfc: Component, props?: P): Node;
@@ -73,7 +106,10 @@ yield * box().opacity(0, 1);
 
 ### TresJS auto-detection
 
-`mn()` treats a component as a TresJS 3D scene when:
+With the Vite plugin, Tres detection happens at build time: `.vue` files whose
+filename contains `Tres` (e.g. `TresBox.vue`) are wrapped with `defineTresNode()`,
+so `<TresBox ... />` works as a JSX tag. `mn()` re-detects at mount time when it
+receives a component:
 
 - it carries the `__mnTresWrapped` / `__mnTres` markers (set by `defineTresNode()`), or
 - its filename or name contains `Tres` (e.g. `TresBox.vue`).
@@ -96,13 +132,13 @@ function createMnRef<C extends DefineComponent<any, any, any>>(
 **Usage**
 
 ```ts
-import { createMnRef, makeScene, mn } from "@moliniani/core";
+import { createMnRef, makeScene } from "@moliniani/core";
 import MyBox from "./components/MyBox.vue";
 
 export default makeScene(function* (view) {
   const box = createMnRef(MyBox);
 
-  view.add(mn(MyBox, box, { label: "Hello", opacity: 0 }));
+  view.add(<MyBox ref={box} label="Hello" opacity={0} />);
 
   yield* box().opacity(1, 0.5);
 });
@@ -180,7 +216,7 @@ produced by `defineVueNode()` / `defineTresNode()`.
 
 For each **numeric**, **CSS-color**, or **plain-string** prop declared on the SFC, a
 matching Motion Canvas signal is created and exposed as an animatable method on the
-instance:
+instance. These are fully typed through `createMnRef()`:
 
 ```ts
 // Component: defineProps<{ progress: number, color: string, label: string }>()
@@ -284,28 +320,43 @@ type VueNodeConstructor<P extends Record<string, any>> = {
     readonly _vueState: P;
     [key: string]: any;
   } & {
-    [K in NumericKeys<P>]: AnimatableMethod;
+    [K in NumericKeys<P>]: NumericMethod;
+  } & {
+    [K in StringKeys<P>]: StringMethod;
   };
 };
 ```
 
-### `NumericKeys<P>`
+### `NumericKeys<P>` / `StringKeys<P>`
 
 ```ts
 type NumericKeys<P> = {
   [K in keyof P]: NonNullable<P[K]> extends number ? K : never;
 }[keyof P];
+
+type StringKeys<P> = {
+  [K in keyof P]: NonNullable<P[K]> extends string ? K : never;
+}[keyof P];
 ```
 
-### `AnimatableMethod`
+### `NumericMethod` / `StringMethod`
 
 ```ts
-type AnimatableMethod = (
+type NumericMethod = (
   to: number,
   duration?: number,
   ease?: string | ((t: number) => number),
 ) => ThreadGenerator;
+
+type StringMethod = (
+  to: string,
+  duration?: number,
+  ease?: string | ((t: number) => number),
+) => ThreadGenerator;
 ```
+
+Numeric props get a `NumericMethod`; string props (including CSS colors) get a
+`StringMethod`.
 
 ---
 

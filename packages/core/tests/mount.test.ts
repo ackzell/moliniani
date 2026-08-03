@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vite-plus/test";
 import { defineComponent } from "vue";
+import { jsx } from "@motion-canvas/2d";
 import { createMnRef, defineVueNode, mn } from "../src/mount";
 
 vi.mock("@motion-canvas/core", async (importOriginal) => {
@@ -97,6 +98,22 @@ describe("mn()", () => {
   it("creates animatable signal methods for numeric, color and string props", () => {
     const node = mn(TestComponent, { label: "Hello", count: 0, color: "#ff0000" }) as any;
 
+    expect(typeof node.count).toBe("function");
+    expect(typeof node.label).toBe("function");
+    expect(typeof node.color).toBe("function");
+  });
+
+  it("is usable directly as an MC JSX tag (mn() is sugar for jsx)", () => {
+    const Cls = defineVueNode(TestComponent);
+    const ref = createMnRef(TestComponent);
+
+    // `<MyBox ref={ref} label="Hello" count={0} color="#ff0000" />` compiles to exactly this.
+    // The config is spread loosely: runtime props like label/count aren't part of
+    // MC's JSXProps type (the mock jsx accepts any config).
+    const node = jsx(Cls, { ref, label: "Hello", count: 0, color: "#ff0000" } as any) as any;
+
+    expect(ref()).toBe(node);
+    expect(node).toBeInstanceOf(Cls);
     expect(typeof node.count).toBe("function");
     expect(typeof node.label).toBe("function");
     expect(typeof node.color).toBe("function");
