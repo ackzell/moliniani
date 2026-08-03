@@ -88,24 +88,36 @@ export function extractPropsType(source: string): string | undefined {
  * ```
  */
 export function moliniani(): Plugin {
+  // A .vue module imported by another .vue file is a nested component and must
+  // stay a plain Vue component so SFC-in-SFC composition keeps working. The
+  // importer graph is not exposed here (`ModuleInfo.importers` is unsupported by
+  // the current Vite), so we build the reverse index ourselves: Vite transforms
+  // an importer before its dependencies, so by the time a nested child is
+  // transformed its parent has already recorded it below.
+  const nestedVueIds = new Set<string>();
+
   return {
     name: "vite-plugin-moliniani",
     // Run after @vitejs/plugin-vue so the SFC has already been compiled to JS.
     enforce: "post",
 
-    transform(code: string, id: string) {
+    async transform(code: string, id: string) {
       // Process only plain SFC entry modules. Skip vue subpart requests such as
       // ?vue&type=style or ?vue&type=template, and query imports like ?raw.
       if (!id.includes(".vue") || id.includes("?")) return null;
       if (/[?&]type=/.test(id)) return null;
 
+      // Record any .vue files this SFC imports as nested components.
+      const vueImportSpecifierRe = /(?:from\s+|import\s+)["']([^"']+\.vue)["']/g;
+      for (const match of code.matchAll(vueImportSpecifierRe)) {
+        const resolved = await this.resolve(match[1], id);
+        if (resolved) nestedVueIds.add(resolved.id);
+      }
+
       // Extract filename for Tres detection (e.g., "TresBox" from "TresBox.vue")
       const fileName = path.basename(id).replace(/\.vue$/, "");
 
-      // A .vue module imported by another .vue file is a nested component: keep
-      // it a plain Vue component so SFC-in-SFC composition keeps working.
-      const importers = this.getModuleInfo(id)?.importers ?? [];
-      const isNested = importers.some((importer) => importer.includes(".vue"));
+      const isNested = nestedVueIds.has(id);
 
       let propsType: string | undefined;
       try {

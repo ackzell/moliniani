@@ -23,6 +23,8 @@ export default makeScene(function* (view) {
         rotationY={0}
         rotationX={0}
         color="#4488ff"
+        width={700}
+        height={500}
         cameraX={0}
         cameraY={2}
         cameraZ={7}

@@ -1,5 +1,5 @@
 // packages/core/src/types.ts
-import type { Node, NodeProps } from "@motion-canvas/2d";
+import type { Layout, LayoutProps } from "@motion-canvas/2d";
 import type { ThreadGenerator } from "@motion-canvas/core";
 
 export type NumericKeys<P> = {
@@ -28,7 +28,7 @@ type StringMethod = (to: string, duration?: number, ease?: Timing) => ThreadGene
  */
 export type VueNodeConstructor<P extends Record<string, any>> = {
   isClass: true;
-  new (props: NodeProps & P): Node & {
+  new (props: LayoutProps & P): Layout & {
     readonly _vueState: P;
     [key: string]: any;
   } & {

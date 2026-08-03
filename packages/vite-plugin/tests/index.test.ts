@@ -51,12 +51,16 @@ describe("moliniani() transform", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  function run(code: string, id: string, importers: string[] = []) {
-    const plugin = moliniani();
-    return (plugin.transform as any).call({ getModuleInfo: () => ({ importers }) }, code, id);
+  function run(code: string, id: string, plugin = moliniani()) {
+    const ctx = {
+      resolve: async (specifier: string, importer: string) => ({
+        id: path.resolve(path.dirname(importer), specifier),
+      }),
+    };
+    return (plugin.transform as any).call(ctx, code, id);
   }
 
-  it("wraps the default export with defineVueNode and emits a typed d.ts", () => {
+  it("wraps the default export with defineVueNode and emits a typed d.ts", async () => {
     const id = path.join(dir, "MyBox.vue");
     writeFileSync(
       id,
@@ -64,7 +68,7 @@ describe("moliniani() transform", () => {
     );
     const code = `import { defineComponent } from 'vue';\nconst __sfc__ = defineComponent({});\nexport default __sfc__;\n`;
 
-    const result = run(code, id);
+    const result = await run(code, id);
 
     expect(result).not.toBeNull();
     expect((result as any).code).toContain("defineVueNode");
@@ -74,20 +78,22 @@ describe("moliniani() transform", () => {
     expect(dts).toContain("VueNodeConstructor<{ label?: string; width?: number }>");
   });
 
-  it("wraps Tres-named SFCs with defineTresNode", () => {
+  it("wraps Tres-named SFCs with defineTresNode", async () => {
     const id = path.join(dir, "TresBox.vue");
     const code = `const __sfc__ = {};\nexport default __sfc__;\n`;
 
-    const result = run(code, id);
+    const result = await run(code, id);
 
     expect((result as any).code).toContain("defineTresNode");
   });
 
-  it("leaves .vue modules imported by another .vue file untouched", () => {
-    const id = path.join(dir, "Child.vue");
-    const code = `const __sfc__ = {};\nexport default __sfc__;\n`;
+  it("leaves .vue modules imported by another .vue file untouched", async () => {
+    const plugin = moliniani();
+    const childId = path.join(dir, "Child.vue");
+    const parentCode = `import Child from './Child.vue';\nconst __sfc__ = {};\nexport default __sfc__;\n`;
 
-    const result = run(code, id, [path.join(dir, "Parent.vue")]);
+    await run(parentCode, path.join(dir, "Parent.vue"), plugin);
+    const result = await run(`const __sfc__ = {};\nexport default __sfc__;\n`, childId, plugin);
 
     expect(result).toBeNull();
   });
