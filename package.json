@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "ready": "vp check && vp run -r test && vp run -r build",
+    "gen": "pnpm --filter components gen",
     "dev": "vp run website#dev",
     "prepare": "vp config",
     "playground": "pnpm --filter playground serve",
     "core": "pnpm --filter core dev"
   },
   "devDependencies": {
-    "vite": "catalog:",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.7",
     "vite-plus": "catalog:"
   },
   "engines": {

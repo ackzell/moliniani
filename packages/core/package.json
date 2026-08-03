@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@chenglou/pretext": "catalog:",
+    "@moliniani/utils": "workspace:*",
     "@motion-canvas/ffmpeg": "^3.17.2",
     "@vue/runtime-core": "catalog:",
     "@vue/runtime-dom": "catalog:"
@@ -40,14 +41,14 @@
     "@motion-canvas/2d": "catalog:",
     "@motion-canvas/core": "catalog:",
     "@tresjs/core": "catalog:",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.9.5",
     "@types/three": "catalog:",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
-    "bumpp": "^11.0.1",
+    "bumpp": "^11.1.0",
     "jsdom": "catalog:",
     "three": "catalog:",
-    "typescript": "^6.0.2",
-    "vite": "catalog:",
+    "typescript": "^6.0.3",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.7",
     "vite-plus": "catalog:",
     "vue": "catalog:"
   },
@@ -57,15 +58,12 @@
     "vue": "catalog:"
   },
   "inlinedDependencies": {
-    "@pmndrs/pointer-events": "6.6.29",
-    "@tresjs/core": "5.8.0",
-    "@vue/devtools-kit": "7.7.9",
-    "@vue/devtools-shared": "7.7.9",
-    "@vueuse/core": "13.9.0",
-    "@vueuse/shared": "13.9.0",
-    "hookable": "5.5.3",
-    "perfect-debounce": "1.0.0",
-    "radashi": "12.9.0",
-    "three": "0.184.0"
+    "@pmndrs/pointer-events": "6.6.30",
+    "@tresjs/core": "5.8.3",
+    "@vue/devtools-api": "8.2.1",
+    "@vueuse/core": "14.4.0",
+    "@vueuse/shared": "14.4.0",
+    "radashi": "12.9.1",
+    "three": "0.185.1"
   }
 }

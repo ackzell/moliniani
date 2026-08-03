@@ -7,6 +7,9 @@
     "skipLibCheck": true,
     "paths": {
       "@moliniani/core": ["../../packages/core/src/index.ts"],
+      "@moliniani/utils": ["../../packages/utils/src/index.ts"],
+      "@moliniani/components": ["../../packages/components/src/index.ts"],
+      "@moliniani/components/vue": ["../../packages/components/src/vue/index.ts"],
       "@/*": ["./src/*"]
     }
   }

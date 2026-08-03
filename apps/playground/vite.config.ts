@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import motionCanvas from "@motion-canvas/vite-plugin";
 import ffmpeg from "@motion-canvas/ffmpeg";
 import vue from "@vitejs/plugin-vue";
@@ -27,13 +27,19 @@ const tresTemplateCompilerOptions = {
 export default defineConfig({
   resolve: {
     alias: {
+      "@moliniani/components/vue": path.resolve(
+        __dirname,
+        "../../packages/components/src/vue/index.ts",
+      ),
+      "@moliniani/components": path.resolve(__dirname, "../../packages/components/src/index.ts"),
+      "@moliniani/utils": path.resolve(__dirname, "../../packages/utils/src/index.ts"),
       "@moliniani/core": path.resolve(__dirname, "../../packages/core/src/index.ts"),
       "@": path.resolve(__dirname, "./src"),
     },
   },
   plugins: [
     vue({ ...tresTemplateCompilerOptions }),
-    moliniani(),
+    moliniani() as unknown as Plugin,
     motionCanvas(),
     ffmpeg(),
     {

@@ -22,6 +22,6 @@
     "@motion-canvas/ui": "^3.17.2",
     "@motion-canvas/vite-plugin": "^3.17.2",
     "typescript": "~5.2.2",
-    "vite": "catalog:"
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.7"
   }
 }

@@ -104,6 +104,6 @@ exporter in render settings.
 | `compositor.ts`     | HTML-in-canvas bridge, render-lifecycle hook            |
 | `scene.ts`          | `makeScene()`                                           |
 | `exporter.ts`       | `molinianiExporterPlugin`                               |
-| `textAnimations.ts` | `revealText()`                                          |
+| `textAnimations.ts` | re-exports `revealText()` from `@moliniani/utils`       |
 | `PretextText.ts`    | pluggable text-layout engine hooks                      |
 | `debug.ts`          | opt-in debug logger                                     |

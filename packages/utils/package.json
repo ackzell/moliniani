@@ -1,0 +1,38 @@
+{
+  "name": "@moliniani/utils",
+  "version": "0.0.1",
+  "description": "Reusable utilities and Motion Canvas generators for Moliniani projects.",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "check": "vp check",
+    "prepublishOnly": "vp run build"
+  },
+  "devDependencies": {
+    "@motion-canvas/2d": "catalog:",
+    "@motion-canvas/core": "catalog:",
+    "@types/node": "^25.9.5",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
+    "jsdom": "catalog:",
+    "typescript": "^6.0.3",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.7",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "@motion-canvas/2d": "catalog:",
+    "@motion-canvas/core": "catalog:"
+  }
+}
