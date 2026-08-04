@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "focus-blur-resolve",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 1.2
+    }
+  ],
+  "seed": 2220186618
+}

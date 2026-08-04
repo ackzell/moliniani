@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "short-slide-down",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 1.2
+    }
+  ],
+  "seed": 1139564741
+}

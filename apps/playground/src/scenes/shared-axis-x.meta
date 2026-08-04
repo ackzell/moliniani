@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "shared-axis-x",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 1.2
+    }
+  ],
+  "seed": 604899574
+}

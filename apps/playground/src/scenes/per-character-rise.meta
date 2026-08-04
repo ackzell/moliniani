@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "per-character-rise",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 1.2
+    }
+  ],
+  "seed": 2702564814
+}

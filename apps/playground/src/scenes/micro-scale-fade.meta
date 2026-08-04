@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "micro-scale-fade",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 2.0210087560684933
+    }
+  ],
+  "seed": 3384443580
+}

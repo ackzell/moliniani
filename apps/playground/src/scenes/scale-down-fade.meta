@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "scale-down-fade",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 1.8877281138495823
+    }
+  ],
+  "seed": 263995934
+}

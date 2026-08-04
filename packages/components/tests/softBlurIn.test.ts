@@ -1,0 +1,96 @@
+import { describe, it, expect, vi } from "vite-plus/test";
+import { createApp, defineComponent, h, provide } from "vue";
+import SoftBlurIn from "../src/vue/SoftBlurIn.gen";
+
+// `useSplitTextAnimation` injects the Moliniani VueNode context from core;
+// importing the real package would drag Motion Canvas into the jsdom test env.
+const mocks = vi.hoisted(() => ({
+  contextKey: Symbol("mocked-mn-context"),
+}));
+vi.mock("@moliniani/core", () => ({
+  MOLINIANI_VUE_NODE_CONTEXT: mocks.contextKey,
+  molinianiDebugLog: () => {},
+}));
+
+// animejs's TextSplitter needs a ResizeObserver and document.fonts; jsdom has
+// neither. Report fonts as loaded so line splitting is deterministic.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+if (document.fonts === undefined) {
+  Object.defineProperty(document, "fonts", {
+    configurable: true,
+    value: { status: "loaded", ready: Promise.resolve() },
+  });
+}
+
+describe("SoftBlurIn SFC", () => {
+  const makeMounted = (props: Record<string, unknown>) => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const values: Record<string, number> = { progress: 0 };
+    let capturedUpdater: ((time: number) => void) | undefined;
+
+    const ctx = {
+      registerFrameUpdater: (updater: (time: number) => void) => {
+        capturedUpdater = updater;
+      },
+      unregisterFrameUpdater: () => {},
+      readProp: (key: string) => values[key],
+    };
+
+    const Comp = defineComponent({
+      setup() {
+        provide(mocks.contextKey, ctx);
+        return () => h(SoftBlurIn, props);
+      },
+    });
+
+    const app = createApp({ render: () => h(Comp) });
+    app.mount(host);
+    const span = host.querySelector<HTMLElement>(".soft-blur-in")!;
+
+    return { app, span, values, capturedUpdater };
+  };
+
+  it("splits the text into data-char units with the effect class", () => {
+    const { app, span } = makeMounted({ text: "hello" });
+    expect(span.querySelectorAll("[data-char].soft-blur-in-chars").length).toBe(5);
+    app.unmount();
+  });
+
+  it("starts blurred and below the baseline at progress 0, settled by progress 1", () => {
+    const { span, values, capturedUpdater } = makeMounted({ text: "hello" });
+    const chars = span.querySelectorAll<HTMLElement>("[data-char]");
+
+    values.progress = 0;
+    capturedUpdater!(0);
+    expect(chars[0].style.opacity).toBe("0");
+    expect(chars[0].style.filter).toContain("blur(12px)");
+
+    values.progress = 1;
+    capturedUpdater!(1);
+    expect(chars[0].style.opacity).toBe("1");
+    expect(chars[0].style.filter).toContain("blur(0px)");
+  });
+
+  it("cascades the units via the stagger", () => {
+    const { span, values, capturedUpdater } = makeMounted({ text: "abc" });
+    const chars = span.querySelectorAll<HTMLElement>("[data-char]");
+
+    // Early on, the first char has started revealing while the last (stagger
+    // 18ms × 2, on a 648ms duration) has not: total ≈ 684ms, last char starts
+    // at 36ms.
+    values.progress = 0.04;
+    capturedUpdater!(0.04);
+    expect(Number(chars[0].style.opacity)).toBeGreaterThan(0);
+    expect(chars[2].style.opacity).toBe("0");
+
+    values.progress = 1;
+    capturedUpdater!(1);
+    expect(chars[2].style.opacity).toBe("1");
+  });
+});

@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "depth-parallax-words",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 1.802428502829479
+    }
+  ],
+  "seed": 4223554793
+}

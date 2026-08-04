@@ -5,6 +5,11 @@ import ScrambleTextSfc from "./ScrambleText.gen";
 import GlowTextSfc from "./GlowText.gen";
 import SplitTextSfc from "./SplitText.gen";
 import RevealTextSfc from "./RevealText.gen";
+import SoftBlurInSfc from "./SoftBlurIn.gen";
+import TypingTextSfc from "./TypingText.gen";
+import ShimmerSweepSfc from "./ShimmerSweep.gen";
+
+export * from "./TextEffectWrappers";
 
 export interface TypewriterProps {
   text?: string;
@@ -109,4 +114,73 @@ const RevealTextSfcTyped = RevealTextSfc as unknown as DefineComponent<any, any,
 export const RevealText: VueNodeConstructor<RevealTextProps> = defineVueNode(
   RevealTextSfcTyped,
   "RevealText",
+);
+
+export interface SoftBlurInProps {
+  text?: string;
+  split?: string;
+  progress?: number;
+  fontSize?: number;
+  fontFamily?: string;
+  color?: string;
+  duration?: number;
+  stagger?: number;
+  ease?: string;
+  rise?: number;
+  blur?: number;
+}
+
+const SoftBlurInSfcTyped = SoftBlurInSfc as unknown as DefineComponent<any, any, any>;
+
+export const SoftBlurIn: VueNodeConstructor<SoftBlurInProps> = defineVueNode(
+  SoftBlurInSfcTyped,
+  "SoftBlurIn",
+);
+
+export interface TypingTextProps {
+  text?: string;
+  split?: string;
+  progress?: number;
+  fontSize?: number;
+  fontFamily?: string;
+  color?: string;
+  duration?: number;
+  stagger?: number;
+  ease?: string;
+  rise?: number;
+  x?: number;
+  blur?: number;
+  scaleFrom?: number;
+  opacityFrom?: number;
+}
+
+const TypingTextSfcTyped = TypingTextSfc as unknown as DefineComponent<any, any, any>;
+
+export const TypingText: VueNodeConstructor<TypingTextProps> = defineVueNode(
+  TypingTextSfcTyped,
+  "TypingText",
+);
+
+export interface ShimmerSweepProps {
+  text?: string;
+  progress?: number;
+  fontSize?: number;
+  fontFamily?: string;
+  color?: string;
+  highlightColor?: string;
+  duration?: number;
+  stagger?: number;
+  ease?: string;
+  rise?: number;
+  x?: number;
+  blur?: number;
+  scaleFrom?: number;
+  opacityFrom?: number;
+}
+
+const ShimmerSweepSfcTyped = ShimmerSweepSfc as unknown as DefineComponent<any, any, any>;
+
+export const ShimmerSweep: VueNodeConstructor<ShimmerSweepProps> = defineVueNode(
+  ShimmerSweepSfcTyped,
+  "ShimmerSweep",
 );

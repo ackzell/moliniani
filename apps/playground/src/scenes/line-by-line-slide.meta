@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "line-by-line-slide",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 2.474162939612791
+    }
+  ],
+  "seed": 1044311817
+}

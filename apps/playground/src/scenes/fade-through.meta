@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "fade-through",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 1.6424917321667851
+    }
+  ],
+  "seed": 400517256
+}

@@ -11,9 +11,12 @@ import {
   molinianiDebugLog,
   type MolinianiVueNodeContext,
 } from "@moliniani/core";
-import { resolveStaggerDelay, type AnimeProgress } from "./useAnime";
+import { resolveStaggerDelay, type AnimeProgress, type StaggerMode } from "./useAnime";
 
 export type SplitUnit = "chars" | "words" | "lines";
+
+/** The split unit plus `"whole"`, which animates the element without splitting. */
+export type SplitUnitOrWhole = SplitUnit | "whole";
 
 export interface UseSplitTextAnimationOptions {
   /**
@@ -23,12 +26,18 @@ export interface UseSplitTextAnimationOptions {
    */
   progress?: AnimeProgress;
   /** Which split units the timeline animates (default `"chars"`). */
-  units?: MaybeRefOrGetter<SplitUnit>;
+  units?: MaybeRefOrGetter<SplitUnitOrWhole>;
   /**
    * The text to split. The composable owns the target's content, like
    * `useSplitText()`. When omitted the element's existing content is split.
    */
   text?: MaybeRefOrGetter<string | undefined>;
+  /**
+   * How per-unit stagger delays are ordered (`"center-out"` / `"edges-in"`
+   * re-rank the units before applying the numeric `stagger`). Defaults to the
+   * DOM index order.
+   */
+  staggerMode?: MaybeRefOrGetter<StaggerMode | undefined>;
 }
 
 export interface UseSplitTextAnimationInstance {
@@ -90,11 +99,15 @@ export function useSplitTextAnimation(
 
   const getText = () => (options.text === undefined ? undefined : toValue(options.text));
 
-  const getUnits = (): SplitUnit => toValue(options.units) ?? "chars";
+  const getUnits = (): SplitUnitOrWhole => toValue(options.units) ?? "chars";
+
+  const getStaggerMode = (): StaggerMode => toValue(options.staggerMode) ?? "normal";
 
   const unitArray = (): HTMLElement[] => {
-    if (!splitter) return [];
+    const el = toValue(target);
     const units = getUnits();
+    if (units === "whole") return el ? [el] : [];
+    if (!splitter) return [];
     if (units === "words") return splitter.words as HTMLElement[];
     if (units === "lines") return splitter.lines as HTMLElement[];
     return splitter.chars as HTMLElement[];
@@ -132,7 +145,13 @@ export function useSplitTextAnimation(
     }
     // animejs v4 ignores the legacy `stagger` timing key on `animate()`; apply
     // it as a per-target delay so the units cascade (see `resolveStaggerDelay`).
-    timeline = animate(units, { autoplay: false, ...resolveStaggerDelay(createAnimation()) });
+    timeline = animate(units, {
+      autoplay: false,
+      ...resolveStaggerDelay(createAnimation(), {
+        mode: getStaggerMode(),
+        unitCount: units.length,
+      }),
+    });
     duration = timeline.duration || 0;
     molinianiDebugLog(`useSplitTextAnimation: built timeline over ${units.length} ${getUnits()}`, {
       duration,
@@ -169,16 +188,18 @@ export function useSplitTextAnimation(
     if (lastBuild && lastBuild.el === el && lastBuild.text === text) return;
     teardown();
     if (text !== undefined) el.textContent = text;
-    splitter = splitText(el, createSplitParams());
+    if (getUnits() !== "whole") {
+      splitter = splitText(el, createSplitParams());
+    }
     lastBuild = { el, text };
     molinianiDebugLog(`useSplitTextAnimation: split done`, {
       text,
-      splitterReady: splitter.ready,
+      splitterReady: splitter?.ready ?? null,
       units: getUnits(),
       unitCount: unitArray().length,
-      chars: splitter.chars?.length,
-      words: splitter.words?.length,
-      lines: splitter.lines?.length,
+      chars: splitter?.chars?.length,
+      words: splitter?.words?.length,
+      lines: splitter?.lines?.length,
     });
     buildTimeline();
     // Line splitting waits on the fonts; rebuild the timeline when it lands.

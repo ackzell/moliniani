@@ -24,16 +24,56 @@ export interface UseAnimeOptions {
 export type AnimeTarget = HTMLElement | HTMLElement[];
 
 /**
+ * How per-unit stagger delays are ordered. `"normal"` is the DOM index;
+ * `"center-out"` fans out from the middle (ties resolve to the lower index);
+ * `"edges-in"` alternates left, right, then moves inward.
+ */
+export type StaggerMode = "normal" | "center-out" | "edges-in";
+
+/** The stagger rank (0 = first to animate) for every index of a 0..n array. */
+function staggerRanks(n: number, mode: Exclude<StaggerMode, "normal">): number[] {
+  const rank = Array.from({ length: n }, () => 0);
+  if (mode === "center-out") {
+    const center = (n - 1) / 2;
+    const indices = Array.from({ length: n }, (_, i) => i);
+    indices.sort((a, b) => Math.abs(a - center) - Math.abs(b - center) || a - b);
+    indices.forEach((idx, r) => (rank[idx] = r));
+  } else {
+    let r = 0;
+    for (let lo = 0, hi = n - 1; lo <= hi; lo++, hi--) {
+      rank[lo] = r++;
+      if (lo !== hi) rank[hi] = r++;
+    }
+  }
+  return rank;
+}
+
+export interface ResolveStaggerOptions {
+  /** Reorder per-unit delays instead of using the DOM index. */
+  mode?: StaggerMode;
+  /** The animated unit count (needed to compute ranks for non-normal modes). */
+  unitCount?: number;
+}
+
+/**
  * animejs v4 ignores the legacy `stagger` timing key on `animate()` (it was a
  * v3 per-target delay). When present as a number and no `delay` is given, apply
  * it as a per-target delay so targets animate in a cascade.
  */
-export function resolveStaggerDelay(params: AnimationParams): AnimationParams {
+export function resolveStaggerDelay(
+  params: AnimationParams,
+  options: ResolveStaggerOptions = {},
+): AnimationParams {
   const staggerMs = params.stagger;
   if (typeof staggerMs === "number" && params.delay === undefined) {
+    const mode = options.mode ?? "normal";
+    const ranks = mode === "normal" ? null : staggerRanks(options.unitCount ?? 0, mode);
     // animejs calls delay as fn(target, index, ...); widen the target param so
     // the closure is assignable to animejs's FunctionValue type.
-    params.delay = (_target?: unknown, index?: number) => (index ?? 0) * staggerMs;
+    params.delay = (_target?: unknown, index?: number) => {
+      const i = index ?? 0;
+      return (ranks ? (ranks[i] ?? i) : i) * staggerMs;
+    };
   }
   delete params.stagger;
   return params;

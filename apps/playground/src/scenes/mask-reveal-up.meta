@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "mask-reveal-up",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 1.9090530166046076
+    }
+  ],
+  "seed": 1471019970
+}

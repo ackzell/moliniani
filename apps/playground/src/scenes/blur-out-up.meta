@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "blur-out-up",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 1.6904727633655934
+    }
+  ],
+  "seed": 2372680763
+}

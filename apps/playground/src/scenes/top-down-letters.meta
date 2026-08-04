@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "top-down-letters",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 1.2
+    }
+  ],
+  "seed": 37777381
+}

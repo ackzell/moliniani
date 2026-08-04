@@ -19,7 +19,7 @@ export default makeScene(function* (view) {
         split="chars"
         stagger={40}
         duration={600}
-        rise={40}
+        offset={40}
         fontSize={48}
         color="#ff8c42"
         y={-120}
@@ -31,7 +31,7 @@ export default makeScene(function* (view) {
         split="words"
         stagger={120}
         duration={700}
-        rise={24}
+        offset={24}
         blur={12}
         fontSize={48}
         color="#9fd6ff"

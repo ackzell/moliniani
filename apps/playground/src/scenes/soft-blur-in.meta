@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "soft-blur-in",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 1.4
+    }
+  ],
+  "seed": 1034009983
+}

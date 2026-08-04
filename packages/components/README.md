@@ -22,6 +22,11 @@ Ready-made Motion Canvas nodes and pre-wrapped Vue SFCs for `@moliniani/core`.
   per-unit reveal (chars/words/lines) that slides units in from below with a
   per-unit `stagger` (and optional blur), seeked from a tweenable `progress`
   signal. See the `reveal` scene in the playground.
+- **`SoftBlurIn`** (`./vue` entry) — the first effect ported from the
+  `animate-text` skill catalog: a per-character fade-in with a gentle blur and
+  upward motion (Apple's hero-title reveal), driven by a tweenable `progress`
+  signal. See the `soft-blur-in` scene and the
+  [Text effects](#text-effects-animate-text-port) section below.
 - **`useSplitTextAnimation()`** (root entry) — the composable behind
   `RevealText`: fuses `useSplitText()` + `useAnime()` so a text effect is one
   call. It owns the target's content, builds one `animate()` timeline over the
@@ -200,6 +205,109 @@ Rules of the road (all the `useAnime` rules apply; see above):
   `duration` / `ease` shape the wave. Use it as a black box, or copy it as the
   template for your own split-text effects.
 
+## Text effects (animate-text port)
+
+`@moliniani/components` ships the animation catalog from the
+[`animate-text` skill](https://pixelpoint.io/skills/animate-text) as pre-wrapped
+Vue SFCs. Each effect recreates the catalog's **enter** animation: a tweenable
+`progress` signal (`0 → 1`) scrubs an animejs timeline from the effect's `from`
+frame to the settled state, so tweening, seeking, and scrubbing are
+deterministic in the editor and in exported video. Phrase swapping is
+**scene-side** — see below.
+
+All generic-stagger effects share one thin-SFC pattern over two helpers:
+
+- **`easeFromString(ease)`** (`src/easing.ts`) — maps CSS easing strings
+  (`cubic-bezier(...)`, `steps(n, end)`, `linear`) to animejs easing functions.
+  animejs v4 rejects those CSS strings, so effects must pass the translated
+  functions.
+- **`TEXT_EFFECTS` / `buildEffectAnimation(spec, props)`** (`src/textEffects.ts`)
+  — the single source of truth for every effect's split target, signature
+  easing, and default timing, plus a builder that turns a spec + prop overrides
+  into animejs `AnimationParams`. The SFC spreads `spec.defaults` into
+  `withDefaults()`, so the spec numbers live in exactly one place.
+
+Each effect SFC exposes `text`, `progress`, `fontSize`, `fontFamily`, `color`,
+and its own tuning knobs (`duration`, `stagger`, `ease`, `rise`, `x`, `blur`,
+`scaleFrom` — only the ones that effect uses). Split effects also expose
+`split` (`chars` / `words` / `lines`), defaulting to the catalog target so you
+can switch long copy to words.
+
+| Effect               | Component            | target | default timing (ms) | signature easing                    |
+| -------------------- | -------------------- | ------ | ------------------- | ----------------------------------- |
+| soft-blur-in         | `SoftBlurIn`         | chars  | 648 / stagger 18    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| per-character-rise   | `PerCharacterRise`   | chars  | 504 / stagger 17    | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
+| per-word-crossfade   | `PerWordCrossfade`   | words  | 504 / stagger 50    | `cubic-bezier(0.16, 1, 0.3, 1)`     |
+| spring-scale-in      | `SpringScaleIn`      | words  | 259 / stagger 68    | `cubic-bezier(0.34, 1.56, 0.64, 1)` |
+| mask-reveal-up       | `MaskRevealUp`       | lines  | 547 / stagger 65    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| line-by-line-slide   | `LineByLineSlide`    | lines  | 648 / stagger 86    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| typewriter           | `TypingText`         | chars  | 173 / stagger 33    | `steps(1, end)`                     |
+| micro-scale-fade     | `MicroScaleFade`     | whole  | 432                 | `cubic-bezier(0.32, 0.72, 0, 1)`    |
+| shimmer-sweep        | `ShimmerSweep`       | whole  | 612                 | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| fade-through         | `FadeThrough`        | whole  | 302                 | `cubic-bezier(0.2, 0, 0, 1)`        |
+| shared-axis-y        | `SharedAxisY`        | words  | 140 / stagger 56    | `steps(1, end)`                     |
+| shared-axis-z        | `SharedAxisZ`        | whole  | 374                 | `cubic-bezier(0.2, 0, 0, 1)`        |
+| blur-out-up          | `BlurOutUp`          | words  | 403 / stagger 20    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| scale-down-fade      | `ScaleDownFade`      | whole  | 374                 | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| focus-blur-resolve   | `FocusBlurResolve`   | whole  | 547                 | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| bottom-up-letters    | `BottomUpLetters`    | chars  | 288 / stagger 63    | `cubic-bezier(0.18, 1, 0.32, 1)`    |
+| top-down-letters     | `TopDownLetters`     | chars  | 288 / stagger 63    | `cubic-bezier(0.18, 1, 0.32, 1)`    |
+| depth-parallax-words | `DepthParallaxWords` | words  | 504 / stagger 50    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| shared-axis-x        | `SharedAxisX`        | whole  | 360                 | `cubic-bezier(0.2, 0, 0, 1)`        |
+| stagger-from-center  | `StaggerFromCenter`  | chars  | 446 / stagger 16    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| stagger-from-edges   | `StaggerFromEdges`   | chars  | 446 / stagger 16    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| kinetic-center-build | `KineticCenterBuild` | words  | 259 / x 88          | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
+| short-slide-right    | `ShortSlideRight`    | whole  | 374                 | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
+| short-slide-down     | `ShortSlideDown`     | words  | 374                 | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
+
+> Defaults are the site-scaled values from the catalog (durations/staggers ×
+> `0.72`, vertical travel × `0.58`); the portable source values live in the
+> skill's `assets/specs/*.json`. Every default is overridable per prop.
+
+Notes on the table:
+
+- **`typewriter` maps to `TypingText`**, so it doesn't collide with the existing
+  cursor `Typewriter` component. Its `steps(1, end)` easing snaps each char to
+  visible at its stagger delay — a deterministic, MC-timeline typewriter.
+- **`shimmer-sweep` is the one non-stagger effect**: no split. The whole text is
+  the animated unit and a gradient highlight band sweeps across the glyphs
+  (registry `renderer: "sweep"`); it adds a `highlightColor` prop.
+- **`stagger-from-center` / `stagger-from-edges`** re-rank the per-unit stagger
+  (center-out / edges-in) instead of using the DOM index; `resolveStaggerDelay`
+  applies the ordering over the animated units only.
+- **`whole` targets** animate the element directly (no split), so they don't
+  expose a `split` prop.
+- The **hidden catalog effects** (`stagger-from-center`, `stagger-from-edges`,
+  `shared-axis-x`, `depth-parallax-words`) are ported for completeness but don't
+  appear on the skill's site.
+- **Kinetic builds** (`kinetic-center-build`, `short-slide-down`,
+  `short-slide-right`) recreate their spec's _enter frame_ with the generic
+  per-unit model: center-build slides each word in from the right
+  (`x: 88`, the spec's `entry_offset_px`), slide-down drops each word from above
+  (`rise: -24`), slide-right moves the whole phrase as one unit (`target: "whole"`,
+  `opacityFrom: 1` — no per-word positional delay). The layout-aware _push/reflow_
+  of the spec (measuring word widths, re-centering the line/stack as each word
+  enters) is fine-tune pending; a measured `useKineticBuild` renderer is future
+  work.
+
+```tsx
+const ref = createMnRef(SoftBlurIn);
+
+view.add(<SoftBlurIn ref={ref} text="Think different." fontSize={64} />);
+
+yield * ref().progress(1, 1.4); // play the reveal
+```
+
+**Phrase swapping at the scene level.** A `TextEffect` component only recreates
+the animation. To swap copy, tween the `text` prop (re-splits the units in
+place), rewind `progress`, then play again:
+
+```tsx
+yield * ref().text("Built to flow.", 0.01); // re-split to the new phrase
+yield * ref().progress(0.01, 0.01); // rewind the timeline to its start
+yield * ref().progress(1, 1.4); // reveal the new phrase
+```
+
 ## Generated SFCs
 
 The pre-wrapped SFCs under `./vue` are compiled from the `.vue` sources in
@@ -210,3 +318,10 @@ pnpm gen        # regenerate (also runs automatically before build/test/check)
 ```
 
 Never hand-edit the `*.gen.ts` files; edit the `.vue` sources instead.
+
+The 18 formulaic text-effect SFCs above are emitted once by
+`scripts/gen-text-effect-sfcs.mjs` (they're committed as normal, hand-editable
+files). When a new effect is added to the `textEffects.ts` registry, re-run that
+script — `pnpm gen` then compiles the new SFCs. `TypingText.vue`,
+`ShimmerSweep.vue`, and the `TextEffectWrappers.ts` registrations are the two
+hand-authored carve-outs.
