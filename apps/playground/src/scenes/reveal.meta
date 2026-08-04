@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "reveal",
+      "targetTime": 0.5
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 6
+    }
+  ],
+  "seed": 170321188
+}

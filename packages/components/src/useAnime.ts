@@ -20,6 +20,25 @@ export interface UseAnimeOptions {
   progress?: AnimeProgress;
 }
 
+/** A single DOM element, or a collection animated as one timeline. */
+export type AnimeTarget = HTMLElement | HTMLElement[];
+
+/**
+ * animejs v4 ignores the legacy `stagger` timing key on `animate()` (it was a
+ * v3 per-target delay). When present as a number and no `delay` is given, apply
+ * it as a per-target delay so targets animate in a cascade.
+ */
+export function resolveStaggerDelay(params: AnimationParams): AnimationParams {
+  const staggerMs = params.stagger;
+  if (typeof staggerMs === "number" && params.delay === undefined) {
+    // animejs calls delay as fn(target, index, ...); widen the target param so
+    // the closure is assignable to animejs's FunctionValue type.
+    params.delay = (_target?: unknown, index?: number) => (index ?? 0) * staggerMs;
+  }
+  delete params.stagger;
+  return params;
+}
+
 export interface UseAnimeInstance {
   /** The live animejs timeline, or `null` until the target element exists. */
   timeline: ReturnType<typeof animate> | null;
@@ -39,6 +58,10 @@ export interface UseAnimeInstance {
  * stays the master clock, so the effect is deterministic in the editor, on
  * scrub, and in exported video.
  *
+ * The target can be a single element or an array of elements (e.g. the `chars`
+ * / `words` / `lines` arrays from `useSplitText()`); `animate()` applies the
+ * timeline to every target in the collection.
+ *
  * ```ts
  * const el = ref<HTMLElement>();
  * const anime = useAnime(el, () => ({
@@ -47,7 +70,7 @@ export interface UseAnimeInstance {
  * ```
  */
 export function useAnime(
-  target: MaybeRefOrGetter<HTMLElement | null | undefined>,
+  target: MaybeRefOrGetter<AnimeTarget | null | undefined>,
   createParams: () => AnimationParams,
   options: UseAnimeOptions = {},
 ): UseAnimeInstance {
@@ -78,7 +101,7 @@ export function useAnime(
     destroy();
     const el = toValue(target);
     if (!el) return;
-    timeline = animate(el, { autoplay: false, ...createParams() });
+    timeline = animate(el, { autoplay: false, ...resolveStaggerDelay(createParams()) });
     duration = timeline.duration || 0;
     // Force animejs to initialise the timeline synchronously and render the
     // state for the current progress.

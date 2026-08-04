@@ -5,6 +5,7 @@ import { createSignal, Color, type Reference, type SimpleSignal } from "@motion-
 import { VueNode } from "./VueNode";
 import type { VueNodeConstructor } from "./types";
 import { _mnTres } from "./TresNode";
+import { molinianiDebugLog } from "./debug";
 import { createMnRef } from "./createRef";
 export { createMnRef } from "./createRef";
 
@@ -211,8 +212,13 @@ export function defineVueNode<C extends DefineComponent<any, any, any>>(
           const existing = (this as Record<string, any>)[key] as SimpleSignal<number> | undefined;
 
           if (typeof existing === "function" && existing.context) {
-            // Reuse native MC signal (e.g. width/height on Layout) so parent
-            // layout keeps working and scene code can animate as usual.
+            // The SFC prop name collides with a native MC node signal that is
+            // not in KNOWN_NODE_KEYS (e.g. `offset`, the pivot origin). Its
+            // value (a Vector2) would corrupt the Vue prop type, so surface the
+            // collision — scene props should avoid these names.
+            molinianiDebugLog(`defineVueNode: prop "${key}" collides with a native MC signal`, {
+              value: existing(),
+            });
             this._propSignals.set(key, existing);
           } else {
             const signal = createSignal(initial);

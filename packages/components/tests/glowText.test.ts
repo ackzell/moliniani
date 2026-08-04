@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@moliniani/core", () => ({
   MOLINIANI_VUE_NODE_CONTEXT: mocks.contextKey,
+  molinianiDebugLog: () => {},
 }));
 
 describe("glow CSS params", () => {

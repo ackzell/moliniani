@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@moliniani/core", () => ({
   MOLINIANI_VUE_NODE_CONTEXT: mocks.contextKey,
+  molinianiDebugLog: () => {},
 }));
 
 const TEXT = "Moliniani";
@@ -141,5 +142,121 @@ describe("useAnime progress-by-prop-name mode", () => {
     values.progress = 1;
     capturedUpdater!(1);
     expect(el.textContent).toBe("abc");
+  });
+});
+
+describe("useAnime array targets", () => {
+  const makeMounted = () => {
+    const el1 = document.createElement("span");
+    const el2 = document.createElement("span");
+    document.body.append(el1, el2);
+    const targets = ref<HTMLElement[]>([el1, el2]);
+    const values: Record<string, number> = { progress: 0 };
+    let capturedUpdater: ((time: number) => void) | undefined;
+
+    const ctx = {
+      registerFrameUpdater: (updater: (time: number) => void) => {
+        capturedUpdater = updater;
+      },
+      unregisterFrameUpdater: () => {},
+      readProp: (key: string) => values[key],
+    };
+
+    const Inner = defineComponent({
+      setup() {
+        useAnime(
+          targets,
+          () => ({
+            opacity: [0, 1],
+            duration: 1000,
+          }),
+          { progress: "progress" },
+        );
+        return () => null;
+      },
+    });
+
+    const Comp = defineComponent({
+      setup() {
+        provide(mocks.contextKey, ctx);
+        return () => h(Inner);
+      },
+    });
+
+    const app = createApp({ render: () => h(Comp) });
+    app.mount(document.createElement("div"));
+
+    return { el1, el2, capturedUpdater, values, app };
+  };
+
+  it("animates every element in an array target from the frame progress", () => {
+    const { el1, el2, capturedUpdater, values } = makeMounted();
+    expect(capturedUpdater).toBeDefined();
+
+    // progress = 0 → all targets at the start of the timeline.
+    capturedUpdater!(0);
+    expect(el1.style.opacity).toBe("0");
+    expect(el2.style.opacity).toBe("0");
+
+    // progress = 1 → all targets settle at the end on the next frame.
+    values.progress = 1;
+    capturedUpdater!(1);
+    expect(el1.style.opacity).toBe("1");
+    expect(el2.style.opacity).toBe("1");
+  });
+
+  it("applies a legacy `stagger` as a per-target delay", () => {
+    const el1 = document.createElement("span");
+    const el2 = document.createElement("span");
+    document.body.append(el1, el2);
+    const targets = ref<HTMLElement[]>([el1, el2]);
+    const values: Record<string, number> = { progress: 0 };
+    let capturedUpdater: ((time: number) => void) | undefined;
+
+    const ctx = {
+      registerFrameUpdater: (updater: (time: number) => void) => {
+        capturedUpdater = updater;
+      },
+      unregisterFrameUpdater: () => {},
+      readProp: (key: string) => values[key],
+    };
+
+    const Inner = defineComponent({
+      setup() {
+        useAnime(
+          targets,
+          () => ({
+            opacity: [0, 1],
+            duration: 1000,
+            stagger: 100,
+          }),
+          { progress: "progress" },
+        );
+        return () => null;
+      },
+    });
+
+    const Comp = defineComponent({
+      setup() {
+        provide(mocks.contextKey, ctx);
+        return () => h(Inner);
+      },
+    });
+
+    const app = createApp({ render: () => h(Comp) });
+    app.mount(document.createElement("div"));
+
+    // 5% of the 1200ms timeline (1000 + 2×100ms delay): the first target has
+    // started, the second (delayed 100ms) has not.
+    values.progress = 0.05;
+    capturedUpdater!(0.05);
+    expect(Number(el1.style.opacity)).toBeGreaterThan(0);
+    expect(el2.style.opacity).toBe("0");
+
+    values.progress = 1;
+    capturedUpdater!(1);
+    expect(el1.style.opacity).toBe("1");
+    expect(el2.style.opacity).toBe("1");
+    app.unmount();
   });
 });

@@ -37,6 +37,7 @@ export const KNOWN_NODE_KEYS = new Set<string>([
   "skewX",
   "skewY",
   "skew",
+  "offset",
   "zIndex",
   "opacity",
   "cache",

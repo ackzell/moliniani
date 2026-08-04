@@ -5,8 +5,10 @@ import example from "./scenes/example?scene";
 import tresjs from "./scenes/tresjs?scene";
 import scramble from "./scenes/scramble?scene";
 import glow from "./scenes/glow?scene";
+import split from "./scenes/split?scene";
+import reveal from "./scenes/reveal?scene";
 
 export default makeProject({
   plugins: [molinianiExporterPlugin],
-  scenes: [example, tresjs, scramble, glow],
+  scenes: [example, tresjs, scramble, glow, split, reveal],
 });

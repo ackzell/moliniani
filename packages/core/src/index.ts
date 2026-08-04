@@ -6,5 +6,6 @@ export * from "./exporter";
 export * from "./textAnimations";
 export * from "./PretextText";
 export * from "./TresNode";
+export * from "./debug";
 export { createMnRef } from "./createRef";
 export { mn } from "./mount";
