@@ -23,17 +23,25 @@ type StringMethod = (to: string, duration?: number, ease?: Timing) => ThreadGene
  * are typed as `P`. Numeric Vue props have matching numeric animatable methods;
  * string Vue props (including CSS colors) have string animatable methods.
  *
+ * `I` describes extra instance members added by the `extend` factory passed to
+ * `defineVueNode()` (e.g. `SplitText`'s `units`/`chars`/`words`/`lines`
+ * handles). It flows through `createMnRef()` so `ref().units` is type-checked.
+ *
  * At runtime instances ARE Node subclasses; the type intentionally avoids
  * referencing MC internals so it can be serialised to a `.d.ts` file cleanly.
  */
-export type VueNodeConstructor<P extends Record<string, any>> = {
+export type VueNodeConstructor<
+  P extends Record<string, any>,
+  I extends Record<string, any> = {},
+> = {
   isClass: true;
-  new (props: LayoutProps & P): Layout & {
-    readonly _vueState: P;
-    [key: string]: any;
-  } & {
-    [K in NumericKeys<P>]: NumericMethod;
-  } & {
-    [K in StringKeys<P>]: StringMethod;
-  };
+  new (props: LayoutProps & P): Layout &
+    I & {
+      readonly _vueState: P;
+      [key: string]: any;
+    } & {
+      [K in NumericKeys<P>]: NumericMethod;
+    } & {
+      [K in StringKeys<P>]: StringMethod;
+    };
 };

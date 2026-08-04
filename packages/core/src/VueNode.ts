@@ -75,6 +75,13 @@ export interface MolinianiVueNodeContext {
   registerFrameUpdater(updater: (time: number) => void): void;
   unregisterFrameUpdater(updater: (time: number) => void): void;
   readProp(name: string): unknown;
+  /**
+   * Hands the hosting `VueNode` an opaque controller object provided by the
+   * SFC (typically during setup). `defineVueNode()`'s `extend` factory reads it
+   * off the node to expose instance members like `SplitText`'s per-unit
+   * handles. Registering `null` clears it.
+   */
+  registerController(controller: unknown): void;
 }
 
 /**
@@ -128,6 +135,15 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
   private readonly _component: Component;
   private readonly _scene: any;
   private readonly _frameUpdaters = new Set<(time: number) => void>();
+
+  /**
+   * Opaque controller registered by the hosted SFC via
+   * `MolininianiVueNodeContext.registerController`. `defineVueNode()`'s
+   * `extend` factory reads it to expose instance members (e.g. SplitText's
+   * `units` handles). Public so subclass factories in other packages can read
+   * it, like the other `_`-prefixed internals.
+   */
+  _controller: unknown = null;
 
   constructor(props: LayoutProps & P, component: Component) {
     super(props);
@@ -206,6 +222,9 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
       registerFrameUpdater: (updater) => this._frameUpdaters.add(updater),
       unregisterFrameUpdater: (updater) => this._frameUpdaters.delete(updater),
       readProp: (name) => (this._vueState as Record<string, any>)[name],
+      registerController: (controller) => {
+        this._controller = controller;
+      },
     });
     this._app.mount(this._positioner);
   }

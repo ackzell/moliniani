@@ -10,3 +10,11 @@ export type {
   UseSplitTextAnimationInstance,
   UseSplitTextAnimationOptions,
 } from "./useSplitTextAnimation";
+export { useSplitUnits } from "./useSplitUnits";
+export type {
+  UseSplitUnitsController,
+  UseSplitUnitsInstance,
+  UseSplitUnitsOptions,
+} from "./useSplitUnits";
+export { SplitUnitHandle } from "./SplitUnitHandle";
+export type { SplitUnitInitialValues, SplitUnitType } from "./SplitUnitHandle";

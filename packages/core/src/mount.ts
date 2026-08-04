@@ -183,16 +183,35 @@ function isCSSColor(value: string): boolean {
  * yield* box().position.x(300, 1)
  * ```
  *
+ * Pass an optional `extend` factory to attach instance members backed by the
+ * SFC's `registerController()` call. The factory receives the base node class
+ * and returns a subclass; its extra members are typed through
+ * `VueNodeConstructor`'s `I` parameter and flow to `createMnRef()`.
+ *
+ * ```ts
+ * const SplitText = defineVueNode(SplitTextSfc, 'SplitText', (Base) =>
+ *   class extends Base {
+ *     get units() { return this._controller?.units ?? [] }
+ *   },
+ * );
+ * ```
+ *
  * The Moliniani Vite plugin calls this automatically for every `*.vue` import
  * in your scene files, so you rarely need to call it by hand.
  */
-export function defineVueNode<C extends DefineComponent<any, any, any>>(
+export function defineVueNode<
+  C extends DefineComponent<any, any, any>,
+  I extends Record<string, any> = {},
+>(
   sfc: C,
   originalName?: string,
-): VueNodeConstructor<ComponentInstance<C>["$props"]> {
+  extend?: (
+    Base: VueNodeConstructor<ComponentInstance<C>["$props"]>,
+  ) => VueNodeConstructor<ComponentInstance<C>["$props"], I>,
+): VueNodeConstructor<ComponentInstance<C>["$props"], I> {
   // Idempotency: if the Vite plugin already wrapped this SFC, return it as-is.
   if ((sfc as any).__mnWrapped) {
-    return sfc as unknown as VueNodeConstructor<ComponentInstance<C>["$props"]>;
+    return sfc as unknown as VueNodeConstructor<ComponentInstance<C>["$props"], I>;
   }
 
   type P = ComponentInstance<C>["$props"];
@@ -257,5 +276,20 @@ export function defineVueNode<C extends DefineComponent<any, any, any>>(
     (DefinedVueNode as any).__mnOriginalName = originalName;
   }
 
-  return DefinedVueNode as unknown as VueNodeConstructor<ComponentInstance<C>["$props"]>;
+  let Final: VueNodeConstructor<ComponentInstance<C>["$props"], I> =
+    DefinedVueNode as unknown as VueNodeConstructor<ComponentInstance<C>["$props"], I>;
+  if (extend) {
+    Final = extend(DefinedVueNode as unknown as VueNodeConstructor<ComponentInstance<C>["$props"]>);
+    // The extend factory returns a plain class; re-apply the markers JSX and
+    // the Vite plugin rely on (subclasses inherit `isClass` through the
+    // prototype chain, but re-setting it keeps the contract explicit).
+    (Final as any).prototype.isClass = true;
+    (Final as any).__mnWrapped = true;
+    (Final as any).__mnOriginalSFC = sfc;
+    if (originalName) {
+      (Final as any).__mnOriginalName = originalName;
+    }
+  }
+
+  return Final;
 }

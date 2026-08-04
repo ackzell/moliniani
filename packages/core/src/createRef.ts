@@ -19,9 +19,9 @@ import type { VueNodeConstructor } from "./types";
  * view.add(mnTres(TresBox, tresBox, { rotationY: 0 }))
  * ```
  */
-export function createMnRef<P extends Record<string, any>>(
-  cls: VueNodeConstructor<P>,
-): ReturnType<typeof createRef<InstanceType<VueNodeConstructor<P>>>>;
+export function createMnRef<P extends Record<string, any>, I extends Record<string, any> = {}>(
+  cls: VueNodeConstructor<P, I>,
+): ReturnType<typeof createRef<InstanceType<VueNodeConstructor<P, I>>>>;
 export function createMnRef<C extends DefineComponent<any, any, any>>(
   sfc: C,
 ): ReturnType<typeof createRef<InstanceType<VueNodeConstructor<ComponentInstance<C>["$props"]>>>>;

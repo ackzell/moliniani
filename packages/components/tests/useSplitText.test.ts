@@ -4,6 +4,17 @@ import type { TextSplitterParams } from "animejs";
 import { useSplitText, type UseSplitTextInstance } from "../src/useSplitText";
 import SplitText from "../src/vue/SplitText.gen";
 
+// SplitText.vue injects the Moliniani VueNode context from core; importing the
+// real package would drag Motion Canvas into the jsdom test env. Without a
+// provided context the SFC skips controller/frame-updater registration.
+const mocks = vi.hoisted(() => ({
+  contextKey: Symbol("mocked-mn-context"),
+}));
+vi.mock("@moliniani/core", () => ({
+  MOLINIANI_VUE_NODE_CONTEXT: mocks.contextKey,
+  molinianiDebugLog: () => {},
+}));
+
 // animejs's TextSplitter constructs a ResizeObserver; jsdom has none.
 class ResizeObserverStub {
   observe() {}
