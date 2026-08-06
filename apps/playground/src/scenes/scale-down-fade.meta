@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "scale-down-fade",
+      "name": "scale-down-fade-in-1",
       "targetTime": 0
     },
     {
+      "name": "scale-down-fade-out-1",
+      "targetTime": 0.374
+    },
+    {
+      "name": "scale-down-fade-in-2",
+      "targetTime": 1.198
+    },
+    {
+      "name": "scale-down-fade-out-2",
+      "targetTime": 1.572
+    },
+    {
+      "name": "scale-down-fade-in-3",
+      "targetTime": 2.396
+    },
+    {
+      "name": "scale-down-fade-out-3",
+      "targetTime": 2.77
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.8877281138495823
+      "targetTime": 3.04
     }
   ],
   "seed": 263995934

@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { useAnime } from "../useAnime";
-import { buildEffectAnimation, SHIMMER_SWEEP, type TextEffectProps } from "../textEffects";
+import { useSplitUnits } from "../useSplitUnits";
+import { fromState } from "../effectTiming";
+import { resolveEffectKnobs, SHIMMER_SWEEP, type TextEffectProps } from "../textEffects";
 
-// Whole-text shimmer: a gradient highlight band sweeps across the glyphs while
-// the title fades in. No split — the text is the single animated unit.
+// Whole-text shimmer: the headline blends in while gliding from left to center
+// (x −22 → 0, blur 8 → 0, opacity 0 → 1) on the signature ease. No split — the
+// text is the single animated unit, driven by the `phase` signal (0 → 1); the
+// `exit` signal (0 → 1) glides it back out to the right. (The old gradient-band
+// sweep is reserved as a future standalone effect — see `wholeValuesAt`.)
 const props = withDefaults(
   defineProps<{
     text?: string;
-    progress?: number;
+    phase?: number;
+    exit?: number;
     fontSize?: number;
     fontFamily?: string;
     color?: string;
-    highlightColor?: string;
     duration?: number;
     stagger?: number;
     ease?: string;
@@ -21,21 +25,38 @@ const props = withDefaults(
     blur?: number;
     scaleFrom?: number;
     opacityFrom?: number;
+    exitDuration?: number;
+    exitStagger?: number;
+    exitTotal?: number;
+    exitEase?: string;
+    exitRise?: number;
+    exitX?: number;
+    exitBlur?: number;
+    exitScale?: number;
+    exitOpacity?: number;
+    exitStaggerMode?: string;
   }>(),
   {
     ...SHIMMER_SWEEP.defaults,
-    progress: 0,
+    phase: 0,
+    exit: 0,
     fontSize: 32,
     fontFamily: "monospace",
     color: "#ffffff",
-    highlightColor: "#f5d08a",
   },
 );
 
 const el = ref<HTMLElement | null>(null);
 
-useAnime(el, () => buildEffectAnimation(SHIMMER_SWEEP, props as TextEffectProps), {
-  progress: "progress",
+useSplitUnits(el, () => ({}), {
+  units: () => "whole",
+  unit: () => fromState(resolveEffectKnobs(SHIMMER_SWEEP, props as TextEffectProps)),
+  effect: () => ({
+    phase: "phase",
+    exit: "exit",
+    knobs: () => resolveEffectKnobs(SHIMMER_SWEEP, props as TextEffectProps),
+    exitStaggerMode: () => props.exitStaggerMode as TextEffectProps["exitStaggerMode"],
+  }),
 });
 </script>
 
@@ -44,8 +65,6 @@ useAnime(el, () => buildEffectAnimation(SHIMMER_SWEEP, props as TextEffectProps)
     ref="el"
     class="shimmer-sweep"
     :style="{
-      backgroundImage: `linear-gradient(100deg, ${props.color} 40%, ${props.highlightColor} 50%, ${props.color} 60%)`,
-      backgroundSize: '200% 100%',
       color: props.color,
       fontFamily: props.fontFamily,
       fontSize: `${props.fontSize}px`,
@@ -55,12 +74,13 @@ useAnime(el, () => buildEffectAnimation(SHIMMER_SWEEP, props as TextEffectProps)
 </template>
 
 <style scoped>
+/* MC's editor sets a global line-height (24px) on <body> that the overlay would
+   otherwise inherit; a fixed 24px line box clips the glyph tops and bottoms of
+   large text. `normal` makes the line box follow the font's own metrics. */
 .shimmer-sweep {
   display: inline-block;
   white-space: pre;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  will-change: transform, opacity, filter, background-position;
+  line-height: normal;
+  will-change: transform, opacity, filter;
 }
 </style>

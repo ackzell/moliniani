@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "mask-reveal-up",
-      "targetTime": 0
+      "name": "mask-reveal-up-in-1",
+      "targetTime": 0.027193417426801154
+    },
+    {
+      "name": "mask-reveal-up-out-1",
+      "targetTime": 0.8541934174268011
+    },
+    {
+      "name": "mask-reveal-up-in-2",
+      "targetTime": 1.633193417426801
+    },
+    {
+      "name": "mask-reveal-up-out-2",
+      "targetTime": 2.460193417426801
+    },
+    {
+      "name": "mask-reveal-up-in-3",
+      "targetTime": 3.1991934174268013
+    },
+    {
+      "name": "mask-reveal-up-out-3",
+      "targetTime": 4.026193417426802
     },
     {
       "name": "next-scene",
-      "targetTime": 1.9090530166046076
+      "targetTime": 4.1211934174268015
     }
   ],
   "seed": 1471019970

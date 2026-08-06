@@ -10,33 +10,46 @@ Ready-made Motion Canvas nodes and pre-wrapped Vue SFCs for `@moliniani/core`.
   Vue SFC. Use it in a scene with `mn(Typewriter, ref, { text, fontSize, color })`
   and tween its props like any MC signal.
 - **`ScrambleText`** (`./vue` entry) — an animejs `scrambleText()` reveal driven
-  from MC virtual time. Every animejs param is a tweenable prop; `progress`
+  from MC virtual time. Every animejs param is a tweenable prop; `phase`
   (`0 → 1`) plays the scramble. See the `scramble` scene in the playground.
 - **`GlowText`** (`./vue` entry) — a CSS-params animejs port that ramps a
-  text-shadow glow (and optional color cycle) as `progress` goes `0 → 1`.
+  text-shadow glow (and optional color cycle) as `phase` goes `0 → 1`.
 - **`SplitText`** (`./vue` entry) — a blank-canvas text splitter backed by
   animejs `splitText()`: wraps every char/word/line in `data-char` /
-  `data-word` / `data-line` spans. Effects built on top of `useSplitText()` /
-  `useAnime()` target those units. See the `split` scene in the playground.
+  `data-word` / `data-line` spans. Its instance exposes per-unit
+  `SplitUnitHandle`s whose properties are Motion Canvas signals you tween
+  directly (the _hand-rolled_ path — see
+  [Authoring your own split-text effects](#authoring-your-own-split-text-effects)).
+  See the `split` scene in the playground.
 - **`RevealText`** (`./vue` entry) — the first ready-made split-text effect: a
   per-unit reveal (chars/words/lines) that slides units in from below with a
-  per-unit `stagger` (and optional blur), seeked from a tweenable `progress`
+  per-unit `stagger` (and optional blur), driven by a tweenable `phase`
   signal. See the `reveal` scene in the playground.
 - **`SoftBlurIn`** (`./vue` entry) — the first effect ported from the
   `animate-text` skill catalog: a per-character fade-in with a gentle blur and
-  upward motion (Apple's hero-title reveal), driven by a tweenable `progress`
+  upward motion (Apple's hero-title reveal), driven by a tweenable `phase`
   signal. See the `soft-blur-in` scene and the
   [Text effects](#text-effects-animate-text-port) section below.
-- **`useSplitTextAnimation()`** (root entry) — the composable behind
-  `RevealText`: fuses `useSplitText()` + `useAnime()` so a text effect is one
-  call. It owns the target's content, builds one `animate()` timeline over the
-  split units, and scrubs it from MC virtual time (see below).
-- **`useSplitText()`** (root entry) — the composable behind `SplitText`;
-  returns the live `TextSplitter` plus its `chars` / `words` / `lines` arrays,
-  and re-splits when the text or font/width changes.
+- **`createPhraseSwitcher(ref, spec)`** (root entry) — scene-side phrase
+  orchestration. Its `phrase(in, out, text)` generator derives each phrase's
+  enter/exit lengths from **two markers per phrase** on the MC timeline
+  (`enter = out − in`, `exit = nextIn − out`), so every start frame and duration
+  lands on the audio beats you place in the editor; the lower-level `enter` /
+  `exit` / `swap` / `swapOn` generators remain for hand-rolled scenes (see
+  [Phrase swapping](#phrase-swapping-at-the-scene-level) below).
+- **`useSplitUnits()`** (root entry) — the composable behind the effect SFCs.
+  It owns the target's content, splits it with animejs `splitText()`, and
+  exposes each unit as a `SplitUnitHandle` whose properties are MC signals. It
+  can also act as a _declarative phase driver_: given a `phase` signal + effect
+  knobs it maps `phase` onto every unit's signals each frame, no animejs
+  timeline involved (see below).
+- **`useSplitText()`** (root entry) — the split-only composable behind
+  `SplitText`; returns the live `TextSplitter` plus its `chars` / `words` /
+  `lines` arrays, and re-splits when the text or font/width changes.
 - **`useAnime()`** (root entry) — the generic driver that ports _any_ animejs
-  `animate()` timeline onto MC's virtual timeline. Use it to build your own
-  components — see [Authoring your own animejs components](#authoring-your-own-animejs-components).
+  `animate()` timeline onto MC's virtual timeline. Used by `ScrambleText` and
+  `GlowText` (and any custom ports) — see
+  [Authoring your own animejs components](#authoring-your-own-animejs-components).
 
 ```tsx
 import { TypewriterText } from "@moliniani/components";
@@ -68,7 +81,7 @@ by the Moliniani `VueNode` frame-updater seam. No wall clock, no `requestAnimati
 useAnime(
   target, // ref to the HTMLElement that receives the effect
   () => ({ ...params }), // () => AnimationParams, re-evaluated on rebuild
-  { progress: "progress" }, // drive from the SFC's `progress` prop (0 → 1)
+  { progress: "phase" }, // drive from the SFC's `phase` prop (0 → 1)
 );
 ```
 
@@ -83,7 +96,7 @@ import { someEffect } from "animejs/text";
 const props = defineProps<{
   text?: string;
   seed?: number;
-  progress?: number; // 0 → 1; tween it from the scene to play the effect
+  phase?: number; // 0 → 1; tween it from the scene to play the effect
 }>();
 
 const el = ref<HTMLElement | null>(null);
@@ -96,7 +109,7 @@ const anime = useAnime(
       ...(props.seed !== undefined ? { seed: props.seed } : {}),
     }),
   }),
-  { progress: "progress" },
+  { progress: "phase" },
 );
 
 // Rebuild the timeline when params that change its shape (text, seed…) change.
@@ -120,19 +133,20 @@ watch(
 
 Rules of the road:
 
-- **`progress` is a 0 → 1 signal, not a duration.** Trigger the effect by tweening
-  it from the scene: `yield* ref().progress(1, 2)`. `progress = 1` seeks the
-  timeline to its end (the settled state). Omit `progress` from `useAnime` options
-  to drive from absolute virtual time instead.
+- **`phase` is a 0 → 1 signal, not a duration.** Trigger the effect by tweening
+  it from the scene: `yield* ref().phase(1, 2)`. `phase = 1` seeks the timeline
+  to its end (the settled state). Omit the `progress` option from `useAnime` to
+  drive from absolute virtual time instead.
 - **Declare a default via `withDefaults()` (recommended) or pass a numeric initial
   to make a prop tweenable.** Props with a `withDefaults()` default get an MC
   signal automatically even when the scene omits them, so
-  `scrambleRef().progress(...)` works without the scene passing `progress={0}`.
+  `scrambleRef().phase(...)` works without the scene passing `phase={0}`.
   Otherwise pass a numeric initial; a prop with neither default nor initial gets
   no signal.
-- **`progress: "progress"` reads the live frame value** via the seam's `readProp`,
-  avoiding Vue's one-microtask-stale props copy. A getter also works
-  (`progress: () => props.progress ?? 0`) but reads one frame behind.
+- **`{ progress: "phase" }` reads the live frame value** via the seam's `readProp`
+  — the option key is `progress` (animejs's timeline slot), the value is your
+  SFC's signal prop name, conventionally `phase`. A getter also works
+  (`progress: () => props.phase ?? 0`) but reads one frame behind.
 - **Register the component**: export it from `src/vue/index.ts` (via
   `defineVueNode(...)` with an explicit props type), then run `pnpm gen`.
 - `ScrambleText.vue` and `GlowText.vue` in `src/vue/` are worked examples;
@@ -142,53 +156,41 @@ Rules of the road:
 
 Text effects (per-char / per-word / per-line reveals, stagger reveals, waves…)
 need the text split into individually animatable units. Moliniani uses animejs
-`splitText()` for this — no extra dependency:
+`splitText()` for this — no extra dependency. There are **two paths**:
 
-- **`useSplitText(target, createParams, { text })`** — wraps the target's text
-  in `data-char` / `data-word` / `data-line` spans and returns the live
-  `TextSplitter` plus its `chars` / `words` / `lines` arrays. It owns the
-  target's content (render an empty `<span>`, like `ScrambleText`), re-splits
-  when `text` changes, and re-splits automatically when fonts finish loading or
-  the element resizes.
-- **`useSplitTextAnimation(target, createSplitParams, createAnimation, opts)`** —
-  the fused helper: splits the text and runs one `animate()` timeline over the
-  split units, driven from MC virtual time like `useAnime()`. `units`
-  (`'chars'` / `'words'` / `'lines'`) picks the animated unit; when line
-  splitting is deferred to `document.fonts.ready` the timeline is (re)built once
-  the units exist. `RevealText.vue` in `src/vue/` is a worked example.
-- **`useAnime()` accepts arrays** — pass `split.chars` (or `words` / `lines`)
-  as the target and animate the whole collection from MC virtual time with a
-  single seeked timeline. `stagger` / `rise` give the per-unit wave.
+1. **Hand-rolled (per-unit handles):** split once, then tween each unit's MC
+   signals directly from the scene with `all()` / `sequence()` / `delay()`.
+2. **Declarative (ready-made effects):** tween a single `phase` signal; the
+   effect maps it onto every unit's signals each frame. This is how the 24
+   catalog effects work — no scene-side per-unit bookkeeping.
 
-> **`stagger` is applied as a per-unit `delay`.** animejs v4 dropped the legacy
-> `stagger` timing key — as an `animate()` param it is silently ignored. The
-> composables rewrite a numeric `stagger` (ms) into `delay: (_, i) => i * stagger`,
-> so the units cascade and the timeline's total duration grows to
-> `duration + stagger × (units − 1)`. Pass your own `delay` to override.
+### Path 1 — `useSplitUnits()` per-unit handles (custom animations)
+
+- **`useSplitUnits(target, createSplitParams, { units, text, unit })`** — wraps
+  the target's text in `data-char` / `data-word` / `data-line` spans and exposes
+  each unit as a `SplitUnitHandle`: its `opacity` / `x` / `y` / `rotation` /
+  `scale` / `blur` are **Motion Canvas signals** on MC's virtual timeline.
+  `units` (`'chars'` / `'words'` / `'lines'`, or `'whole'` for a single
+  pseudo-handle over the element) picks the animated unit, `unit` sets the
+  initial ("from") values, and `text` is owned by the composable (render an
+  empty `<span>`). The composable re-splits when `text` changes and when fonts
+  finish loading or the element resizes, re-applying the `unit` initial values.
+  When used inside a `defineVueNode` component the handles are also exposed on
+  the node instance (`split().units`).
+- **`SplitText.vue`** in `src/vue/` is the generic split canvas built on this —
+  the `<SplitText ref={...} split="chars" unit={{ opacity: 0, y: 40 }} />`
+  pattern from the split scene in the playground.
 
 ```ts
-const el = ref<HTMLElement>();
-const split = useSplitText(
-  el,
-  () => ({
-    chars: { class: "char" },
-  }),
-  { text: () => props.text ?? "" },
-);
+const ref = createMnRef(SplitText);
+view.add(<SplitText ref={ref} text="hello" split="chars" unit={{ opacity: 0, y: 40 }} />);
 
-useAnime(
-  split.chars,
-  () => ({
-    opacity: [0, 1],
-    translateY: [40, 0],
-    stagger: 60, // ms per unit
-    duration: 800, // ms
-  }),
-  { progress: "progress" },
-);
+const units = ref().units;
+yield* all(...units.map((u, i) => delay(i * 0.05, u.opacity(1, 0.4))));
+yield* all(...units.map((u, i) => delay(i * 0.05, u.y(0, 0.3))));
 ```
 
-Rules of the road (all the `useAnime` rules apply; see above):
+Rules of the road:
 
 - **`splitText` mutates the target's `innerHTML`.** Render an empty `<span>` and
   let the composable own its content. Never re-render that subtree from Vue.
@@ -197,41 +199,92 @@ Rules of the road (all the `useAnime` rules apply; see above):
 - **Scoped styles can't reach the injected spans.** Style them via the `class`
   template option (e.g. `chars: { class: 'char' }`) plus non-scoped CSS, or via
   `:deep()` selectors.
-- **`SplitText.vue`** in `src/vue/` is the generic split canvas; it exposes
-  `split` (`'chars'` / `'words'` / `'lines'`), per-unit class props, and `debug`
-  (animejs's outline helpers) as MC signals.
-- **`RevealText.vue`** in `src/vue/` is the first ready-made effect: `progress`
-  (`0 → 1`) reveals the units, and `split` / `rise` / `blur` / `stagger` /
-  `duration` / `ease` shape the wave. Use it as a black box, or copy it as the
-  template for your own split-text effects.
+- **`staggerRanks(n, mode)`** (`src/effectTiming.ts`) is exported for custom
+  animations: it returns the per-index animation rank for `center-out` /
+  `edges-in` orderings, matching what the ready-made effects apply internally.
+
+### Path 2 — `useSplitUnits()` phase driver (ready-made effects)
+
+Pass an `effect` driver to the same composable and it stops being a passive
+splitter: each frame it reads the node's `phase` signal (0 → 1) through the
+Moliniani seam and maps it onto every unit's MC signals via the pure helpers in
+`src/effectTiming.ts`. No animejs `animate()` is created — the mapping is a pure
+function of virtual time, so tweening, seeking, and scrubbing are deterministic
+in the editor and in exported video.
+
+```ts
+const split = useSplitUnits(el, () => ({ chars: { class: "char" } }), {
+  units: () => props.split,
+  text: () => props.text,
+  // The split is already at its from-state before the first frame's updater.
+  unit: () => fromState(knobs()),
+  effect: () => ({
+    phase: "phase", // prop name holding the MC phase signal
+    exit: "exit", // prop name holding the MC exit signal (0 → 1)
+    knobs, // () => TextEffectKnobs, read fresh each frame
+    staggerMode: () => spec.staggerMode, // optional re-ordering
+    exitStaggerMode: () => props.exitStaggerMode, // optional exit re-ordering
+  }),
+});
+```
+
+The knobs are read fresh every frame, so changing `duration` / `stagger` /
+`ease` / `rise` / … live needs no rebuild — only a `split` change recreates the
+animejs splitter. `useSplitUnits` is re-exported from `@moliniani/components`;
 
 ## Text effects (animate-text port)
 
 `@moliniani/components` ships the animation catalog from the
 [`animate-text` skill](https://pixelpoint.io/skills/animate-text) as pre-wrapped
-Vue SFCs. Each effect recreates the catalog's **enter** animation: a tweenable
-`progress` signal (`0 → 1`) scrubs an animejs timeline from the effect's `from`
-frame to the settled state, so tweening, seeking, and scrubbing are
-deterministic in the editor and in exported video. Phrase swapping is
-**scene-side** — see below.
+Vue SFCs. Each effect recreates the catalog's **enter** animation from a
+tweenable **`phase`** signal (`0 → 1`) and its **exit** animation from a
+tweenable **`exit`** signal (`0 → 1`): the effect's `duration` / `stagger` /
+easing / from-frame knobs (and their `exit*` counterparts) describe an internal
+cascade, and each rendered frame the phase driver maps the active signal onto
+every unit's MC signals — a pure function of virtual time, so tweening, seeking,
+and scrubbing are deterministic in the editor and in exported video. Phrase
+swapping is **scene-side**, via `createPhraseSwitcher` — see below.
 
 All generic-stagger effects share one thin-SFC pattern over two helpers:
 
-- **`easeFromString(ease)`** (`src/easing.ts`) — maps CSS easing strings
-  (`cubic-bezier(...)`, `steps(n, end)`, `linear`) to animejs easing functions.
-  animejs v4 rejects those CSS strings, so effects must pass the translated
-  functions.
-- **`TEXT_EFFECTS` / `buildEffectAnimation(spec, props)`** (`src/textEffects.ts`)
+- **`easeToTiming(ease)`** (`src/easing.ts`) — maps CSS easing strings
+  (`cubic-bezier(...)`, `steps(n, end)`, `linear`) and named easings
+  (`outExpo`, `inOutQuad`, …) onto Motion Canvas `TimingFunction`s. MC only
+  ships its named easings, so the CSS strings from the catalog are translated
+  here (deterministically, so scrubbing is stable).
+- **`TEXT_EFFECTS` / `resolveEffectKnobs(spec, props)`** (`src/textEffects.ts`)
   — the single source of truth for every effect's split target, signature
-  easing, and default timing, plus a builder that turns a spec + prop overrides
-  into animejs `AnimationParams`. The SFC spreads `spec.defaults` into
+  easing, and default timing, plus a resolver that folds prop overrides into
+  fully-defined timing knobs. The SFC spreads `spec.defaults` into
   `withDefaults()`, so the spec numbers live in exactly one place.
+- **`effectTiming.ts`** — the pure mapping the phase driver runs every frame:
+  `perUnitProgress(phase, index, count, duration, stagger, ranks)` turns the
+  phase into each unit's local timeline position, `unitValuesAt(...)` /
+  `wholeValuesAt(...)` turn that into eased MC signal values (`exitUnitValuesAt`
+  / `exitWholeValuesAt` do the same for the `exit` signal), `staggerRanks`
+  re-orders per-unit delays, and `fromState(knobs)` produces the split's
+  initial ("from") values.
 
-Each effect SFC exposes `text`, `progress`, `fontSize`, `fontFamily`, `color`,
-and its own tuning knobs (`duration`, `stagger`, `ease`, `rise`, `x`, `blur`,
-`scaleFrom` — only the ones that effect uses). Split effects also expose
-`split` (`chars` / `words` / `lines`), defaulting to the catalog target so you
-can switch long copy to words.
+Each effect SFC exposes `text`, `phase`, `exit`, `fontSize`, `fontFamily`,
+`color`, and its own tuning knobs (`duration`, `stagger`, `ease`, `rise`, `x`,
+`blur`, `scaleFrom` — only the ones that effect uses), plus the matching
+`exit*` knobs (`exitDuration`, `exitStagger`, `exitEase`, `exitRise`, `exitX`,
+`exitBlur`, `exitScale`, `exitOpacity`) and `exitStaggerMode`, which re-orders
+the exit cascade independently of the enter. Split effects also expose `split`
+(`chars` / `words` / `lines`), defaulting to the catalog target so you can
+switch long copy to words.
+
+**How `phase` and the timing knobs interact.** `phase = 1` always completes
+every unit, whatever tween duration the scene used — the scene's tween length
+only scales the playback speed. The effect's internal cascade is described in
+milliseconds: `duration` is the per-unit tween length and `stagger` the per-unit
+delay, so the whole effect spans `duration + stagger × (units − 1)` ms. Unit
+`index` starts at `rank × stagger` and its local progress is
+`clamp((phase × total − rank × stagger) / duration, 0, 1)`. In practice the
+**scene tween duration** (seconds) picks the on-screen timing (match a vocal
+cue), while `duration` / `stagger` (ms) shape the internal wave (how much the
+units spread). To make the cascade spread exactly across the scene tween, set
+`duration + stagger × (units − 1) ≈ tweenMs`.
 
 | Effect               | Component            | target | default timing (ms) | signature easing                    |
 | -------------------- | -------------------- | ------ | ------------------- | ----------------------------------- |
@@ -270,11 +323,12 @@ Notes on the table:
   cursor `Typewriter` component. Its `steps(1, end)` easing snaps each char to
   visible at its stagger delay — a deterministic, MC-timeline typewriter.
 - **`shimmer-sweep` is the one non-stagger effect**: no split. The whole text is
-  the animated unit and a gradient highlight band sweeps across the glyphs
-  (registry `renderer: "sweep"`); it adds a `highlightColor` prop.
+  the animated unit and a subtle sweep blends it in while gliding left-to-center
+  (enter `x −22px`, `blur 8px`), then glides the phrase back out to the right on
+  exit (`x +22px`) — the catalog spec's motion, with no gradient band.
 - **`stagger-from-center` / `stagger-from-edges`** re-rank the per-unit stagger
-  (center-out / edges-in) instead of using the DOM index; `resolveStaggerDelay`
-  applies the ordering over the animated units only.
+  (center-out / edges-in) instead of using the DOM index; `staggerRanks(n, mode)`
+  produces the ordering and `perUnitProgress` applies it to the cascade.
 - **`whole` targets** animate the element directly (no split), so they don't
   expose a `split` prop.
 - The **hidden catalog effects** (`stagger-from-center`, `stagger-from-edges`,
@@ -295,18 +349,57 @@ const ref = createMnRef(SoftBlurIn);
 
 view.add(<SoftBlurIn ref={ref} text="Think different." fontSize={64} />);
 
-yield * ref().progress(1, 1.4); // play the reveal
+yield * ref().phase(1, 1.4); // play the reveal
 ```
 
 **Phrase swapping at the scene level.** A `TextEffect` component only recreates
-the animation. To swap copy, tween the `text` prop (re-splits the units in
-place), rewind `progress`, then play again:
+the animations — enter and exit are both driven by the effect's signals. To swap
+copy, orchestrate the phrases with `createPhraseSwitcher`, whose `phrase()`
+generator derives the enter/exit lengths from **two markers per phrase on the MC
+timeline** — the same `.meta` time events `waitUntil` resolves — so every start
+frame and every enter/exit length lands exactly on the audio beats you place in
+the editor:
 
 ```tsx
-yield * ref().text("Built to flow.", 0.01); // re-split to the new phrase
-yield * ref().progress(0.01, 0.01); // rewind the timeline to its start
-yield * ref().progress(1, 1.4); // reveal the new phrase
+import { createPhraseSwitcher, SHIMMER_SWEEP } from "@moliniani/components";
+
+const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
+
+yield * t.phrase("sway-in-1", "sway-out-1", "Shiny details.");
+yield * t.phrase("sway-in-2", "sway-out-2", "Glide with intent.");
 ```
+
+Each phrase gets an `in` marker (its start frame, i.e. the audio beat) and an
+`out` marker (where its enter completes and its exit starts), and the lengths
+are **derived from the markers**, not from the spec:
+
+- `enter = out − in` — the reveal fills the window between the phrase's two
+  markers, so dragging either one re-times it.
+- `exit = nextIn − out` — the previous phrase exits across the gap between its
+  `out` and the next phrase's `in`, so that window is draggable too.
+
+Markers that aren't on the timeline yet are never an error: `phrase()`
+auto-places them at readable defaults (`in` at `now + hold + exit`, `out` at
+`in + enter`) and always re-registers them so they persist and stay draggable in
+the editor — the durations derive from the markers the moment you place or drag
+them. Until then they fall back to the per-call `{ enter, exit, enterEase,
+exitEase }` options, which default to the phrase's **full cascade**
+(`duration + stagger × (units − 1)`, computed per phrase from the spec's scaled
+timings — e.g. soft-blur-in "Think different." runs 648 + 18 × 14 = 900ms, the
+same window as the site); `"whole"` effects just use `duration`. The tween ease
+defaults to `linear` so the effect's signature ease is the only ease (cascade
+effects force `linear` regardless); pass a custom ease to re-time the motion.
+The exit is a **distinct animation, not a rewind**: per-character/word effects
+exit left-to-right like the site — override the ordering with the effect's
+`exitStaggerMode` prop (`normal` / `center-out` / `edges-in`).
+
+The manual generators remain for hand-rolled scenes: `enter(text)` sets the
+text, rewinds `phase`/`exit`, and plays the enter tween; `exit()` plays the exit
+tween; `swap(text)` chains exit → replace → re-enter; `swapOn(cue, text)` is the
+single-marker variant that schedules the exit to complete **exactly at a swap
+cue** (`[cue − exit, cue]`, clamped to the window that actually exists so a cue
+dragged left shortens the exit) and starts the new phrase on the cue. A cue that
+isn't on the timeline yet is auto-placed at `now + hold + exit`.
 
 ## Generated SFCs
 
@@ -319,9 +412,9 @@ pnpm gen        # regenerate (also runs automatically before build/test/check)
 
 Never hand-edit the `*.gen.ts` files; edit the `.vue` sources instead.
 
-The 18 formulaic text-effect SFCs above are emitted once by
+The 21 formulaic text-effect SFCs above are emitted once by
 `scripts/gen-text-effect-sfcs.mjs` (they're committed as normal, hand-editable
 files). When a new effect is added to the `textEffects.ts` registry, re-run that
-script — `pnpm gen` then compiles the new SFCs. `TypingText.vue`,
-`ShimmerSweep.vue`, and the `TextEffectWrappers.ts` registrations are the two
-hand-authored carve-outs.
+script — `pnpm gen` then compiles the new SFCs. `SoftBlurIn.vue`,
+`TypingText.vue`, `ShimmerSweep.vue`, and the `TextEffectWrappers.ts`
+registrations are the hand-authored carve-outs.

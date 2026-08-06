@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "shimmer-sweep",
+      "name": "shimmer-sweep-in-1",
       "targetTime": 0
     },
     {
+      "name": "shimmer-sweep-out-1",
+      "targetTime": 0.612
+    },
+    {
+      "name": "shimmer-sweep-in-2",
+      "targetTime": 1.63
+    },
+    {
+      "name": "shimmer-sweep-out-2",
+      "targetTime": 2.242
+    },
+    {
+      "name": "shimmer-sweep-in-3",
+      "targetTime": 3.26
+    },
+    {
+      "name": "shimmer-sweep-out-3",
+      "targetTime": 3.872
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.2
+      "targetTime": 4.6
     }
   ],
   "seed": 2870238200

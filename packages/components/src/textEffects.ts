@@ -1,19 +1,20 @@
-import type { AnimationParams, EasingParam } from "animejs";
-import { easeFromString } from "./easing";
-import type { StaggerMode } from "./useAnime";
-import type { SplitUnit } from "./useSplitTextAnimation";
+import type { SplitUnit } from "./useSplitUnits";
+import type { StaggerMode, TextEffectKnobs } from "./effectTiming";
 
 /**
  * Generic text-effect specs ported from the `animate-text` skill catalog
  * (https://pixelpoint.io/skills/animate-text). Each spec is the single source
  * of truth for one effect: the split target, the signature easing, the stagger
- * ordering, and the default animation params (used both as the SFC's prop
- * defaults and as the animejs keyframes).
+ * ordering, and the default timing knobs (used both as the SFC's prop defaults
+ * and by `resolveEffectKnobs`).
  *
- * `TextEffect` components recreate the effect's *enter* animation only: a
- * tweenable `progress` signal (0 → 1) scrubs an animejs timeline from the
- * `from` frame to the settled state. Phrase swapping is scene-side — tween
- * `text` (re-splits in place), rewind `progress`, play again.
+ * `TextEffect` components recreate the effect's *enter* and *exit* animations:
+ * tweenable `phase` (0 → 1) and `exit` (0 → 1) signals drive every split unit's
+ * MC signals through the pure mappings in `effectTiming.ts` — no animejs
+ * timeline, so tweening, seeking, and scrubbing are deterministic on MC's
+ * virtual timeline. Phrase swapping is scene-side — tween `exit` to 1, swap
+ * `text` (re-splits in place), rewind both signals, play `phase` again. The
+ * `createPhraseSwitcher()` helper encodes that dance as MC thread generators.
  *
  * The defaults below use the site-scaled timing from the skill's effect
  * recipes: durations/staggers × 0.72, vertical travel × 0.58 (except the
@@ -21,8 +22,19 @@ import type { SplitUnit } from "./useSplitTextAnimation";
  * are documented in `packages/components/README.md`.
  */
 export interface TextEffectProps {
+  /** Per-unit tween length in ms (also shapes the cascade via `stagger`). */
   duration?: number;
+  /** Per-unit stagger delay in ms. */
   stagger?: number;
+  /**
+   * The reveal's whole internal timeline length in ms. When set (> 0) the
+   * per-unit `stagger` derives as `(total - duration) / (count - 1)` so the
+   * cascade fills exactly `total` and the knobs speak in scene time. Scenes
+   * usually don't set this — tweening the node's `phase(1, seconds)` records
+   * it automatically; leave unset for the spec's default per-unit timing.
+   */
+  total?: number;
+  /** CSS easing string (`cubic-bezier(...)`, `steps(...)`, `linear`) or name. */
   ease?: string;
   /** translateY from-frame distance in px (negative slides in from above). */
   rise?: number;
@@ -34,6 +46,33 @@ export interface TextEffectProps {
   scaleFrom?: number;
   /** opacity from-frame value (1 disables the fade). */
   opacityFrom?: number;
+  /** Exit per-unit tween length in ms (defaults to the spec's exit block). */
+  exitDuration?: number;
+  /** Exit per-unit stagger delay in ms. */
+  exitStagger?: number;
+  /**
+   * The exit's whole internal timeline length in ms — mirrors `total`. Tweening
+   * the node's `exit(1, seconds)` records it automatically; leave unset for the
+   * spec's default per-unit exit timing.
+   */
+  exitTotal?: number;
+  /** Exit easing string (CSS or named). */
+  exitEase?: string;
+  /** Exit translateY to-frame distance in px. */
+  exitRise?: number;
+  /** Exit translateX to-frame distance in px. */
+  exitX?: number;
+  /** Exit blur to-frame radius in px. */
+  exitBlur?: number;
+  /** Exit scale to-frame value. */
+  exitScale?: number;
+  /** Exit opacity to-frame value. */
+  exitOpacity?: number;
+  /**
+   * Exit stagger ordering. Defaults to the enter ordering — the site exits in
+   * the same left-to-right direction the enter used, not as a rewind.
+   */
+  exitStaggerMode?: StaggerMode;
 }
 
 /** Which unit the effect splits into; `"whole"` animates the full span. */
@@ -56,54 +95,59 @@ export interface TextEffectSpec {
   /** How per-unit stagger delays are ordered (defaults to DOM index). */
   staggerMode?: StaggerMode;
   renderer?: TextEffectRenderer;
+  /**
+   * Exit timing + frames, ported from the effect's spec `exit` block
+   * (`exit.scaled_duration_ms` / `scaled_stagger_ms` / easing / to-frame, y ×
+   * 0.58). The exit animates from the settle frame to these `to` values — a
+   * distinct animation, not a rewind of the enter. Populated for every effect
+   * that declares an exit; when absent the exit falls back to a 0ms no-op.
+   */
+  exit?: {
+    duration?: number;
+    stagger?: number;
+    ease?: string;
+    rise?: number;
+    x?: number;
+    blur?: number;
+    scale?: number;
+    opacity?: number;
+  };
+  /**
+   * Wrap each split line in a static `overflow: clip` container (animejs
+   * `lines.wrap`) so lines rise inside their own line box — the "soft masked
+   * feel" of mask-reveal-up. Only meaningful for per-line targets.
+   */
+  wrapLines?: boolean;
 }
 
 /**
- * Builds the animejs `AnimationParams` for a spec. Every effect fades units
- * from `opacity: 0` to the settled state; the spec's `from` frame decides which
- * additional transforms are animated, so each SFC exposes just its own knobs.
- *
- * A numeric `stagger` is left for `useSplitTextAnimation`'s
- * `resolveStaggerDelay` to convert into a per-unit `delay`.
+ * Resolves a spec + prop overrides into the fully-defined timing knobs the
+ * effect driver reads each frame. Every knob falls back to the spec default,
+ * then to 0 / 1 / `"linear"`, so the per-unit mapping is always well-defined.
  */
-export function buildEffectAnimation(
-  spec: TextEffectSpec,
-  props: TextEffectProps,
-): AnimationParams {
-  const params: AnimationParams = {
-    duration: props.duration ?? spec.defaults.duration ?? 0,
-    ease: easeFromString(props.ease ?? spec.defaults.ease) as EasingParam,
+export function resolveEffectKnobs(spec: TextEffectSpec, props: TextEffectProps): TextEffectKnobs {
+  const defaults = spec.defaults;
+  const exit = spec.exit;
+  return {
+    duration: props.duration ?? defaults.duration ?? 0,
+    stagger: props.stagger ?? defaults.stagger ?? 0,
+    total: props.total ?? defaults.total,
+    ease: props.ease ?? defaults.ease ?? "linear",
+    rise: props.rise ?? defaults.rise ?? 0,
+    x: props.x ?? defaults.x ?? 0,
+    blur: props.blur ?? defaults.blur ?? 0,
+    scaleFrom: props.scaleFrom ?? defaults.scaleFrom ?? 1,
+    opacityFrom: props.opacityFrom ?? defaults.opacityFrom ?? 0,
+    exitDuration: props.exitDuration ?? exit?.duration ?? 0,
+    exitStagger: props.exitStagger ?? exit?.stagger ?? 0,
+    exitTotal: props.exitTotal ?? defaults.exitTotal,
+    exitEase: props.exitEase ?? exit?.ease ?? "linear",
+    exitRise: props.exitRise ?? exit?.rise ?? 0,
+    exitX: props.exitX ?? exit?.x ?? 0,
+    exitBlur: props.exitBlur ?? exit?.blur ?? 0,
+    exitScale: props.exitScale ?? exit?.scale ?? 1,
+    exitOpacity: props.exitOpacity ?? exit?.opacity ?? 0,
   };
-
-  if (spec.renderer === "sweep") {
-    // Whole-text gradient sweep: the highlight band travels left-to-right once,
-    // while the text fades in with the same from-frame drift as a generic unit.
-    params.opacity = [props.opacityFrom ?? spec.defaults.opacityFrom ?? 0, 1];
-    params.backgroundPosition = ["-200% 0%", "200% 0%"];
-    const x = props.x ?? spec.defaults.x;
-    if (x) params.translateX = [x, 0];
-    const blur = props.blur ?? spec.defaults.blur;
-    if (blur) params.filter = [`blur(${blur}px)`, "blur(0px)"];
-    return params;
-  }
-
-  params.opacity = [props.opacityFrom ?? spec.defaults.opacityFrom ?? 0, 1];
-
-  const stagger = props.stagger ?? spec.defaults.stagger;
-  if (stagger) params.stagger = stagger;
-  // The from-frame values fall back to the spec defaults, so the SFC can pass
-  // its merged props (always defined) or omit them; an explicit `0` disables
-  // the key (nullish coalescing only falls back on null/undefined).
-  const rise = props.rise ?? spec.defaults.rise;
-  if (rise) params.translateY = [rise, 0];
-  const x = props.x ?? spec.defaults.x;
-  if (x) params.translateX = [x, 0];
-  const scaleFrom = props.scaleFrom ?? spec.defaults.scaleFrom;
-  if (scaleFrom) params.scale = [scaleFrom, 1];
-  const blur = props.blur ?? spec.defaults.blur;
-  if (blur) params.filter = [`blur(${blur}px)`, "blur(0px)"];
-
-  return params;
 }
 
 export const SOFT_BLUR_IN: TextEffectSpec = {
@@ -115,6 +159,13 @@ export const SOFT_BLUR_IN: TextEffectSpec = {
     stagger: 18,
     ease: "cubic-bezier(0.22, 1, 0.36, 1)",
     rise: 9,
+    blur: 12,
+  },
+  exit: {
+    duration: 432,
+    stagger: 11,
+    ease: "cubic-bezier(0.64, 0, 0.78, 0)",
+    rise: -16,
     blur: 12,
   },
 };
@@ -129,6 +180,12 @@ export const PER_CHARACTER_RISE: TextEffectSpec = {
     ease: "cubic-bezier(0.2, 0.8, 0.2, 1)",
     rise: 19,
   },
+  exit: {
+    duration: 302,
+    stagger: 10,
+    ease: "cubic-bezier(0.7, 0, 0.84, 0)",
+    rise: -24,
+  },
 };
 
 export const PER_WORD_CROSSFADE: TextEffectSpec = {
@@ -140,6 +197,12 @@ export const PER_WORD_CROSSFADE: TextEffectSpec = {
     stagger: 50,
     ease: "cubic-bezier(0.16, 1, 0.3, 1)",
     rise: 5,
+  },
+  exit: {
+    duration: 360,
+    stagger: 29,
+    ease: "cubic-bezier(0.7, 0, 0.84, 0)",
+    rise: -6,
   },
 };
 
@@ -153,17 +216,31 @@ export const SPRING_SCALE_IN: TextEffectSpec = {
     ease: "cubic-bezier(0.34, 1.56, 0.64, 1)",
     scaleFrom: 0.7,
   },
+  exit: {
+    duration: 144,
+    stagger: 58,
+    ease: "cubic-bezier(0.7, 0, 0.84, 0)",
+    scale: 0.8,
+  },
 };
 
 export const MASK_REVEAL_UP: TextEffectSpec = {
   id: "mask-reveal-up",
   name: "Mask Reveal Up",
   target: "lines",
+  wrapLines: true,
   defaults: {
     duration: 547,
-    stagger: 65,
+    stagger: 280,
     ease: "cubic-bezier(0.22, 1, 0.36, 1)",
-    rise: 17,
+    rise: 57,
+    blur: 6,
+  },
+  exit: {
+    duration: 374,
+    stagger: 50,
+    ease: "cubic-bezier(0.64, 0, 0.78, 0)",
+    rise: -22,
     blur: 6,
   },
 };
@@ -178,6 +255,12 @@ export const LINE_BY_LINE_SLIDE: TextEffectSpec = {
     ease: "cubic-bezier(0.22, 1, 0.36, 1)",
     x: -48,
   },
+  exit: {
+    duration: 432,
+    stagger: 58,
+    ease: "cubic-bezier(0.64, 0, 0.78, 0)",
+    x: 48,
+  },
 };
 
 export const TYPING_TEXT: TextEffectSpec = {
@@ -188,6 +271,12 @@ export const TYPING_TEXT: TextEffectSpec = {
     duration: 173,
     stagger: 33,
     ease: "steps(1, end)",
+  },
+  exit: {
+    duration: 187,
+    stagger: 7,
+    ease: "cubic-bezier(0.7, 0, 0.84, 0)",
+    rise: -4,
   },
 };
 
@@ -200,17 +289,27 @@ export const MICRO_SCALE_FADE: TextEffectSpec = {
     ease: "cubic-bezier(0.32, 0.72, 0, 1)",
     scaleFrom: 0.96,
   },
+  exit: {
+    duration: 288,
+    ease: "cubic-bezier(0.7, 0, 0.84, 0)",
+    scale: 0.96,
+  },
 };
 
 export const SHIMMER_SWEEP: TextEffectSpec = {
   id: "shimmer-sweep",
   name: "Shimmer Sweep",
   target: "whole",
-  renderer: "sweep",
   defaults: {
     duration: 612,
     ease: "cubic-bezier(0.22, 1, 0.36, 1)",
     x: -22,
+    blur: 8,
+  },
+  exit: {
+    duration: 468,
+    ease: "cubic-bezier(0.7, 0, 0.84, 0)",
+    x: 22,
     blur: 8,
   },
 };
@@ -226,6 +325,11 @@ export const FADE_THROUGH: TextEffectSpec = {
     scaleFrom: 0.99,
     blur: 2,
   },
+  exit: {
+    duration: 187,
+    ease: "cubic-bezier(0.4, 0, 1, 1)",
+    rise: -4,
+  },
 };
 
 export const SHARED_AXIS_Y: TextEffectSpec = {
@@ -236,6 +340,12 @@ export const SHARED_AXIS_Y: TextEffectSpec = {
     duration: 140,
     stagger: 56,
     ease: "steps(1, end)",
+  },
+  exit: {
+    duration: 140,
+    stagger: 56,
+    ease: "steps(1, end)",
+    scale: 1,
   },
 };
 
@@ -248,6 +358,12 @@ export const SHARED_AXIS_Z: TextEffectSpec = {
     ease: "cubic-bezier(0.2, 0, 0, 1)",
     scaleFrom: 0.9,
     blur: 2,
+  },
+  exit: {
+    duration: 259,
+    ease: "cubic-bezier(0.4, 0, 1, 1)",
+    scale: 1.06,
+    blur: 1,
   },
 };
 
@@ -262,6 +378,13 @@ export const BLUR_OUT_UP: TextEffectSpec = {
     rise: 6,
     blur: 6,
   },
+  exit: {
+    duration: 346,
+    stagger: 17,
+    ease: "cubic-bezier(0.64, 0, 0.78, 0)",
+    rise: -14,
+    blur: 8,
+  },
 };
 
 export const SCALE_DOWN_FADE: TextEffectSpec = {
@@ -273,6 +396,12 @@ export const SCALE_DOWN_FADE: TextEffectSpec = {
     ease: "cubic-bezier(0.22, 1, 0.36, 1)",
     rise: 5,
     scaleFrom: 1.04,
+  },
+  exit: {
+    duration: 274,
+    ease: "cubic-bezier(0.64, 0, 0.78, 0)",
+    rise: -8,
+    scale: 0.94,
   },
 };
 
@@ -287,6 +416,12 @@ export const FOCUS_BLUR_RESOLVE: TextEffectSpec = {
     blur: 14,
     scaleFrom: 1.01,
   },
+  exit: {
+    duration: 374,
+    ease: "cubic-bezier(0.64, 0, 0.78, 0)",
+    rise: -10,
+    blur: 10,
+  },
 };
 
 export const BOTTOM_UP_LETTERS: TextEffectSpec = {
@@ -299,6 +434,12 @@ export const BOTTOM_UP_LETTERS: TextEffectSpec = {
     ease: "cubic-bezier(0.18, 1, 0.32, 1)",
     rise: 27,
   },
+  exit: {
+    duration: 202,
+    stagger: 20,
+    ease: "cubic-bezier(0.7, 0, 0.84, 0)",
+    rise: -14,
+  },
 };
 
 export const TOP_DOWN_LETTERS: TextEffectSpec = {
@@ -310,6 +451,12 @@ export const TOP_DOWN_LETTERS: TextEffectSpec = {
     stagger: 63,
     ease: "cubic-bezier(0.18, 1, 0.32, 1)",
     rise: -27,
+  },
+  exit: {
+    duration: 202,
+    stagger: 20,
+    ease: "cubic-bezier(0.7, 0, 0.84, 0)",
+    rise: 14,
   },
 };
 
@@ -327,6 +474,14 @@ export const DEPTH_PARALLAX_WORDS: TextEffectSpec = {
     scaleFrom: 0.92,
     blur: 3,
   },
+  exit: {
+    duration: 360,
+    stagger: 32,
+    ease: "cubic-bezier(0.64, 0, 0.78, 0)",
+    rise: -5.8,
+    scale: 1.05,
+    blur: 2,
+  },
 };
 
 export const SHARED_AXIS_X: TextEffectSpec = {
@@ -338,6 +493,12 @@ export const SHARED_AXIS_X: TextEffectSpec = {
     ease: "cubic-bezier(0.2, 0, 0, 1)",
     x: 24,
     scaleFrom: 0.98,
+  },
+  exit: {
+    duration: 259,
+    ease: "cubic-bezier(0.4, 0, 1, 1)",
+    x: -20,
+    scale: 0.98,
   },
 };
 
@@ -351,6 +512,13 @@ export const STAGGER_FROM_CENTER: TextEffectSpec = {
     stagger: 16,
     ease: "cubic-bezier(0.22, 1, 0.36, 1)",
     rise: 7,
+    blur: 3,
+  },
+  exit: {
+    duration: 302,
+    stagger: 12,
+    ease: "cubic-bezier(0.64, 0, 0.78, 0)",
+    rise: -5,
     blur: 3,
   },
 };
@@ -367,6 +535,13 @@ export const STAGGER_FROM_EDGES: TextEffectSpec = {
     rise: 7,
     blur: 3,
   },
+  exit: {
+    duration: 302,
+    stagger: 12,
+    ease: "cubic-bezier(0.64, 0, 0.78, 0)",
+    rise: -5,
+    blur: 3,
+  },
 };
 
 // --- Kinetic builds (Phase 2 of the port; scenes + wrapper SFCs come later) ---
@@ -378,23 +553,35 @@ export const KINETIC_CENTER_BUILD: TextEffectSpec = {
   defaults: {
     duration: 259,
     ease: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+    x: 88,
     rise: 6,
     scaleFrom: 0.992,
     blur: 3.5,
+  },
+  exit: {
+    duration: 187,
+    ease: "cubic-bezier(0.4, 0, 0.2, 1)",
+    rise: -6,
+    blur: 2.5,
   },
 };
 
 export const SHORT_SLIDE_RIGHT: TextEffectSpec = {
   id: "short-slide-right",
   name: "Short Slide Right",
-  target: "words",
+  target: "whole",
   defaults: {
     duration: 374,
-    stagger: 66,
     ease: "cubic-bezier(0.2, 0.8, 0.2, 1)",
     x: -24,
     blur: 1.2,
     opacityFrom: 1,
+  },
+  exit: {
+    duration: 230,
+    ease: "cubic-bezier(0.4, 0, 0.2, 1)",
+    x: 12,
+    blur: 1,
   },
 };
 
@@ -408,6 +595,12 @@ export const SHORT_SLIDE_DOWN: TextEffectSpec = {
     rise: -24,
     scaleFrom: 0.992,
     blur: 2.4,
+  },
+  exit: {
+    duration: 230,
+    ease: "cubic-bezier(0.4, 0, 0.2, 1)",
+    rise: 10,
+    blur: 1.2,
   },
 };
 

@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "focus-blur-resolve",
+      "name": "focus-blur-resolve-in-1",
       "targetTime": 0
     },
     {
+      "name": "focus-blur-resolve-out-1",
+      "targetTime": 0.547
+    },
+    {
+      "name": "focus-blur-resolve-in-2",
+      "targetTime": 1.471
+    },
+    {
+      "name": "focus-blur-resolve-out-2",
+      "targetTime": 2.0180000000000002
+    },
+    {
+      "name": "focus-blur-resolve-in-3",
+      "targetTime": 2.9420000000000006
+    },
+    {
+      "name": "focus-blur-resolve-out-3",
+      "targetTime": 3.4890000000000008
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.2
+      "targetTime": 3.759
     }
   ],
   "seed": 2220186618

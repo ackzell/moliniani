@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "depth-parallax-words",
+      "name": "depth-parallax-words-in-1",
       "targetTime": 0
     },
     {
+      "name": "depth-parallax-words-out-1",
+      "targetTime": 0.554
+    },
+    {
+      "name": "depth-parallax-words-in-2",
+      "targetTime": 1.496
+    },
+    {
+      "name": "depth-parallax-words-out-2",
+      "targetTime": 2.1
+    },
+    {
+      "name": "depth-parallax-words-in-3",
+      "targetTime": 3.0740000000000003
+    },
+    {
+      "name": "depth-parallax-words-out-3",
+      "targetTime": 3.628
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.802428502829479
+      "targetTime": 3.898
     }
   ],
   "seed": 4223554793

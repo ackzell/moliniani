@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "bottom-up-letters",
+      "name": "bottom-up-letters-in-1",
       "targetTime": 0
     },
     {
+      "name": "bottom-up-letters-out-1",
+      "targetTime": 0.54
+    },
+    {
+      "name": "bottom-up-letters-in-2",
+      "targetTime": 1.372
+    },
+    {
+      "name": "bottom-up-letters-out-2",
+      "targetTime": 1.9120000000000001
+    },
+    {
+      "name": "bottom-up-letters-in-3",
+      "targetTime": 2.744
+    },
+    {
+      "name": "bottom-up-letters-out-3",
+      "targetTime": 3.3470000000000004
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.2
+      "targetTime": 3.617
     }
   ],
   "seed": 2210625286

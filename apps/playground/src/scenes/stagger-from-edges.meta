@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "stagger-from-edges",
+      "name": "stagger-from-edges-in-1",
       "targetTime": 0
     },
     {
+      "name": "stagger-from-edges-out-1",
+      "targetTime": 0.67
+    },
+    {
+      "name": "stagger-from-edges-in-2",
+      "targetTime": 1.6900000000000002
+    },
+    {
+      "name": "stagger-from-edges-out-2",
+      "targetTime": 2.3440000000000003
+    },
+    {
+      "name": "stagger-from-edges-in-3",
+      "targetTime": 3.3520000000000003
+    },
+    {
+      "name": "stagger-from-edges-out-3",
+      "targetTime": 4.038
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.2
+      "targetTime": 4.308
     }
   ],
   "seed": 3700106778

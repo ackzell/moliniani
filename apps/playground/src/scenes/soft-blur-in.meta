@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "soft-blur-in",
+      "name": "soft-blur-in-in-1",
       "targetTime": 0
     },
     {
+      "name": "soft-blur-in-out-1",
+      "targetTime": 0.8588446675642054
+    },
+    {
+      "name": "soft-blur-in-in-2",
+      "targetTime": 1.6487066974354363
+    },
+    {
+      "name": "soft-blur-in-out-2",
+      "targetTime": 3.01524176915634
+    },
+    {
+      "name": "soft-blur-in-in-3",
+      "targetTime": 4.14024176915634
+    },
+    {
+      "name": "soft-blur-in-out-3",
+      "targetTime": 5.1122417691563395
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.4
+      "targetTime": 6.492952734558341
     }
   ],
   "seed": 1034009983

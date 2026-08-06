@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import type { TextSplitterParams } from "animejs";
-import { useSplitTextAnimation, type SplitUnitOrWhole } from "../useSplitTextAnimation";
-import { buildEffectAnimation, TYPING_TEXT, type TextEffectProps } from "../textEffects";
+import { useSplitUnits } from "../useSplitUnits";
+import { fromState } from "../effectTiming";
+import { resolveEffectKnobs, TYPING_TEXT, type TextEffectProps } from "../textEffects";
 
 // The catalog "typewriter" effect: chars appear one at a time with a
 // `steps(1, end)` easing, so each unit snaps to visible at its stagger delay —
@@ -12,7 +13,8 @@ const props = withDefaults(
   defineProps<{
     text?: string;
     split?: string;
-    progress?: number;
+    phase?: number;
+    exit?: number;
     fontSize?: number;
     fontFamily?: string;
     color?: string;
@@ -24,11 +26,22 @@ const props = withDefaults(
     blur?: number;
     scaleFrom?: number;
     opacityFrom?: number;
+    exitDuration?: number;
+    exitStagger?: number;
+    exitTotal?: number;
+    exitEase?: string;
+    exitRise?: number;
+    exitX?: number;
+    exitBlur?: number;
+    exitScale?: number;
+    exitOpacity?: number;
+    exitStaggerMode?: string;
   }>(),
   {
     ...TYPING_TEXT.defaults,
     split: TYPING_TEXT.target,
-    progress: 0,
+    phase: 0,
+    exit: 0,
     fontSize: 32,
     fontFamily: "monospace",
     color: "#ffffff",
@@ -37,33 +50,28 @@ const props = withDefaults(
 
 const el = ref<HTMLElement | null>(null);
 
-const anime = useSplitTextAnimation(
+const split = useSplitUnits(
   el,
-  () => {
-    return { [props.split]: { class: `typing-text-${props.split}` } } as TextSplitterParams;
-  },
-  () => buildEffectAnimation(TYPING_TEXT, props as TextEffectProps),
+  () => ({ [props.split]: { class: `typing-text-${props.split}` } }) as TextSplitterParams,
   {
-    progress: "progress",
-    units: () => props.split as SplitUnitOrWhole,
+    units: () => props.split,
     text: () => props.text,
-    staggerMode: () => TYPING_TEXT.staggerMode,
+    unit: () => fromState(resolveEffectKnobs(TYPING_TEXT, props as TextEffectProps)),
+    effect: () => ({
+      phase: "phase",
+      exit: "exit",
+      knobs: () => resolveEffectKnobs(TYPING_TEXT, props as TextEffectProps),
+      staggerMode: () => TYPING_TEXT.staggerMode,
+      exitStaggerMode: () => props.exitStaggerMode,
+    }),
   },
 );
 
+// A split-unit change needs the animejs splitter recreated; knob changes
+// flow through the phase driver live.
 watch(
-  () => [
-    props.split,
-    props.duration,
-    props.stagger,
-    props.ease,
-    props.rise,
-    props.x,
-    props.blur,
-    props.scaleFrom,
-    props.opacityFrom,
-  ],
-  () => anime.rebuild(),
+  () => props.split,
+  () => split.rebuild(),
 );
 </script>
 
@@ -80,9 +88,13 @@ watch(
 </template>
 
 <style scoped>
+/* MC's editor sets a global line-height (24px) on <body> that the overlay would
+   otherwise inherit; a fixed 24px line box clips the glyph tops and bottoms of
+   large text. `normal` makes the line box follow the font's own metrics. */
 .typing-text {
   display: inline-block;
   white-space: pre;
+  line-height: normal;
 }
 
 .typing-text :deep(span) {

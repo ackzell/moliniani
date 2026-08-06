@@ -2,6 +2,7 @@ import { defineVueNode, type VueNodeConstructor } from "@moliniani/core";
 import type { DefineComponent } from "vue";
 import type { SplitUnitHandle, SplitUnitInitialValues } from "../SplitUnitHandle";
 import type { UseSplitUnitsController } from "../useSplitUnits";
+import { textEffectExtend } from "../textEffectNode";
 import TypewriterSfc from "./Typewriter.gen";
 import ScrambleTextSfc from "./ScrambleText.gen";
 import GlowTextSfc from "./GlowText.gen";
@@ -50,7 +51,7 @@ export interface ScrambleTextProps {
   revealDelay?: number;
   delay?: number;
   duration?: number;
-  progress?: number;
+  phase?: number;
   fontSize?: number;
   fontFamily?: string;
   color?: string;
@@ -70,7 +71,7 @@ export interface GlowTextProps {
   color?: string;
   glowColor?: string;
   glowRadius?: number;
-  progress?: number;
+  phase?: number;
 }
 
 const GlowTextSfcTyped = GlowTextSfc as unknown as DefineComponent<any, any, any>;
@@ -146,8 +147,21 @@ export interface RevealTextProps {
   blur?: number;
   stagger?: number;
   duration?: number;
+  /** Whole reveal timeline in ms; tweening `phase(1, seconds)` records it. */
+  total?: number;
   ease?: string;
-  progress?: number;
+  phase?: number;
+  exit?: number;
+  exitDuration?: number;
+  exitStagger?: number;
+  exitTotal?: number;
+  exitEase?: string;
+  exitRise?: number;
+  exitX?: number;
+  exitBlur?: number;
+  exitScale?: number;
+  exitOpacity?: number;
+  exitStaggerMode?: string;
   fontSize?: number;
   fontFamily?: string;
   color?: string;
@@ -158,20 +172,34 @@ const RevealTextSfcTyped = RevealTextSfc as unknown as DefineComponent<any, any,
 export const RevealText: VueNodeConstructor<RevealTextProps> = defineVueNode(
   RevealTextSfcTyped,
   "RevealText",
+  textEffectExtend(true),
 );
 
 export interface SoftBlurInProps {
   text?: string;
   split?: string;
-  progress?: number;
+  phase?: number;
+  exit?: number;
   fontSize?: number;
   fontFamily?: string;
   color?: string;
   duration?: number;
   stagger?: number;
+  /** Whole reveal timeline in ms; tweening `phase(1, seconds)` records it. */
+  total?: number;
   ease?: string;
   rise?: number;
   blur?: number;
+  exitDuration?: number;
+  exitStagger?: number;
+  exitTotal?: number;
+  exitEase?: string;
+  exitRise?: number;
+  exitX?: number;
+  exitBlur?: number;
+  exitScale?: number;
+  exitOpacity?: number;
+  exitStaggerMode?: string;
 }
 
 const SoftBlurInSfcTyped = SoftBlurInSfc as unknown as DefineComponent<any, any, any>;
@@ -179,12 +207,14 @@ const SoftBlurInSfcTyped = SoftBlurInSfc as unknown as DefineComponent<any, any,
 export const SoftBlurIn: VueNodeConstructor<SoftBlurInProps> = defineVueNode(
   SoftBlurInSfcTyped,
   "SoftBlurIn",
+  textEffectExtend(true),
 );
 
 export interface TypingTextProps {
   text?: string;
   split?: string;
-  progress?: number;
+  phase?: number;
+  exit?: number;
   fontSize?: number;
   fontFamily?: string;
   color?: string;
@@ -196,6 +226,16 @@ export interface TypingTextProps {
   blur?: number;
   scaleFrom?: number;
   opacityFrom?: number;
+  exitDuration?: number;
+  exitStagger?: number;
+  exitTotal?: number;
+  exitEase?: string;
+  exitRise?: number;
+  exitX?: number;
+  exitBlur?: number;
+  exitScale?: number;
+  exitOpacity?: number;
+  exitStaggerMode?: string;
 }
 
 const TypingTextSfcTyped = TypingTextSfc as unknown as DefineComponent<any, any, any>;
@@ -203,15 +243,16 @@ const TypingTextSfcTyped = TypingTextSfc as unknown as DefineComponent<any, any,
 export const TypingText: VueNodeConstructor<TypingTextProps> = defineVueNode(
   TypingTextSfcTyped,
   "TypingText",
+  textEffectExtend(true),
 );
 
 export interface ShimmerSweepProps {
   text?: string;
-  progress?: number;
+  phase?: number;
+  exit?: number;
   fontSize?: number;
   fontFamily?: string;
   color?: string;
-  highlightColor?: string;
   duration?: number;
   stagger?: number;
   ease?: string;
@@ -220,6 +261,16 @@ export interface ShimmerSweepProps {
   blur?: number;
   scaleFrom?: number;
   opacityFrom?: number;
+  exitDuration?: number;
+  exitStagger?: number;
+  exitTotal?: number;
+  exitEase?: string;
+  exitRise?: number;
+  exitX?: number;
+  exitBlur?: number;
+  exitScale?: number;
+  exitOpacity?: number;
+  exitStaggerMode?: string;
 }
 
 const ShimmerSweepSfcTyped = ShimmerSweepSfc as unknown as DefineComponent<any, any, any>;

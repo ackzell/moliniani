@@ -1,4 +1,4 @@
-import { easeInOutCubic, waitUntil } from "@motion-canvas/core";
+import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { RevealText } from "@moliniani/components/vue";
 import { Txt } from "@motion-canvas/2d";
@@ -42,10 +42,10 @@ export default makeScene(function* (view) {
 
   yield* waitUntil("reveal");
 
-  // Tweening the progress signal scrubs the seeked animejs timeline, so the
+  // Tweening the phase signal drives the per-unit mapping on MC's timeline, so the
   // reveal is deterministic in the editor and in exported video.
-  yield* charsRef().progress(1, 1.2, easeInOutCubic);
-  yield* wordsRef().progress(1, 1.5, easeInOutCubic);
+  yield* charsRef().phase(1, 1.2);
+  yield* wordsRef().phase(1, 1.5);
 
   yield* waitUntil("next-scene");
   yield* charsRef().opacity(0, 0.5);

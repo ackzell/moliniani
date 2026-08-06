@@ -39,6 +39,7 @@ describe("useSplitTextAnimation", () => {
     let anime: ReturnType<typeof useSplitTextAnimation> | null = null;
 
     const ctx = {
+      registerController: () => {},
       registerFrameUpdater: (updater: (time: number) => void) => {
         capturedUpdater = updater;
       },
@@ -143,10 +144,11 @@ describe("RevealText SFC", () => {
   const makeMounted = (props: Record<string, unknown>) => {
     const host = document.createElement("div");
     document.body.appendChild(host);
-    const values: Record<string, number> = { progress: 0 };
+    const values: Record<string, number> = { phase: 0 };
     let capturedUpdater: ((time: number) => void) | undefined;
 
     const ctx = {
+      registerController: () => {},
       registerFrameUpdater: (updater: (time: number) => void) => {
         capturedUpdater = updater;
       },
@@ -183,17 +185,17 @@ describe("RevealText SFC", () => {
       text: "hello",
       split: "chars",
       blur: 12,
-      progress: 0,
+      phase: 0,
     });
 
     const chars = span.querySelectorAll<HTMLElement>("[data-char]");
 
-    values.progress = 0;
+    values.phase = 0;
     capturedUpdater!(0);
     expect(chars[0].style.filter).toContain("blur(12px)");
 
-    values.progress = 1;
+    values.phase = 1;
     capturedUpdater!(1);
-    expect(chars[0].style.filter).toContain("blur(0px)");
+    expect(chars[0].style.filter).toBe("");
   });
 });

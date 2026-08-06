@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vite-plus/test";
 import { createApp, defineComponent, h, provide } from "vue";
 import SoftBlurIn from "../src/vue/SoftBlurIn.gen";
 
-// `useSplitTextAnimation` injects the Moliniani VueNode context from core;
+// SoftBlurIn.vue injects the Moliniani VueNode context from core;
 // importing the real package would drag Motion Canvas into the jsdom test env.
 const mocks = vi.hoisted(() => ({
   contextKey: Symbol("mocked-mn-context"),
@@ -31,7 +31,7 @@ describe("SoftBlurIn SFC", () => {
   const makeMounted = (props: Record<string, unknown>) => {
     const host = document.createElement("div");
     document.body.appendChild(host);
-    const values: Record<string, number> = { progress: 0 };
+    const values: Record<string, number> = { phase: 0 };
     let capturedUpdater: ((time: number) => void) | undefined;
 
     const ctx = {
@@ -39,6 +39,7 @@ describe("SoftBlurIn SFC", () => {
         capturedUpdater = updater;
       },
       unregisterFrameUpdater: () => {},
+      registerController: () => {},
       readProp: (key: string) => values[key],
     };
 
@@ -62,19 +63,19 @@ describe("SoftBlurIn SFC", () => {
     app.unmount();
   });
 
-  it("starts blurred and below the baseline at progress 0, settled by progress 1", () => {
+  it("starts blurred and below the baseline at phase 0, settled by phase 1", () => {
     const { span, values, capturedUpdater } = makeMounted({ text: "hello" });
     const chars = span.querySelectorAll<HTMLElement>("[data-char]");
 
-    values.progress = 0;
+    values.phase = 0;
     capturedUpdater!(0);
     expect(chars[0].style.opacity).toBe("0");
     expect(chars[0].style.filter).toContain("blur(12px)");
 
-    values.progress = 1;
+    values.phase = 1;
     capturedUpdater!(1);
     expect(chars[0].style.opacity).toBe("1");
-    expect(chars[0].style.filter).toContain("blur(0px)");
+    expect(chars[0].style.filter).toBe("");
   });
 
   it("cascades the units via the stagger", () => {
@@ -84,12 +85,12 @@ describe("SoftBlurIn SFC", () => {
     // Early on, the first char has started revealing while the last (stagger
     // 18ms × 2, on a 648ms duration) has not: total ≈ 684ms, last char starts
     // at 36ms.
-    values.progress = 0.04;
+    values.phase = 0.04;
     capturedUpdater!(0.04);
     expect(Number(chars[0].style.opacity)).toBeGreaterThan(0);
     expect(chars[2].style.opacity).toBe("0");
 
-    values.progress = 1;
+    values.phase = 1;
     capturedUpdater!(1);
     expect(chars[2].style.opacity).toBe("1");
   });

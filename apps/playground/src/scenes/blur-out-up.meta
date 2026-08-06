@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "blur-out-up",
+      "name": "blur-out-up-in-1",
       "targetTime": 0
     },
     {
+      "name": "blur-out-up-out-1",
+      "targetTime": 0.463
+    },
+    {
+      "name": "blur-out-up-in-2",
+      "targetTime": 1.4100000000000001
+    },
+    {
+      "name": "blur-out-up-out-2",
+      "targetTime": 1.8330000000000002
+    },
+    {
+      "name": "blur-out-up-in-3",
+      "targetTime": 2.746
+    },
+    {
+      "name": "blur-out-up-out-3",
+      "targetTime": 3.189
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.6904727633655934
+      "targetTime": 3.459
     }
   ],
   "seed": 2372680763

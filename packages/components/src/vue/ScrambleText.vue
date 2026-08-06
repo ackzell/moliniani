@@ -20,7 +20,7 @@ const props = withDefaults(
     revealDelay?: number;
     delay?: number;
     duration?: number;
-    progress?: number;
+    phase?: number;
     fontSize?: number;
     fontFamily?: string;
     color?: string;
@@ -28,7 +28,7 @@ const props = withDefaults(
   {
     text: "",
     seed: 0,
-    progress: 0,
+    phase: 0,
     fontSize: 32,
     fontFamily: "monospace",
     color: "#ffffff",
@@ -58,9 +58,9 @@ const anime = useAnime(
       ...(props.duration !== undefined ? { duration: props.duration } : {}),
     }),
   }),
-  // Read progress via the seam's readProp so each rendered frame gets this
+  // Read phase via the seam's readProp so each rendered frame gets this
   // frame's signal value instead of Vue's one-frame-stale props copy.
-  { progress: "progress" },
+  { progress: "phase" },
 );
 
 watch(
@@ -82,8 +82,12 @@ watch(
 </template>
 
 <style scoped>
+/* MC's editor sets a global line-height (24px) on <body> that the overlay would
+   otherwise inherit; a fixed 24px line box clips the glyph tops and bottoms of
+   large text. `normal` makes the line box follow the font's own metrics. */
 .scramble-text {
   display: inline-block;
   white-space: pre;
+  line-height: normal;
 }
 </style>

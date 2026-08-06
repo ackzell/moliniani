@@ -75,8 +75,12 @@ watch(
 </template>
 
 <style scoped>
+/* MC's editor sets a global line-height (24px) on <body> that the overlay would
+   otherwise inherit; a fixed 24px line box clips the glyph tops and bottoms of
+   large text. `normal` makes the line box follow the font's own metrics. */
 .split-text {
   display: inline-block;
   white-space: pre;
+  line-height: normal;
 }
 </style>

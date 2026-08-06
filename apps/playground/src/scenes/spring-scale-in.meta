@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "spring-scale-in",
+      "name": "spring-scale-in-in-1",
       "targetTime": 0
     },
     {
+      "name": "spring-scale-in-out-1",
+      "targetTime": 0.395
+    },
+    {
+      "name": "spring-scale-in-in-2",
+      "targetTime": 1.205
+    },
+    {
+      "name": "spring-scale-in-out-2",
+      "targetTime": 1.6
+    },
+    {
+      "name": "spring-scale-in-in-3",
+      "targetTime": 2.41
+    },
+    {
+      "name": "spring-scale-in-out-3",
+      "targetTime": 2.805
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.2
+      "targetTime": 3.075
     }
   ],
   "seed": 1587838090

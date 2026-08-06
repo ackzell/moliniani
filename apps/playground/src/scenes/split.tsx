@@ -1,4 +1,4 @@
-import { easeInElastic, easeInOutCubic, waitUntil } from "@motion-canvas/core";
+import { easeInOutCubic, waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { SplitText } from "@moliniani/components/vue";
 import { Txt } from "@motion-canvas/2d";
@@ -32,6 +32,7 @@ export default makeScene(function* (view) {
         fontSize={48}
         color="#9fd6ff"
         y={180}
+        debug
       />
     </>,
   );
@@ -41,8 +42,7 @@ export default makeScene(function* (view) {
   // Changing the text prop re-splits in place; the split units rebuild to the
   // new string (tween a string signal to morph the split target).
   yield* charsRef().text("rebuilds on text change", 0.5, easeInOutCubic);
-
-  yield* wordsRef().scale(1.2, 1.5, easeInElastic);
+  yield* wordsRef().text("no matter the split unit", 0.5, easeInOutCubic);
 
   yield* waitUntil("next-scene");
   yield* charsRef().opacity(0, 0.5);

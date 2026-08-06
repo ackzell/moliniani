@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "shared-axis-y",
+      "name": "shared-axis-y-in-1",
       "targetTime": 0
     },
     {
+      "name": "shared-axis-y-out-1",
+      "targetTime": 0.196
+    },
+    {
+      "name": "shared-axis-y-in-2",
+      "targetTime": 0.942
+    },
+    {
+      "name": "shared-axis-y-out-2",
+      "targetTime": 1.194
+    },
+    {
+      "name": "shared-axis-y-in-3",
+      "targetTime": 1.996
+    },
+    {
+      "name": "shared-axis-y-out-3",
+      "targetTime": 2.248
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.7597786973194274
+      "targetTime": 2.518
     }
   ],
   "seed": 2950044637

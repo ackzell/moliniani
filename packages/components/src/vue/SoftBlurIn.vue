@@ -1,27 +1,42 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import type { TextSplitterParams } from "animejs";
-import { useSplitTextAnimation, type SplitUnit } from "../useSplitTextAnimation";
-import { buildEffectAnimation, SOFT_BLUR_IN, type TextEffectProps } from "../textEffects";
+import { useSplitUnits } from "../useSplitUnits";
+import { fromState } from "../effectTiming";
+import { resolveEffectKnobs, SOFT_BLUR_IN, type TextEffectProps } from "../textEffects";
 
 const props = withDefaults(
   defineProps<{
     text?: string;
     split?: string;
-    progress?: number;
+    phase?: number;
+    exit?: number;
     fontSize?: number;
     fontFamily?: string;
     color?: string;
     duration?: number;
     stagger?: number;
+    /** Whole reveal timeline in ms; tweening `phase(1, seconds)` records it. */
+    total?: number;
     ease?: string;
     rise?: number;
     blur?: number;
+    exitDuration?: number;
+    exitStagger?: number;
+    exitTotal?: number;
+    exitEase?: string;
+    exitRise?: number;
+    exitX?: number;
+    exitBlur?: number;
+    exitScale?: number;
+    exitOpacity?: number;
+    exitStaggerMode?: string;
   }>(),
   {
     ...SOFT_BLUR_IN.defaults,
     split: SOFT_BLUR_IN.target,
-    progress: 0,
+    phase: 0,
+    exit: 0,
     fontSize: 32,
     fontFamily: "monospace",
     color: "#ffffff",
@@ -31,26 +46,31 @@ const props = withDefaults(
 const el = ref<HTMLElement | null>(null);
 
 // Splits the text into the spec's unit and animates every unit from below a
-// soft blur, with a per-unit stagger, all seeked from the `progress` signal
-// (0 → 1). Durations/stagger are animejs milliseconds.
-const anime = useSplitTextAnimation(
+// soft blur, with a per-unit stagger, all driven by the `phase` signal
+// (0 → 1) and blurred up out of it by the `exit` signal (0 → 1).
+// duration/stagger are milliseconds; `phase = 1` always completes every unit,
+// whatever the scene's tween length.
+const split = useSplitUnits(
   el,
-  () => {
-    return { [props.split]: { class: `soft-blur-in-${props.split}` } } as TextSplitterParams;
-  },
-  () => buildEffectAnimation(SOFT_BLUR_IN, props as TextEffectProps),
+  () => ({ [props.split]: { class: `soft-blur-in-${props.split}` } }) as TextSplitterParams,
   {
-    progress: "progress",
-    units: () => props.split as SplitUnit,
+    units: () => props.split,
     text: () => props.text,
+    unit: () => fromState(resolveEffectKnobs(SOFT_BLUR_IN, props as TextEffectProps)),
+    effect: () => ({
+      phase: "phase",
+      exit: "exit",
+      knobs: () => resolveEffectKnobs(SOFT_BLUR_IN, props as TextEffectProps),
+      exitStaggerMode: () => props.exitStaggerMode as TextEffectProps["exitStaggerMode"],
+    }),
   },
 );
 
-// Rebuild when props that change the split or timeline shape change; text
-// changes are handled inside useSplitTextAnimation().
+// A split-unit change needs the animejs splitter recreated; knob changes
+// flow through the phase driver live.
 watch(
-  () => [props.split, props.duration, props.stagger, props.ease, props.rise, props.blur],
-  () => anime.rebuild(),
+  () => props.split,
+  () => split.rebuild(),
 );
 </script>
 
@@ -67,9 +87,13 @@ watch(
 </template>
 
 <style scoped>
+/* MC's editor sets a global line-height (24px) on <body> that the overlay would
+   otherwise inherit; a fixed 24px line box clips the glyph tops and bottoms of
+   large text. `normal` makes the line box follow the font's own metrics. */
 .soft-blur-in {
   display: inline-block;
   white-space: pre;
+  line-height: normal;
 }
 
 /* The split units are injected via innerHTML, so scoped selectors need :deep(). */

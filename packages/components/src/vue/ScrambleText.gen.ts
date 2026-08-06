@@ -24,7 +24,7 @@ const _sfc_main = /*@__PURE__*/_defineComponent({
     revealDelay: { type: Number, required: false },
     delay: { type: Number, required: false },
     duration: { type: Number, required: false },
-    progress: { type: Number, required: false, default: 0 },
+    phase: { type: Number, required: false, default: 0 },
     fontSize: { type: Number, required: false, default: 32 },
     fontFamily: { type: String, required: false, default: "monospace" },
     color: { type: String, required: false, default: "#ffffff" }
@@ -57,9 +57,9 @@ const anime = useAnime(
       ...(props.duration !== undefined ? { duration: props.duration } : {}),
     }),
   }),
-  // Read progress via the seam's readProp so each rendered frame gets this
+  // Read phase via the seam's readProp so each rendered frame gets this
   // frame's signal value instead of Vue's one-frame-stale props copy.
-  { progress: "progress" },
+  { progress: "phase" },
 );
 
 watch(
@@ -88,7 +88,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
 }
 _sfc_main.render = _sfc_render;
 _sfc_main.__scopeId = "data-v-ScrambleText";
-const __style = "\n.scramble-text[data-v-ScrambleText] {\n  display: inline-block;\n  white-space: pre;\n}\n";
+const __style = "\n/* MC's editor sets a global line-height (24px) on <body> that the overlay would\n   otherwise inherit; a fixed 24px line box clips the glyph tops and bottoms of\n   large text. `normal` makes the line box follow the font's own metrics. */\n.scramble-text[data-v-ScrambleText] {\n  display: inline-block;\n  white-space: pre;\n  line-height: normal;\n}\n";
 if (typeof document !== "undefined" && !document.getElementById("data-v-ScrambleText")) {
   const __styleEl = document.createElement("style");
   __styleEl.id = "data-v-ScrambleText";

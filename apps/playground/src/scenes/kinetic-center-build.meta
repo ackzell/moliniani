@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "kinetic-center-build",
+      "name": "kinetic-center-build-in-1",
       "targetTime": 0
     },
     {
+      "name": "kinetic-center-build-out-1",
+      "targetTime": 0.259
+    },
+    {
+      "name": "kinetic-center-build-in-2",
+      "targetTime": 0.996
+    },
+    {
+      "name": "kinetic-center-build-out-2",
+      "targetTime": 1.255
+    },
+    {
+      "name": "kinetic-center-build-in-3",
+      "targetTime": 1.992
+    },
+    {
+      "name": "kinetic-center-build-out-3",
+      "targetTime": 2.251
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.2
+      "targetTime": 2.521
     }
   ],
   "seed": 316609176

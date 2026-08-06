@@ -2,17 +2,20 @@
 // Generated once by scripts/gen-text-effect-sfcs.mjs — edit directly.
 import { ref, watch } from "vue";
 import type { TextSplitterParams } from "animejs";
-import { useSplitTextAnimation, type SplitUnitOrWhole } from "../useSplitTextAnimation";
-import { buildEffectAnimation, MASK_REVEAL_UP, type TextEffectProps } from "../textEffects";
+import { useSplitUnits } from "../useSplitUnits";
+import { MASK_REVEAL_UP, resolveEffectKnobs } from "../textEffects";
+import { fromState } from "../effectTiming";
 
 const props = withDefaults(
   defineProps<{
     text?: string;
     split?: string;
-    progress?: number;
+    phase?: number;
+    exit?: number;
     fontSize?: number;
     fontFamily?: string;
     color?: string;
+    total?: number;
     duration?: number;
     stagger?: number;
     ease?: string;
@@ -21,11 +24,22 @@ const props = withDefaults(
     blur?: number;
     scaleFrom?: number;
     opacityFrom?: number;
+    exitDuration?: number;
+    exitStagger?: number;
+    exitTotal?: number;
+    exitEase?: string;
+    exitRise?: number;
+    exitX?: number;
+    exitBlur?: number;
+    exitScale?: number;
+    exitOpacity?: number;
+    exitStaggerMode?: string;
   }>(),
   {
     ...MASK_REVEAL_UP.defaults,
     split: MASK_REVEAL_UP.target,
-    progress: 0,
+    phase: 0,
+    exit: 0,
     fontSize: 32,
     fontFamily: "monospace",
     color: "#ffffff",
@@ -34,33 +48,36 @@ const props = withDefaults(
 
 const el = ref<HTMLElement | null>(null);
 
-const anime = useSplitTextAnimation(
+const split = useSplitUnits(
   el,
-  () => {
-    return { [props.split]: { class: `mask-reveal-up-${props.split}` } } as TextSplitterParams;
-  },
-  () => buildEffectAnimation(MASK_REVEAL_UP, props as TextEffectProps),
+  () =>
+    ({
+      [props.split]: { class: `mask-reveal-up-${props.split}`, wrap: true },
+    }) as TextSplitterParams,
   {
-    progress: "progress",
-    units: () => props.split as SplitUnitOrWhole,
+    units: () => props.split,
     text: () => props.text,
-    staggerMode: () => MASK_REVEAL_UP.staggerMode,
+    // The split is already at its from-state before the first frame's
+    // updater runs, so the first render (and any scrub back to 0) is hidden.
+    unit: () => fromState(resolveEffectKnobs(MASK_REVEAL_UP, props)),
+    // Declarative phase driver: the scene tweens the `phase` / `exit` signals
+    // and the per-unit MC signals are derived from them each frame — knobs are
+    // read fresh, so prop changes need no rebuild.
+    effect: () => ({
+      phase: "phase",
+      exit: "exit",
+      knobs: () => resolveEffectKnobs(MASK_REVEAL_UP, props),
+      staggerMode: () => MASK_REVEAL_UP.staggerMode,
+      exitStaggerMode: () => props.exitStaggerMode,
+    }),
   },
 );
 
+// A split-unit change needs the animejs splitter recreated; knob changes
+// (duration/stagger/ease/…) flow through the phase driver live instead.
 watch(
-  () => [
-    props.split,
-    props.duration,
-    props.stagger,
-    props.ease,
-    props.rise,
-    props.x,
-    props.blur,
-    props.scaleFrom,
-    props.opacityFrom,
-  ],
-  () => anime.rebuild(),
+  () => props.split,
+  () => split.rebuild(),
 );
 </script>
 
@@ -77,9 +94,14 @@ watch(
 </template>
 
 <style scoped>
+/* MC's editor sets a global line-height (24px) on <body> that the overlay would
+   otherwise inherit; a fixed 24px line box clips the glyph tops and bottoms of
+   large text (background-clip: text and overflow: clip line wrappers cut the
+   letters). `normal` makes the line box follow the font's own metrics. */
 .mask-reveal-up {
   display: inline-block;
   white-space: pre;
+  line-height: normal;
 }
 
 .mask-reveal-up :deep(span) {

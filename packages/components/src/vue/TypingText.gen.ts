@@ -3,8 +3,9 @@
 import { mergeDefaults as _mergeDefaults, defineComponent as _defineComponent } from 'vue'
 import { ref, watch } from "vue";
 import type { TextSplitterParams } from "animejs";
-import { useSplitTextAnimation, type SplitUnitOrWhole } from "../useSplitTextAnimation";
-import { buildEffectAnimation, TYPING_TEXT, type TextEffectProps } from "../textEffects";
+import { useSplitUnits } from "../useSplitUnits";
+import { fromState } from "../effectTiming";
+import { resolveEffectKnobs, TYPING_TEXT, type TextEffectProps } from "../textEffects";
 
 // The catalog "typewriter" effect: chars appear one at a time with a
 // `steps(1, end)` easing, so each unit snaps to visible at its stagger delay —
@@ -16,7 +17,8 @@ const _sfc_main = /*@__PURE__*/_defineComponent({
   props: /*@__PURE__*/_mergeDefaults({
     text: { type: String, required: false },
     split: { type: String, required: false },
-    progress: { type: Number, required: false },
+    phase: { type: Number, required: false },
+    exit: { type: Number, required: false },
     fontSize: { type: Number, required: false },
     fontFamily: { type: String, required: false },
     color: { type: String, required: false },
@@ -27,11 +29,22 @@ const _sfc_main = /*@__PURE__*/_defineComponent({
     x: { type: Number, required: false },
     blur: { type: Number, required: false },
     scaleFrom: { type: Number, required: false },
-    opacityFrom: { type: Number, required: false }
+    opacityFrom: { type: Number, required: false },
+    exitDuration: { type: Number, required: false },
+    exitStagger: { type: Number, required: false },
+    exitTotal: { type: Number, required: false },
+    exitEase: { type: String, required: false },
+    exitRise: { type: Number, required: false },
+    exitX: { type: Number, required: false },
+    exitBlur: { type: Number, required: false },
+    exitScale: { type: Number, required: false },
+    exitOpacity: { type: Number, required: false },
+    exitStaggerMode: { type: String, required: false }
   }, {
     ...TYPING_TEXT.defaults,
     split: TYPING_TEXT.target,
-    progress: 0,
+    phase: 0,
+    exit: 0,
     fontSize: 32,
     fontFamily: "monospace",
     color: "#ffffff",
@@ -43,36 +56,31 @@ const props = __props;
 
 const el = ref<HTMLElement | null>(null);
 
-const anime = useSplitTextAnimation(
+const split = useSplitUnits(
   el,
-  () => {
-    return { [props.split]: { class: `typing-text-${props.split}` } } as TextSplitterParams;
-  },
-  () => buildEffectAnimation(TYPING_TEXT, props as TextEffectProps),
+  () => ({ [props.split]: { class: `typing-text-${props.split}` } }) as TextSplitterParams,
   {
-    progress: "progress",
-    units: () => props.split as SplitUnitOrWhole,
+    units: () => props.split,
     text: () => props.text,
-    staggerMode: () => TYPING_TEXT.staggerMode,
+    unit: () => fromState(resolveEffectKnobs(TYPING_TEXT, props as TextEffectProps)),
+    effect: () => ({
+      phase: "phase",
+      exit: "exit",
+      knobs: () => resolveEffectKnobs(TYPING_TEXT, props as TextEffectProps),
+      staggerMode: () => TYPING_TEXT.staggerMode,
+      exitStaggerMode: () => props.exitStaggerMode,
+    }),
   },
 );
 
+// A split-unit change needs the animejs splitter recreated; knob changes
+// flow through the phase driver live.
 watch(
-  () => [
-    props.split,
-    props.duration,
-    props.stagger,
-    props.ease,
-    props.rise,
-    props.x,
-    props.blur,
-    props.scaleFrom,
-    props.opacityFrom,
-  ],
-  () => anime.rebuild(),
+  () => props.split,
+  () => split.rebuild(),
 );
 
-const __returned__ = { props, el, anime }
+const __returned__ = { props, el, split }
 Object.defineProperty(__returned__, '__isScriptSetup', { enumerable: false, value: true })
 return __returned__
 }
@@ -93,7 +101,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
 }
 _sfc_main.render = _sfc_render;
 _sfc_main.__scopeId = "data-v-TypingText";
-const __style = "\n.typing-text[data-v-TypingText] {\n  display: inline-block;\n  white-space: pre;\n}\n.typing-text[data-v-TypingText] span {\n  display: inline-block;\n  will-change: transform, opacity;\n}\n";
+const __style = "\n/* MC's editor sets a global line-height (24px) on <body> that the overlay would\n   otherwise inherit; a fixed 24px line box clips the glyph tops and bottoms of\n   large text. `normal` makes the line box follow the font's own metrics. */\n.typing-text[data-v-TypingText] {\n  display: inline-block;\n  white-space: pre;\n  line-height: normal;\n}\n.typing-text[data-v-TypingText] span {\n  display: inline-block;\n  will-change: transform, opacity;\n}\n";
 if (typeof document !== "undefined" && !document.getElementById("data-v-TypingText")) {
   const __styleEl = document.createElement("style");
   __styleEl.id = "data-v-TypingText";

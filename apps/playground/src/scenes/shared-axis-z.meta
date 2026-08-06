@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "shared-axis-z",
+      "name": "shared-axis-z-in-1",
       "targetTime": 0
     },
     {
+      "name": "shared-axis-z-out-1",
+      "targetTime": 0.374
+    },
+    {
+      "name": "shared-axis-z-in-2",
+      "targetTime": 1.183
+    },
+    {
+      "name": "shared-axis-z-out-2",
+      "targetTime": 1.557
+    },
+    {
+      "name": "shared-axis-z-in-3",
+      "targetTime": 2.366
+    },
+    {
+      "name": "shared-axis-z-out-3",
+      "targetTime": 2.74
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.578517023901708
+      "targetTime": 3.01
     }
   ],
   "seed": 3556429660

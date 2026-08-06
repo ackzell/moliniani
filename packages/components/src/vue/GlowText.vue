@@ -10,7 +10,7 @@ const props = withDefaults(
     color?: string;
     glowColor?: string;
     glowRadius?: number;
-    progress?: number;
+    phase?: number;
   }>(),
   {
     text: "",
@@ -19,7 +19,7 @@ const props = withDefaults(
     color: "#ffffff",
     glowColor: "rgba(255, 140, 66, 0.9)",
     glowRadius: 24,
-    progress: 0,
+    phase: 0,
   },
 );
 
@@ -45,7 +45,7 @@ useAnime(
       ease: "inOutQuad",
     };
   },
-  { progress: "progress" },
+  { progress: "phase" },
 );
 </script>
 
@@ -62,8 +62,12 @@ useAnime(
 </template>
 
 <style scoped>
+/* MC's editor sets a global line-height (24px) on <body> that the overlay would
+   otherwise inherit; a fixed 24px line box clips the glyph tops and bottoms of
+   large text. `normal` makes the line box follow the font's own metrics. */
 .glow-text {
   display: inline-block;
   white-space: pre;
+  line-height: normal;
 }
 </style>

@@ -31,6 +31,10 @@ export default defineConfig({
         __dirname,
         "../../packages/components/src/vue/index.ts",
       ),
+      "@moliniani/components/backgrounds": path.resolve(
+        __dirname,
+        "../../packages/components/src/backgrounds/index.ts",
+      ),
       "@moliniani/components": path.resolve(__dirname, "../../packages/components/src/index.ts"),
       "@moliniani/utils": path.resolve(__dirname, "../../packages/utils/src/index.ts"),
       "@moliniani/core": path.resolve(__dirname, "../../packages/core/src/index.ts"),

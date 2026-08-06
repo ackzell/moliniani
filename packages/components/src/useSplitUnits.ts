@@ -7,12 +7,50 @@ import {
   type MolinianiVueNodeContext,
 } from "@moliniani/core";
 import { SplitUnitHandle, type SplitUnitInitialValues } from "./SplitUnitHandle";
+import {
+  staggerRanks,
+  unitValuesAt,
+  wholeValuesAt,
+  exitUnitValuesAt,
+  exitWholeValuesAt,
+  type StaggerMode,
+  type TextEffectKnobs,
+  type WholeValues,
+} from "./effectTiming";
+
+export type SplitUnit = "chars" | "words" | "lines";
+
+/** The split unit plus `"whole"`, which treats the element as one unit. */
+export type SplitUnitOrWhole = SplitUnit | "whole";
+
+/**
+ * Declarative phase driver for ready-made text effects. When set, the frame
+ * updater maps the node's `phase` signal (0 → 1) onto every unit's MC signals
+ * through `unitValuesAt` / `wholeValuesAt`, so scenes just tween `phase` —
+ * the effect's `duration` / `stagger` / from-frame knobs are read fresh each
+ * frame (prop changes need no rebuild).
+ */
+export interface TextEffectDriver {
+  /** Prop name holding the MC phase signal (0 → 1). */
+  phase: string;
+  /** Prop name holding the MC exit signal (0 → 1; > 0 animates the exit). */
+  exit: string;
+  /** Resolved effect knobs (`resolveEffectKnobs(spec, props)`). */
+  knobs: () => TextEffectKnobs;
+  /** Stagger ordering for per-unit delays (defaults to DOM index). */
+  staggerMode?: () => StaggerMode | undefined;
+  /** Exit stagger ordering (defaults to the enter ordering — not a rewind). */
+  exitStaggerMode?: () => StaggerMode | undefined;
+  /** Whole-text gradient sweep renderer (shimmer-sweep). */
+  sweep?: boolean;
+}
 
 export interface UseSplitUnitsOptions {
   /**
    * Which split units to expose as handles: `"chars"`, `"words"`, `"lines"`,
    * `"whole"`, or a space-separated combination (e.g. `"chars words"`).
-   * Defaults to `"chars"`.
+   * `"whole"` exposes a single pseudo-handle over the element itself (no
+   * animejs split). Defaults to `"chars"`.
    */
   units?: MaybeRefOrGetter<string>;
   /**
@@ -22,6 +60,11 @@ export interface UseSplitUnitsOptions {
   unit?: MaybeRefOrGetter<Partial<SplitUnitInitialValues> | undefined>;
   /** The text to split. The composable owns the target's content. */
   text?: MaybeRefOrGetter<string | undefined>;
+  /**
+   * Declarative phase driver for ready-made effects (see `TextEffectDriver`).
+   * When omitted the handles are purely scene-driven, like `SplitText`.
+   */
+  effect?: MaybeRefOrGetter<TextEffectDriver | undefined>;
 }
 
 /**
@@ -95,7 +138,11 @@ export function useSplitUnits(
 
   const collect = (): { type: SplitUnitHandle["type"]; el: HTMLElement }[] => {
     const unit = getUnits();
-    if (unit === "whole" || !splitter) return [];
+    if (unit === "whole") {
+      const el = toValue(target);
+      return el ? [{ type: "whole", el }] : [];
+    }
+    if (!splitter) return [];
     const out: { type: SplitUnitHandle["type"]; el: HTMLElement }[] = [];
     for (const key of unit.split(/\s+/).filter(Boolean)) {
       const list =
@@ -139,12 +186,19 @@ export function useSplitUnits(
     if (lastBuild && lastBuild.el === el && lastBuild.text === text) return;
     teardown();
     if (text !== undefined) el.textContent = text;
-    splitter = splitText(el, createSplitParams());
+    if (getUnits() !== "whole") {
+      splitter = splitText(el, createSplitParams());
+    }
     lastBuild = { el, text };
     buildHandles();
+
+    // Apply the current MC state immediately to newly-created spans.
+    // Otherwise they render once in their default (fully visible) state.
+    updater();
+
     molinianiDebugLog(`useSplitUnits: split done`, {
       text,
-      splitterReady: splitter.ready ?? null,
+      splitterReady: splitter?.ready ?? null,
       units: getUnits(),
       count: handles.length,
       chars: handles.filter((h) => h.type === "char").length,
@@ -174,6 +228,52 @@ export function useSplitUnits(
       for (const handle of handles) handle.dispose();
       buildHandles();
     }
+
+    // Declarative phase driver: map the node's `phase` (enter) and `exit`
+    // signals onto every unit's MC signals. When `exit` > 0 the exit mapping
+    // wins — the settle frame is the exit's from-frame, so the two timelines
+    // chain without a discontinuity. Pure mapping of the signal values, so it
+    // is scrub-safe on MC's virtual timeline. The knobs are read fresh each
+    // frame, so changing duration/stagger/ease/rise/… needs no rebuild.
+    const driver = toValue(options.effect);
+    if (driver && ctx) {
+      const rawPhase = ctx.readProp(driver.phase) as number | undefined;
+      const phase = Math.min(1, Math.max(0, rawPhase ?? 0));
+      const rawExit = ctx.readProp(driver.exit) as number | undefined;
+      const exiting = (rawExit ?? 0) > 0;
+      const exit = exiting ? Math.min(1, Math.max(0, rawExit ?? 1)) : 0;
+      const knobs = driver.knobs();
+      const mode = driver.staggerMode?.() ?? "normal";
+      const exitMode = driver.exitStaggerMode?.() ?? mode;
+      const ranks = mode === "normal" ? null : staggerRanks(handles.length, mode);
+      const exitRanks = exitMode === "normal" ? null : staggerRanks(handles.length, exitMode);
+      const applyValues = (handle: SplitUnitHandle, values: WholeValues) => {
+        handle.opacity(values.opacity);
+        handle.x(values.x);
+        handle.y(values.y);
+        handle.scale(values.scale);
+        handle.blur(values.blur);
+        if (driver.sweep && values.backgroundPositionPercent !== undefined) {
+          handle.element.style.backgroundPosition = `${values.backgroundPositionPercent}% 0%`;
+        }
+      };
+      for (const handle of handles) {
+        if (handle.type === "whole") {
+          applyValues(
+            handle,
+            exiting ? exitWholeValuesAt(knobs, exit) : wholeValuesAt(knobs, phase, driver.sweep),
+          );
+        } else {
+          applyValues(
+            handle,
+            exiting
+              ? exitUnitValuesAt(knobs, exit, handle.index, handles.length, exitRanks)
+              : unitValuesAt(knobs, phase, handle.index, handles.length, ranks),
+          );
+        }
+      }
+    }
+
     for (const handle of handles) handle.syncDom();
   };
 

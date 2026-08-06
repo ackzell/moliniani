@@ -76,8 +76,10 @@ export function ensureHtmlInCanvasCompositor(scene: any): void {
     if (event !== AFTER_RENDER) return;
     const frame = scene?.playback?.frame;
 
+    let backwardJump = false;
     if (typeof frame === "number") {
       if (lastFrame !== null && frame < lastFrame) {
+        backwardJump = true;
         molinianiDebugLog("Backward frame jump in compositor", {
           sceneId,
           from: lastFrame,
@@ -193,20 +195,34 @@ export function ensureHtmlInCanvasCompositor(scene: any): void {
         overlays: overlays.length,
         failures: lastPassFailures,
       });
+    }
 
-      // On seek jumps, the frame may be rendered only once. If capture misses
-      // that pass, request one extra render iteration after the browser gets a
-      // paint opportunity.
-      if (typeof frame === "number" && requestedRetryFrame !== frame) {
+    // A frame rendered once only captures the DOM Vue committed in its *previous*
+    // microtask flush: VueNode writes this frame's values into reactive state
+    // during render(), but Vue re-renders the SFC template asynchronously, after
+    // the current render pass. During live playback the next frame naturally
+    // captures the flushed DOM, so the one-flush lag is invisible. A backward
+    // scrub re-renders an earlier frame exactly once and captures that stale,
+    // later DOM instead — the previous phrase can be "already back" or the next
+    // one "already fully in" on the wrong frame. On a backward jump, request one
+    // extra render iteration after the browser processes Vue's flush so the
+    // captured overlay reflects the frame we actually asked for.
+    const needsExtraRender =
+      lastPassFailures > 0 ||
+      (typeof frame === "number" && backwardJump && requestedRetryFrame !== frame);
+
+    if (needsExtraRender && typeof frame === "number") {
+      if (requestedRetryFrame !== frame) {
         requestedRetryFrame = frame;
         DependencyContext.collectPromise(
           new Promise<void>((resolve) => {
             requestAnimationFrame(() => resolve());
           }),
         );
-        molinianiDebugLog("Requested extra render iteration after capture miss", {
+        molinianiDebugLog("Requested extra render iteration after capture", {
           sceneId,
           frame,
+          reason: lastPassFailures > 0 ? "capture-miss" : "backward-scrub",
         });
       }
     } else if (typeof frame === "number") {

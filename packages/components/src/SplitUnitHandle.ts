@@ -15,7 +15,7 @@ export interface SplitUnitInitialValues {
   blur?: number;
 }
 
-export type SplitUnitType = "char" | "word" | "line";
+export type SplitUnitType = "char" | "word" | "line" | "whole";
 
 /**
  * A single split text unit (one `data-char` / `data-word` / `data-line` span)

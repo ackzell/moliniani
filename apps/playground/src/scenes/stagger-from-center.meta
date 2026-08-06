@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "stagger-from-center",
+      "name": "stagger-from-center-in-1",
       "targetTime": 0
     },
     {
+      "name": "stagger-from-center-out-1",
+      "targetTime": 0.686
+    },
+    {
+      "name": "stagger-from-center-in-2",
+      "targetTime": 1.7180000000000002
+    },
+    {
+      "name": "stagger-from-center-out-2",
+      "targetTime": 2.3880000000000003
+    },
+    {
+      "name": "stagger-from-center-in-3",
+      "targetTime": 3.4080000000000004
+    },
+    {
+      "name": "stagger-from-center-out-3",
+      "targetTime": 4.158
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.2
+      "targetTime": 4.428
     }
   ],
   "seed": 2204782187

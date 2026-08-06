@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "per-character-rise",
-      "targetTime": 0
+      "name": "per-character-rise-in-1",
+      "targetTime": 0.28904641061352215
+    },
+    {
+      "name": "per-character-rise-out-1",
+      "targetTime": 1.0310464106135222
+    },
+    {
+      "name": "per-character-rise-in-2",
+      "targetTime": 2.023046410613522
+    },
+    {
+      "name": "per-character-rise-out-2",
+      "targetTime": 2.765046410613522
+    },
+    {
+      "name": "per-character-rise-in-3",
+      "targetTime": 3.7570464106135226
+    },
+    {
+      "name": "per-character-rise-out-3",
+      "targetTime": 4.516046410613523
     },
     {
       "name": "next-scene",
-      "targetTime": 1.2
+      "targetTime": 4.7758352876442505
     }
   ],
   "seed": 2702564814

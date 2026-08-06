@@ -46,7 +46,7 @@ describe("GlowText", () => {
   const makeMounted = () => {
     const host = document.createElement("div");
     document.body.appendChild(host);
-    const values: Record<string, number> = { progress: 0 };
+    const values: Record<string, number> = { phase: 0 };
     const readPropCalls: string[] = [];
     let capturedUpdater: ((time: number) => void) | undefined;
 
@@ -82,20 +82,20 @@ describe("GlowText", () => {
     };
   };
 
-  it("drives the glow from the current frame's progress via readProp", () => {
+  it("drives the glow from the current frame's phase via readProp", () => {
     const { host, capturedUpdater, values, readPropCalls } = makeMounted();
     expect(capturedUpdater).toBeDefined();
 
     const span = host.querySelector<HTMLSpanElement>(".glow-text");
     expect(span).not.toBeNull();
 
-    // progress = 0 → no glow.
+    // phase = 0 → no glow.
     capturedUpdater!(0);
-    expect(readPropCalls).toContain("progress");
+    expect(readPropCalls).toContain("phase");
     expect(span!.style.textShadow).toContain("0px");
 
-    // progress = 1 → full glow at the default 24px radius.
-    values.progress = 1;
+    // phase = 1 → full glow at the default 24px radius.
+    values.phase = 1;
     capturedUpdater!(1);
     expect(span!.style.textShadow).toContain("24px");
     expect(span!.style.color).toBe("rgb(255, 255, 255)");

@@ -19,7 +19,7 @@ export default makeScene(function* (view) {
         color="#ff8c42"
         from="center"
         cursor="░▒▓█"
-        revealRate={80}
+        revealRate={20}
       />
     </>,
   );
@@ -30,11 +30,11 @@ export default makeScene(function* (view) {
   yield* waitUntil("scramble");
 
   const scrambleDuration = useDuration("scrambleDur");
-  yield* scrambleRef().progress(1, scrambleDuration, easeInOutCubic);
+  yield* scrambleRef().phase(1, scrambleDuration, easeInOutCubic);
 
-  yield* scrambleRef().progress(0, scrambleDuration, easeInOutCubic);
+  yield* scrambleRef().phase(0, scrambleDuration, easeInOutCubic);
   yield* scrambleRef().text("hello there", 1.5, easeInBack);
-  yield* scrambleRef().progress(1, 0.4, easeInOutCubic);
+  yield* scrambleRef().phase(1, 0.4, easeInOutCubic);
 
   yield* waitUntil("next-scene");
   yield* scrambleRef().opacity(0, 0.5);

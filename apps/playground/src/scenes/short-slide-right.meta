@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "short-slide-right",
+      "name": "short-slide-right-in-1",
       "targetTime": 0
     },
     {
+      "name": "short-slide-right-out-1",
+      "targetTime": 0.374
+    },
+    {
+      "name": "short-slide-right-in-2",
+      "targetTime": 1.1540000000000001
+    },
+    {
+      "name": "short-slide-right-out-2",
+      "targetTime": 1.528
+    },
+    {
+      "name": "short-slide-right-in-3",
+      "targetTime": 2.3080000000000003
+    },
+    {
+      "name": "short-slide-right-out-3",
+      "targetTime": 2.6820000000000004
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.2
+      "targetTime": 2.952
     }
   ],
   "seed": 1555695893

@@ -10,6 +10,7 @@
       "@moliniani/utils": ["../../packages/utils/src/index.ts"],
       "@moliniani/components": ["../../packages/components/src/index.ts"],
       "@moliniani/components/vue": ["../../packages/components/src/vue/index.ts"],
+      "@moliniani/components/backgrounds": ["../../packages/components/src/backgrounds/index.ts"],
       "@/*": ["./src/*"]
     }
   }

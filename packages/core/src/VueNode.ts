@@ -205,11 +205,13 @@ export class VueNode<P extends Record<string, any> = {}> extends Layout {
       "position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;pointer-events:none";
 
     this._positioner = document.createElement("div");
-    // Motion Canvas absolutePosition() is already in viewport/canvas space,
-    // so place the DOM node at that point and offset by its own size to match
-    // the default centred origin of native MC nodes.
+    // Motion Canvas's editor styles set a global `line-height: 24px` on <body>;
+    // without a reset the overlay would inherit it, and a fixed 24px line box
+    // clips the glyph tops/bottoms of large text (background-clip: text and
+    // overflow: clip line wrappers cut the letters). `normal` makes every
+    // overlay's line box follow the font's own metrics instead.
     this._positioner.style.cssText =
-      "position:absolute;left:0;top:0;transform:translate(-100000px,-100000px);transform-origin:center center;pointer-events:none";
+      "position:absolute;left:0;top:0;line-height:normal;transform:translate(-100000px,-100000px);transform-origin:center center;pointer-events:none";
 
     this._container.appendChild(this._positioner);
 

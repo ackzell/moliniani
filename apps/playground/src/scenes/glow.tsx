@@ -28,7 +28,7 @@ export default makeScene(function* (view) {
   yield* waitUntil("glow");
 
   const glowDuration = useDuration("glowDur");
-  yield* glowRef().progress(1, glowDuration, easeInOutCubic);
+  yield* glowRef().phase(1, glowDuration, easeInOutCubic);
 
   yield* glowRef().opacity(0, 0.5);
 });

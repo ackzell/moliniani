@@ -1,6 +1,7 @@
-import { easeInOutCubic, waitUntil } from "@motion-canvas/core";
+import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { ShortSlideRight } from "@moliniani/components/vue";
+import { createPhraseSwitcher, SHORT_SLIDE_RIGHT } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
 
 export default makeScene(function* (view) {
@@ -11,15 +12,20 @@ export default makeScene(function* (view) {
   view.add(
     <>
       <Txt text="short-slide-right" fill="#8fa3b8" fontSize={28} y={-420} />
-      <ShortSlideRight ref={ref} text="One more thing" fontSize={64} color="#ffd166" y={-60} />
+      <ShortSlideRight ref={ref} text="" fontSize={64} color="#ffd166" y={-60} />
     </>,
   );
 
-  yield* waitUntil("short-slide-right");
+  // Phrase slots are driven by two markers per phrase on the MC timeline:
+  // `in` (the audio beat / start frame) and `out` (where the enter completes
+  // and the exit starts). Enter and exit lengths derive from the markers
+  // (`enter = out − in`, `exit = nextIn − out`), so dragging a marker re-times
+  // the reveal or the exit gap in the editor.
+  const t = createPhraseSwitcher(ref, SHORT_SLIDE_RIGHT);
 
-  // The whole phrase glides in as one shared move; the per-word opacity
-  // cascade from the spec's build section is fine-tune pending.
-  yield* ref().progress(1, 1.2, easeInOutCubic);
+  yield* t.phrase("short-slide-right-in-1", "short-slide-right-out-1", "Move with intent.");
+  yield* t.phrase("short-slide-right-in-2", "short-slide-right-out-2", "Words glide across.");
+  yield* t.phrase("short-slide-right-in-3", "short-slide-right-out-3", "Build the rhythm.");
 
   yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);

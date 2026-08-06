@@ -2,12 +2,24 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "typewriter",
+      "name": "typewriter-in-1",
       "targetTime": 0
     },
     {
+      "name": "typewriter-out-1",
+      "targetTime": 0.8
+    },
+    {
+      "name": "typewriter-in-2",
+      "targetTime": 1.6700000000000002
+    },
+    {
+      "name": "typewriter-out-2",
+      "targetTime": 2.569
+    },
+    {
       "name": "next-scene",
-      "targetTime": 1.2
+      "targetTime": 3.069
     }
   ],
   "seed": 2594788268

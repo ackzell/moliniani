@@ -1,12 +1,12 @@
 // One-off scaffolder for the animate-text text-effect SFCs.
 //
 // The formulaic text effects are thin wrappers around the shared
-// `useSplitTextAnimation` composable; only their spec const, class name, and
-// (for per-line targets) the inner-unit display differ. This script emits those
-// SFCs once — the outputs are committed as *normal, hand-editable* files (unlike
-// the `*.gen.ts` outputs of `compile-vue.mjs`). Re-run it when a new effect is
-// added to the `textEffects.ts` registry, then run `pnpm gen` to compile the
-// SFCs.
+// `useSplitUnits` composable driven by a declarative `phase` signal; only their
+// spec const, class name, and (for per-line targets) the inner-unit display
+// differ. This script emits those SFCs once — the outputs are committed as
+// *normal, hand-editable* files (unlike the `*.gen.ts` outputs of
+// `compile-vue.mjs`). Re-run it when a new effect is added to the
+// `textEffects.ts` registry, then run `pnpm gen` to compile the SFCs.
 //
 // Hand-written effects (shimmer-sweep, typewriter) are intentionally not
 // generated. The kinetic builds are generated as enter-frame approximations of
@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 const vueDir = resolve(dirname(fileURLToPath(import.meta.url)), "../src/vue");
 
 const KNOB_TYPES = {
+  total: "number",
   duration: "number",
   stagger: "number",
   ease: "string",
@@ -28,6 +29,16 @@ const KNOB_TYPES = {
   blur: "number",
   scaleFrom: "number",
   opacityFrom: "number",
+  exitDuration: "number",
+  exitStagger: "number",
+  exitTotal: "number",
+  exitEase: "string",
+  exitRise: "number",
+  exitX: "number",
+  exitBlur: "number",
+  exitScale: "number",
+  exitOpacity: "number",
+  exitStaggerMode: "string",
 };
 
 const propsInterface = Object.entries(KNOB_TYPES)
@@ -39,12 +50,13 @@ const sfcPropsInterface = propsInterface
   .map((line) => (line ? `  ${line}` : line))
   .join("\n");
 
-// id -> { spec: registry const name, component: PascalCase name, target }
+// id -> { spec: registry const name, component: PascalCase name, target,
+//          wrapLines }
 const EFFECTS = [
   ["per-character-rise", "PER_CHARACTER_RISE", "PerCharacterRise", "chars"],
   ["per-word-crossfade", "PER_WORD_CROSSFADE", "PerWordCrossfade", "words"],
   ["spring-scale-in", "SPRING_SCALE_IN", "SpringScaleIn", "words"],
-  ["mask-reveal-up", "MASK_REVEAL_UP", "MaskRevealUp", "lines"],
+  ["mask-reveal-up", "MASK_REVEAL_UP", "MaskRevealUp", "lines", true],
   ["line-by-line-slide", "LINE_BY_LINE_SLIDE", "LineByLineSlide", "lines"],
   ["micro-scale-fade", "MICRO_SCALE_FADE", "MicroScaleFade", "whole"],
   ["fade-through", "FADE_THROUGH", "FadeThrough", "whole"],
@@ -65,21 +77,24 @@ const EFFECTS = [
   ["short-slide-right", "SHORT_SLIDE_RIGHT", "ShortSlideRight", "whole"],
 ];
 
-function sfcFor(id, specConst, component, target) {
+function sfcFor(id, specConst, component, target, wrapLines = false) {
   const klass = id; // kebab-case id doubles as the root class name.
   const innerDisplay = target === "lines" ? "block" : "inline-block";
+  const wrapParams = wrapLines ? `, wrap: true` : "";
   return `<script setup lang="ts">
 // Generated once by scripts/gen-text-effect-sfcs.mjs — edit directly.
 import { ref, watch } from "vue";
 import type { TextSplitterParams } from "animejs";
-import { useSplitTextAnimation, type SplitUnitOrWhole } from "../useSplitTextAnimation";
-import { buildEffectAnimation, ${specConst}, type TextEffectProps } from "../textEffects";
+import { useSplitUnits } from "../useSplitUnits";
+import { ${specConst}, resolveEffectKnobs } from "../textEffects";
+import { fromState } from "../effectTiming";
 
 const props = withDefaults(
   defineProps<{
     text?: string;
     split?: string;
-    progress?: number;
+    phase?: number;
+    exit?: number;
     fontSize?: number;
     fontFamily?: string;
     color?: string;
@@ -88,7 +103,8 @@ ${sfcPropsInterface}
   {
     ...${specConst}.defaults,
     split: ${specConst}.target,
-    progress: 0,
+    phase: 0,
+    exit: 0,
     fontSize: 32,
     fontFamily: "monospace",
     color: "#ffffff",
@@ -97,23 +113,36 @@ ${sfcPropsInterface}
 
 const el = ref<HTMLElement | null>(null);
 
-const anime = useSplitTextAnimation(
+const split = useSplitUnits(
   el,
-  () => {
-    return { [props.split]: { class: \`${klass}-\${props.split}\` } } as TextSplitterParams;
-  },
-  () => buildEffectAnimation(${specConst}, props as TextEffectProps),
+  () =>
+    ({
+      [props.split]: { class: \`${klass}-\${props.split}\`${wrapParams} },
+    }) as TextSplitterParams,
   {
-    progress: "progress",
-    units: () => props.split as SplitUnitOrWhole,
+    units: () => props.split,
     text: () => props.text,
-    staggerMode: () => ${specConst}.staggerMode,
+    // The split is already at its from-state before the first frame's
+    // updater runs, so the first render (and any scrub back to 0) is hidden.
+    unit: () => fromState(resolveEffectKnobs(${specConst}, props)),
+    // Declarative phase driver: the scene tweens the \`phase\` / \`exit\` signals
+    // and the per-unit MC signals are derived from them each frame — knobs are
+    // read fresh, so prop changes need no rebuild.
+    effect: () => ({
+      phase: "phase",
+      exit: "exit",
+      knobs: () => resolveEffectKnobs(${specConst}, props),
+      staggerMode: () => ${specConst}.staggerMode,
+      exitStaggerMode: () => props.exitStaggerMode,
+    }),
   },
 );
 
+// A split-unit change needs the animejs splitter recreated; knob changes
+// (duration/stagger/ease/…) flow through the phase driver live instead.
 watch(
-  () => [props.split, props.duration, props.stagger, props.ease, props.rise, props.x, props.blur, props.scaleFrom, props.opacityFrom],
-  () => anime.rebuild(),
+  () => props.split,
+  () => split.rebuild(),
 );
 </script>
 
@@ -130,9 +159,14 @@ watch(
 </template>
 
 <style scoped>
+/* MC's editor sets a global line-height (24px) on <body> that the overlay would
+   otherwise inherit; a fixed 24px line box clips the glyph tops and bottoms of
+   large text (background-clip: text and overflow: clip line wrappers cut the
+   letters). \`normal\` makes the line box follow the font's own metrics. */
 .${klass} {
   display: inline-block;
   white-space: pre;
+  line-height: normal;
 }
 
 .${klass} :deep(span) {
@@ -148,23 +182,35 @@ function wrappersFor(effects) {
     .map(([, , component]) => `import ${component}Sfc from "./${component}.gen";`)
     .join("\n");
   const blocks = effects
-    .map(([, , component]) => {
+    .map(([, , component, target]) => {
+      // Cascade effects (target !== "whole") get the shared phase-interception
+      // extend so the phase tween duration drives the derived stagger and the
+      // scene ease is dropped (per-unit signature ease only).
+      const extend = target !== "whole" ? `\n  textEffectExtend(true),` : "";
+      // Long component names push the typed-const cast past printWidth (100),
+      // which prettier breaks across lines — match its canonical form.
+      const typedConst = `const ${component}SfcTyped = ${component}Sfc as unknown as DefineComponent<any, any, any>;`;
+      const typed =
+        typedConst.length > 100
+          ? `const ${component}SfcTyped = ${component}Sfc as unknown as DefineComponent<\n  any,\n  any,\n  any\n>;`
+          : typedConst;
       return [
         `export interface ${component}Props {`,
         `  text?: string;`,
         `  split?: string;`,
-        `  progress?: number;`,
+        `  phase?: number;`,
+        `  exit?: number;`,
         `  fontSize?: number;`,
         `  fontFamily?: string;`,
         `  color?: string;`,
         propsInterface,
         `}`,
         ``,
-        `const ${component}SfcTyped = ${component}Sfc as unknown as DefineComponent<any, any, any>;`,
+        typed,
         ``,
         `export const ${component}: VueNodeConstructor<${component}Props> = defineVueNode(`,
         `  ${component}SfcTyped,`,
-        `  "${component}",`,
+        `  "${component}",${extend}`,
         `);`,
       ].join("\n");
     })
@@ -174,6 +220,7 @@ function wrappersFor(effects) {
 // nodes. The Typewriter and ShimmerSweep effects are hand-authored below this
 // file in src/vue/index.ts.
 import { defineVueNode, type VueNodeConstructor } from "@moliniani/core";
+import { textEffectExtend } from "../textEffectNode";
 import type { DefineComponent } from "vue";
 ${imports}
 
@@ -181,9 +228,9 @@ ${blocks}
 `;
 }
 
-for (const [id, specConst, component, target] of EFFECTS) {
+for (const [id, specConst, component, target, wrapLines] of EFFECTS) {
   const file = resolve(vueDir, `${component}.vue`);
-  writeFileSync(file, sfcFor(id, specConst, component, target));
+  writeFileSync(file, sfcFor(id, specConst, component, target, wrapLines));
   console.log(`wrote ${component}.vue`);
 }
 

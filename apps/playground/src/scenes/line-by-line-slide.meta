@@ -2,12 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "line-by-line-slide",
+      "name": "line-by-line-slide-in-1",
       "targetTime": 0
     },
     {
+      "name": "line-by-line-slide-out-1",
+      "targetTime": 0.734
+    },
+    {
+      "name": "line-by-line-slide-in-2",
+      "targetTime": 1.774
+    },
+    {
+      "name": "line-by-line-slide-out-2",
+      "targetTime": 2.508
+    },
+    {
+      "name": "line-by-line-slide-in-3",
+      "targetTime": 3.548
+    },
+    {
+      "name": "line-by-line-slide-out-3",
+      "targetTime": 4.282
+    },
+    {
       "name": "next-scene",
-      "targetTime": 2.474162939612791
+      "targetTime": 4.552
     }
   ],
   "seed": 1044311817
