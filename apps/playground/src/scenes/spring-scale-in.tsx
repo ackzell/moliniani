@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { SpringScaleIn } from "@moliniani/components/vue";
 import { createPhraseSwitcher, SPRING_SCALE_IN } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("spring-scale-in-in-1", "spring-scale-in-out-1", "Fast. Crisp. Fluid.");
   yield* t.phrase("spring-scale-in-in-2", "spring-scale-in-out-2", "Pop into place.");
-  yield* t.phrase("spring-scale-in-in-3", "spring-scale-in-out-3", "Smooth by default.");
+  yield* t.phrase("spring-scale-in-in-3", "spring-scale-in-out-3", "Smooth by default.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

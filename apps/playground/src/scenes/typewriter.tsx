@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { TypingText } from "@moliniani/components/vue";
 import { createPhraseSwitcher, TYPING_TEXT } from "@moliniani/components";
@@ -24,8 +23,9 @@ export default makeScene(function* (view) {
   const t = createPhraseSwitcher(ref, TYPING_TEXT);
 
   yield* t.phrase("typewriter-in-1", "typewriter-out-1", "Precision in motion.");
-  yield* t.phrase("typewriter-in-2", "typewriter-out-2", "Write. Pause. Continue.");
+  yield* t.phrase("typewriter-in-2", "typewriter-out-2", "Write. Pause. Continue.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

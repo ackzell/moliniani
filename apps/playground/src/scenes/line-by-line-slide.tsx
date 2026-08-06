@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { LineByLineSlide } from "@moliniani/components/vue";
 import { createPhraseSwitcher, LINE_BY_LINE_SLIDE } from "@moliniani/components";
@@ -37,8 +36,8 @@ export default makeScene(function* (view) {
     "line-by-line-slide-in-3",
     "line-by-line-slide-out-3",
     "Clear ideas.\nClean motion.",
+    { exitOn: "next-scene" },
   );
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

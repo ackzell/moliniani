@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { SharedAxisY } from "@moliniani/components/vue";
 import { createPhraseSwitcher, SHARED_AXIS_Y } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("shared-axis-y-in-1", "shared-axis-y-out-1", "Layered navigation.");
   yield* t.phrase("shared-axis-y-in-2", "shared-axis-y-out-2", "Hierarchy made clear.");
-  yield* t.phrase("shared-axis-y-in-3", "shared-axis-y-out-3", "Depth with restraint.");
+  yield* t.phrase("shared-axis-y-in-3", "shared-axis-y-out-3", "Depth with restraint.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

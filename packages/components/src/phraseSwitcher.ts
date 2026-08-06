@@ -51,6 +51,19 @@ export interface PhraseSwitcherOptions {
   enterEase?: TimingFunction;
   /** Exit tween easing (defaults to `linear`). */
   exitEase?: TimingFunction;
+  /**
+   * Timeline event name (e.g. `"next-scene"`) the *final* phrase exits toward.
+   * After the phrase's enter completes, the exit tween runs `[out, exitOn]`
+   * with the length derived from the marker — mirroring how earlier phrases
+   * exit across the gap `[out, nextIn]`, so dragging the marker re-times the
+   * exit. When the marker isn't on the timeline yet it is auto-placed at
+   * `out + exitMs + hold`, registered, and used; never an error. An existing
+   * marker is re-registered at `out` on each pass so it keeps a left-drag
+   * floor there (registering it at its own position would pin it to a
+   * one-way drag). The exit tween already runs the thread to the marker, so
+   * don't follow it with `waitUntil("next-scene")`.
+   */
+  exitOn?: string;
 }
 
 /**
@@ -448,6 +461,31 @@ export function createPhraseSwitcher<N extends PhraseSwitcherNode>(
       reset(text);
       yield* ref().phase(1, enterDur, options.enterEase ?? linear);
       lastEnterEnd = useThread().time();
+
+      // The final phrase can exit toward an `exitOn` marker (e.g.
+      // `next-scene`), mirroring how earlier phrases exit across [out, nextIn]:
+      // the exit length derives from [`out`, `exitOn`], so dragging the marker
+      // re-times it. A missing marker is auto-placed at `out + exitMs + hold`;
+      // an existing one is re-registered at `out` so its left-drag floor stays
+      // there — registering it at its own position would pin `offset` to 0 and
+      // make it one-way-draggable right.
+      if (options.exitOn !== undefined) {
+        let exitOnTime = resolveCueTime(options.exitOn);
+        if (exitOnTime === null) {
+          exitOnTime = outTime + (options.exit ?? current.exit) + DEFAULT_SWAP_HOLD;
+          useScene().timeEvents.register(options.exitOn, exitOnTime);
+          molinianiDebugLog(
+            `phrase-switcher: exit marker "${options.exitOn}" wasn't on the timeline — ` +
+              `auto-placed at ${exitOnTime.toFixed(3)}s (drag it in the editor to sync audio)`,
+          );
+        } else {
+          registerCue(options.exitOn, outTime);
+        }
+        const exitDur = Math.max(0, exitOnTime - outTime);
+        if (exitDur > 0) {
+          yield* ref().exit(1, exitDur, options.exitEase ?? linear);
+        }
+      }
     },
   };
 }
@@ -511,6 +549,12 @@ export interface PhraseSwitcher {
    * Both markers are always registered (they persist and are draggable); a
    * marker that isn't on the timeline yet is auto-placed at a readable default
    * and the per-call/spec duration is used until it's placed or dragged.
+   *
+   * To exit the *final* phrase too (there is no next `in` to derive the exit
+   * window from), pass `{ exitOn: "next-scene" }` — the exit tween then runs
+   * `[out, exitOn]`, marker-derived like the earlier gaps. The tween runs the
+   * thread to the marker, so skip the usual trailing `waitUntil("next-scene")`;
+   * an existing marker is re-registered at `out` so it stays left-draggable.
    */
   phrase(
     inMarker: string,

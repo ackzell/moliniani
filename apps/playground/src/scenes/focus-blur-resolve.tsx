@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { FocusBlurResolve } from "@moliniani/components/vue";
 import { createPhraseSwitcher, FOCUS_BLUR_RESOLVE } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("focus-blur-resolve-in-1", "focus-blur-resolve-out-1", "Focus resolves clearly.");
   yield* t.phrase("focus-blur-resolve-in-2", "focus-blur-resolve-out-2", "Detail emerges.");
-  yield* t.phrase("focus-blur-resolve-in-3", "focus-blur-resolve-out-3", "Then softly recedes.");
+  yield* t.phrase("focus-blur-resolve-in-3", "focus-blur-resolve-out-3", "Then softly recedes.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

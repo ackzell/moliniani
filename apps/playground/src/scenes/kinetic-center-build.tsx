@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { KineticCenterBuild } from "@moliniani/components/vue";
 import { createPhraseSwitcher, KINETIC_CENTER_BUILD } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("kinetic-center-build-in-1", "kinetic-center-build-out-1", "Words push left.");
   yield* t.phrase("kinetic-center-build-in-2", "kinetic-center-build-out-2", "Type locks center.");
-  yield* t.phrase("kinetic-center-build-in-3", "kinetic-center-build-out-3", "Build the line.");
+  yield* t.phrase("kinetic-center-build-in-3", "kinetic-center-build-out-3", "Build the line.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

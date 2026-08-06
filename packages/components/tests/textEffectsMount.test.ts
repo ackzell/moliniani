@@ -129,6 +129,42 @@ describe("MaskRevealUp SFC", () => {
     }
     app.unmount();
   });
+
+  it("hides the raw text until the deferred line split lands", async () => {
+    const { app, root, values, capturedUpdater } = makeMounted(MaskRevealUp, {
+      text: "Designed to move.\nBuilt to focus.",
+    });
+
+    // animejs defers line splitting to document.fonts.ready, so the split
+    // units don't exist yet; the from-state must mirror onto the root or the
+    // raw phrase would render at full opacity before the reveal starts.
+    expect(root!.style.opacity).toBe("0");
+    expect(root!.style.transform).toContain("translate(0px, 57px)");
+    expect(root!.style.filter).toContain("blur(6px)");
+
+    // The fonts microtask lands the split, creating the line wrappers.
+    await Promise.resolve();
+    await Promise.resolve();
+    const lines = root!.querySelectorAll<HTMLElement>("[data-line].mask-reveal-up-lines");
+    expect(lines.length).toBeGreaterThan(0);
+
+    // The frame updater applies the from-state to the line spans and drops the
+    // root mirror, so the reveal starts from the hidden from-frame — no flash.
+    values.phase = 0;
+    capturedUpdater!(0);
+    expect(root!.style.opacity).toBe("");
+    expect(lines[0].style.opacity).toBe("0");
+    expect(lines[0].style.transform).toContain("translate(0px, 57px)");
+    expect(lines[0].style.filter).toContain("blur(6px)");
+
+    values.phase = 1;
+    capturedUpdater!(1);
+    expect(lines[0].style.opacity).toBe("1");
+    expect(lines[0].style.transform).not.toContain("57px");
+    expect(lines[0].style.filter).toBe("");
+
+    app.unmount();
+  });
 });
 
 describe("StaggerFromCenter SFC", () => {

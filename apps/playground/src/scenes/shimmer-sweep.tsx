@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { ShimmerSweep } from "@moliniani/components/vue";
 import { createPhraseSwitcher, SHIMMER_SWEEP } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("shimmer-sweep-in-1", "shimmer-sweep-out-1", "Shiny details.");
   yield* t.phrase("shimmer-sweep-in-2", "shimmer-sweep-out-2", "Glide with intent.");
-  yield* t.phrase("shimmer-sweep-in-3", "shimmer-sweep-out-3", "Soft and precise.");
+  yield* t.phrase("shimmer-sweep-in-3", "shimmer-sweep-out-3", "Soft and precise.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

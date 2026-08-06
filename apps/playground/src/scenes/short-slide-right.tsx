@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { ShortSlideRight } from "@moliniani/components/vue";
 import { createPhraseSwitcher, SHORT_SLIDE_RIGHT } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("short-slide-right-in-1", "short-slide-right-out-1", "Move with intent.");
   yield* t.phrase("short-slide-right-in-2", "short-slide-right-out-2", "Words glide across.");
-  yield* t.phrase("short-slide-right-in-3", "short-slide-right-out-3", "Build the rhythm.");
+  yield* t.phrase("short-slide-right-in-3", "short-slide-right-out-3", "Build the rhythm.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

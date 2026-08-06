@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { FadeThrough } from "@moliniani/components/vue";
 import { createPhraseSwitcher, FADE_THROUGH } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("fade-through-in-1", "fade-through-out-1", "Calm transitions.");
   yield* t.phrase("fade-through-in-2", "fade-through-out-2", "Fade through content.");
-  yield* t.phrase("fade-through-in-3", "fade-through-out-3", "Focus shifts smoothly.");
+  yield* t.phrase("fade-through-in-3", "fade-through-out-3", "Focus shifts smoothly.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

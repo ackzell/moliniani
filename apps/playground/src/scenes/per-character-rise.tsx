@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { PerCharacterRise } from "@moliniani/components/vue";
 import { createPhraseSwitcher, PER_CHARACTER_RISE } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("per-character-rise-in-1", "per-character-rise-out-1", "One more thing.");
   yield* t.phrase("per-character-rise-in-2", "per-character-rise-out-2", "Fast and fluid.");
-  yield* t.phrase("per-character-rise-in-3", "per-character-rise-out-3", "Sharp by design.");
+  yield* t.phrase("per-character-rise-in-3", "per-character-rise-out-3", "Sharp by design.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

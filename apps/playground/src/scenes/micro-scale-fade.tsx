@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { MicroScaleFade } from "@moliniani/components/vue";
 import { createPhraseSwitcher, MICRO_SCALE_FADE } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("micro-scale-fade-in-1", "micro-scale-fade-out-1", "Welcome to motion.");
   yield* t.phrase("micro-scale-fade-in-2", "micro-scale-fade-out-2", "Small details matter.");
-  yield* t.phrase("micro-scale-fade-in-3", "micro-scale-fade-out-3", "Quietly premium.");
+  yield* t.phrase("micro-scale-fade-in-3", "micro-scale-fade-out-3", "Quietly premium.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

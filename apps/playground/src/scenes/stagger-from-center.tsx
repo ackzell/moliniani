@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { StaggerFromCenter } from "@moliniani/components/vue";
 import { createPhraseSwitcher, STAGGER_FROM_CENTER } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("stagger-from-center-in-1", "stagger-from-center-out-1", "From the middle.");
   yield* t.phrase("stagger-from-center-in-2", "stagger-from-center-out-2", "Ripple outward.");
-  yield* t.phrase("stagger-from-center-in-3", "stagger-from-center-out-3", "Center-first motion.");
+  yield* t.phrase("stagger-from-center-in-3", "stagger-from-center-out-3", "Center-first motion.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

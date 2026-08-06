@@ -19,15 +19,15 @@
     },
     {
       "name": "line-by-line-slide-in-3",
-      "targetTime": 3.548
+      "targetTime": 3.898296212116745
     },
     {
       "name": "line-by-line-slide-out-3",
-      "targetTime": 4.282
+      "targetTime": 4.809327631143486
     },
     {
       "name": "next-scene",
-      "targetTime": 4.552
+      "targetTime": 6.566329740054096
     }
   ],
   "seed": 1044311817

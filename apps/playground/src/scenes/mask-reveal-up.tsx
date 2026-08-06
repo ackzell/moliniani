@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { MaskRevealUp } from "@moliniani/components/vue";
 import { createPhraseSwitcher, MASK_REVEAL_UP } from "@moliniani/components";
@@ -33,8 +32,9 @@ export default makeScene(function* (view) {
     "mask-reveal-up-out-2",
     "Quiet motion.\nStrong hierarchy.",
   );
-  yield* t.phrase("mask-reveal-up-in-3", "mask-reveal-up-out-3", "Premium feel.\nEvery frame.");
+  yield* t.phrase("mask-reveal-up-in-3", "mask-reveal-up-out-3", "Premium feel.\nEvery frame.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

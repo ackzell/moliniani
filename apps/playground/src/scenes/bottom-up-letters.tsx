@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { BottomUpLetters } from "@moliniani/components/vue";
 import { BOTTOM_UP_LETTERS, createPhraseSwitcher } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("bottom-up-letters-in-1", "bottom-up-letters-out-1", "Shift");
   yield* t.phrase("bottom-up-letters-in-2", "bottom-up-letters-out-2", "Stage");
-  yield* t.phrase("bottom-up-letters-in-3", "bottom-up-letters-out-3", "Letter");
+  yield* t.phrase("bottom-up-letters-in-3", "bottom-up-letters-out-3", "Letter", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

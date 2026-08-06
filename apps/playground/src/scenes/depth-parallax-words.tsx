@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { DepthParallaxWords } from "@moliniani/components/vue";
 import { createPhraseSwitcher, DEPTH_PARALLAX_WORDS } from "@moliniani/components";
@@ -25,8 +24,14 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("depth-parallax-words-in-1", "depth-parallax-words-out-1", "Layered depth.");
   yield* t.phrase("depth-parallax-words-in-2", "depth-parallax-words-out-2", "Words in motion.");
-  yield* t.phrase("depth-parallax-words-in-3", "depth-parallax-words-out-3", "Perspective shifts.");
+  yield* t.phrase(
+    "depth-parallax-words-in-3",
+    "depth-parallax-words-out-3",
+    "Perspective shifts.",
+    {
+      exitOn: "next-scene",
+    },
+  );
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

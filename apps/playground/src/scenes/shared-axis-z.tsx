@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { SharedAxisZ } from "@moliniani/components/vue";
 import { createPhraseSwitcher, SHARED_AXIS_Z } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("shared-axis-z-in-1", "shared-axis-z-out-1", "Zooming between states.");
   yield* t.phrase("shared-axis-z-in-2", "shared-axis-z-out-2", "Elevate and settle.");
-  yield* t.phrase("shared-axis-z-in-3", "shared-axis-z-out-3", "Scale with purpose.");
+  yield* t.phrase("shared-axis-z-in-3", "shared-axis-z-out-3", "Scale with purpose.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

@@ -131,10 +131,29 @@ export function useSplitUnits(
   let splitter: TextSplitter | null = null;
   let handles: SplitUnitHandle[] = [];
   let lastBuild: { el: HTMLElement; text: string | undefined } | null = null;
+  // Element whose inline styles currently mirror the from-state (`getInitial()`)
+  // while its split units don't exist yet (animejs defers line splits to
+  // `document.fonts.ready`, so between `el.textContent = text` and the split
+  // landing there are no handles to hide). Cleared once per-unit values apply.
+  let rootMirrored: HTMLElement | null = null;
 
   const getUnits = (): string => toValue(options.units) ?? "chars";
   const getText = () => (options.text === undefined ? undefined : toValue(options.text));
   const getInitial = (): Partial<SplitUnitInitialValues> => toValue(options.unit) ?? {};
+
+  /** Writes the from-state onto an element's inline styles. */
+  const mirrorInitial = (el: HTMLElement, initial: Partial<SplitUnitInitialValues>) => {
+    el.style.opacity = initial.opacity !== undefined ? String(initial.opacity) : "";
+    el.style.transform = `translate(${initial.x ?? 0}px, ${initial.y ?? 0}px) scale(${initial.scale ?? 1})`;
+    el.style.filter = initial.blur ? `blur(${initial.blur}px)` : "";
+  };
+
+  /** Clears inline styles written by `mirrorInitial()`. */
+  const clearRootMirror = (el: HTMLElement) => {
+    el.style.opacity = "";
+    el.style.transform = "";
+    el.style.filter = "";
+  };
 
   const collect = (): { type: SplitUnitHandle["type"]; el: HTMLElement }[] => {
     const unit = getUnits();
@@ -166,6 +185,10 @@ export function useSplitUnits(
   const teardown = () => {
     for (const handle of handles) handle.dispose();
     handles = [];
+    if (rootMirrored) {
+      clearRootMirror(rootMirrored);
+      rootMirrored = null;
+    }
     if (splitter) {
       splitter.revert();
       splitter = null;
@@ -187,6 +210,14 @@ export function useSplitUnits(
     teardown();
     if (text !== undefined) el.textContent = text;
     if (getUnits() !== "whole") {
+      // animejs defers line splits to `document.fonts.ready`, so the raw text
+      // would otherwise sit in the DOM at full opacity until the split lands
+      // and the frame updater applies the from-state. Mirror the from-state
+      // onto the root now so any pre-split frame renders hidden; `updater()`
+      // clears it once per-unit handles exist (their values match this mirror
+      // at phase 0, so there is no visual discontinuity).
+      rootMirrored = el;
+      mirrorInitial(el, getInitial());
       splitter = splitText(el, createSplitParams());
     }
     lastBuild = { el, text };
@@ -275,6 +306,14 @@ export function useSplitUnits(
     }
 
     for (const handle of handles) handle.syncDom();
+
+    // The split has landed and per-unit values are applied — drop the root
+    // from-state mirror so the unit spans (which now carry the same values)
+    // drive the animation from here.
+    if (rootMirrored && handles.length > 0) {
+      clearRootMirror(rootMirrored);
+      rootMirrored = null;
+    }
   };
 
   const controller: UseSplitUnitsController = {

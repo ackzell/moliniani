@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { StaggerFromEdges } from "@moliniani/components/vue";
 import { createPhraseSwitcher, STAGGER_FROM_EDGES } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("stagger-from-edges-in-1", "stagger-from-edges-out-1", "From the edges.");
   yield* t.phrase("stagger-from-edges-in-2", "stagger-from-edges-out-2", "Ripple inward.");
-  yield* t.phrase("stagger-from-edges-in-3", "stagger-from-edges-out-3", "Bracketed focus.");
+  yield* t.phrase("stagger-from-edges-in-3", "stagger-from-edges-out-3", "Bracketed focus.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

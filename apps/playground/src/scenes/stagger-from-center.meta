@@ -11,7 +11,7 @@
     },
     {
       "name": "stagger-from-center-in-2",
-      "targetTime": 1.7180000000000002
+      "targetTime": 1.718
     },
     {
       "name": "stagger-from-center-out-2",
@@ -27,7 +27,7 @@
     },
     {
       "name": "next-scene",
-      "targetTime": 4.428
+      "targetTime": 5.202052874142819
     }
   ],
   "seed": 2204782187

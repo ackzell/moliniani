@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { TopDownLetters } from "@moliniani/components/vue";
 import { createPhraseSwitcher, TOP_DOWN_LETTERS } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("top-down-letters-in-1", "top-down-letters-out-1", "Signal");
   yield* t.phrase("top-down-letters-in-2", "top-down-letters-out-2", "Header");
-  yield* t.phrase("top-down-letters-in-3", "top-down-letters-out-3", "Vector");
+  yield* t.phrase("top-down-letters-in-3", "top-down-letters-out-3", "Vector", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

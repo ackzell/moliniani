@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { BlurOutUp } from "@moliniani/components/vue";
 import { BLUR_OUT_UP, createPhraseSwitcher } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("blur-out-up-in-1", "blur-out-up-out-1", "Clear in, airy out.");
   yield* t.phrase("blur-out-up-in-2", "blur-out-up-out-2", "Lightweight typography.");
-  yield* t.phrase("blur-out-up-in-3", "blur-out-up-out-3", "Exit with grace.");
+  yield* t.phrase("blur-out-up-in-3", "blur-out-up-out-3", "Exit with grace.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

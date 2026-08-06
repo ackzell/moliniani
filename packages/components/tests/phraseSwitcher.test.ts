@@ -505,4 +505,44 @@ describe("createPhraseSwitcher.phrase", () => {
     const phaseCalls = node.calls.filter(([k]) => k === "phase");
     expect(phaseCalls[1][1][1]).toBeCloseTo(0.612);
   });
+
+  it("exits the final phrase toward the exitOn marker across [out, exitOn]", () => {
+    mockTimeEvents([
+      { name: "in-1", targetTime: 1 },
+      { name: "out-1", targetTime: 1.6 },
+      { name: "next-scene", targetTime: 3 },
+    ]);
+    const { node, ref } = makeNode();
+    const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
+    run(t.phrase("in-1", "out-1", "Shiny details.", { exitOn: "next-scene" }));
+
+    // After the enter completes at out-1 = 1.6, the final phrase exits across
+    // [1.6, 3.0] (1.4s) toward the exitOn marker — mirroring how earlier
+    // phrases exit across [out, nextIn]. (The reset's exit(0) is filtered out.)
+    const exitCalls = node.calls.filter(([k, a]) => k === "exit" && a[0] === 1);
+    expect(exitCalls[0][1][0]).toBe(1);
+    expect(exitCalls[0][1][1]).toBeCloseTo(1.4);
+
+    // An existing marker is re-registered at the phrase's out, not at its own
+    // position — keeping the editor's left-drag floor at out so it can still
+    // be dragged earlier (registering at the marker would pin offset to 0 and
+    // make it one-way-draggable right, ratcheting it further right each pass).
+    const reRegs = mocks.register.mock.calls.filter(([name]) => name === "next-scene");
+    expect(reRegs[0][1]).toBeCloseTo(1.6);
+  });
+
+  it("auto-places a missing exitOn marker and exits toward it", () => {
+    const { node, ref } = makeNode();
+    const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
+    run(t.phrase("in-1", "out-1", "Shiny details.", { exitOn: "next-scene" }));
+
+    // All markers missing: in auto-places at 0 + 0.55 + 0.468 = 1.018, out at
+    // 1.018 + 0.612 = 1.63, and next-scene at 1.63 + 0.468 + 0.55 = 2.648. The
+    // final exit then runs [1.63, 2.648] (1.018s).
+    const placed = mocks.register.mock.calls.find(([name]) => name === "next-scene");
+    expect(placed).toBeDefined();
+    expect(placed![1]).toBeCloseTo(2.648);
+    const exitCalls = node.calls.filter(([k, a]) => k === "exit" && a[0] === 1);
+    expect(exitCalls[0][1][1]).toBeCloseTo(1.018);
+  });
 });

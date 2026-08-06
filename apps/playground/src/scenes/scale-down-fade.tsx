@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { ScaleDownFade } from "@moliniani/components/vue";
 import { createPhraseSwitcher, SCALE_DOWN_FADE } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("scale-down-fade-in-1", "scale-down-fade-out-1", "Quietly refined.");
   yield* t.phrase("scale-down-fade-in-2", "scale-down-fade-out-2", "Polished transitions.");
-  yield* t.phrase("scale-down-fade-in-3", "scale-down-fade-out-3", "A soft close.");
+  yield* t.phrase("scale-down-fade-in-3", "scale-down-fade-out-3", "A soft close.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

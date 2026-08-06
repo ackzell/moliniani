@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { PerWordCrossfade } from "@moliniani/components/vue";
 import { createPhraseSwitcher, PER_WORD_CROSSFADE } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("per-word-crossfade-in-1", "per-word-crossfade-out-1", "Beautifully simple.");
   yield* t.phrase("per-word-crossfade-in-2", "per-word-crossfade-out-2", "Designed for focus.");
-  yield* t.phrase("per-word-crossfade-in-3", "per-word-crossfade-out-3", "Built for people.");
+  yield* t.phrase("per-word-crossfade-in-3", "per-word-crossfade-out-3", "Built for people.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });

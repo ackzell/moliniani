@@ -1,4 +1,3 @@
-import { waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { ShortSlideDown } from "@moliniani/components/vue";
 import { createPhraseSwitcher, SHORT_SLIDE_DOWN } from "@moliniani/components";
@@ -25,8 +24,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("short-slide-down-in-1", "short-slide-down-out-1", "Drop into place.");
   yield* t.phrase("short-slide-down-in-2", "short-slide-down-out-2", "Words settle lower.");
-  yield* t.phrase("short-slide-down-in-3", "short-slide-down-out-3", "Build from above.");
+  yield* t.phrase("short-slide-down-in-3", "short-slide-down-out-3", "Build from above.", {
+    exitOn: "next-scene",
+  });
 
-  yield* waitUntil("next-scene");
   yield* ref().opacity(0, 0.5);
 });
