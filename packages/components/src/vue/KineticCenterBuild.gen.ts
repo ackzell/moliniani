@@ -75,6 +75,7 @@ const split = useSplitUnits(
       knobs: () => resolveEffectKnobs(KINETIC_CENTER_BUILD, props),
       staggerMode: () => KINETIC_CENTER_BUILD.staggerMode,
       exitStaggerMode: () => props.exitStaggerMode,
+      renderer: () => KINETIC_CENTER_BUILD.renderer,
     }),
   },
 );
@@ -107,7 +108,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
 }
 _sfc_main.render = _sfc_render;
 _sfc_main.__scopeId = "data-v-KineticCenterBuild";
-const __style = "\n/* MC's editor sets a global line-height (24px) on <body> that the overlay would\n   otherwise inherit; a fixed 24px line box clips the glyph tops and bottoms of\n   large text (background-clip: text and overflow: clip line wrappers cut the\n   letters). `normal` makes the line box follow the font's own metrics. */\n.kinetic-center-build[data-v-KineticCenterBuild] {\n  display: inline-block;\n  white-space: pre;\n  line-height: normal;\n}\n.kinetic-center-build[data-v-KineticCenterBuild] span {\n  display: inline-block;\n  will-change: transform, opacity, filter;\n}\n";
+const __style = "\n/* MC's editor sets a global line-height (24px) on <body> that the overlay would\n   otherwise inherit; a fixed 24px line box clips the glyph tops and bottoms of\n   large text (background-clip: text and overflow: clip line wrappers cut the\n   letters). `normal` makes the line box follow the font's own metrics. */\n.kinetic-center-build[data-v-KineticCenterBuild] {\n  display: block;\n  white-space: pre;\n  line-height: normal;\n}\n.kinetic-center-build[data-v-KineticCenterBuild] span {\n  display: inline-block;\n  will-change: transform, opacity, filter;\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  white-space: nowrap;\n}\n";
 if (typeof document !== "undefined" && !document.getElementById("data-v-KineticCenterBuild")) {
   const __styleEl = document.createElement("style");
   __styleEl.id = "data-v-KineticCenterBuild";

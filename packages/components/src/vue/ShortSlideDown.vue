@@ -69,6 +69,7 @@ const split = useSplitUnits(
       knobs: () => resolveEffectKnobs(SHORT_SLIDE_DOWN, props),
       staggerMode: () => SHORT_SLIDE_DOWN.staggerMode,
       exitStaggerMode: () => props.exitStaggerMode,
+      renderer: () => SHORT_SLIDE_DOWN.renderer,
     }),
   },
 );
@@ -99,7 +100,7 @@ watch(
    large text (background-clip: text and overflow: clip line wrappers cut the
    letters). `normal` makes the line box follow the font's own metrics. */
 .short-slide-down {
-  display: inline-block;
+  display: block;
   white-space: pre;
   line-height: normal;
 }
@@ -107,5 +108,9 @@ watch(
 .short-slide-down :deep(span) {
   display: inline-block;
   will-change: transform, opacity, filter;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  white-space: nowrap;
 }
 </style>

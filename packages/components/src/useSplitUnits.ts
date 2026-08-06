@@ -13,10 +13,14 @@ import {
   wholeValuesAt,
   exitUnitValuesAt,
   exitWholeValuesAt,
+  computeKineticLayout,
+  kineticValuesAt,
+  exitKineticValuesAt,
   type StaggerMode,
   type TextEffectKnobs,
   type WholeValues,
 } from "./effectTiming";
+import type { TextEffectRenderer } from "./textEffects";
 
 export type SplitUnit = "chars" | "words" | "lines";
 
@@ -43,6 +47,8 @@ export interface TextEffectDriver {
   exitStaggerMode?: () => StaggerMode | undefined;
   /** Whole-text gradient sweep renderer (shimmer-sweep). */
   sweep?: boolean;
+  /** Layout-aware kinetic build renderer (short-slide-down / kinetic-center). */
+  renderer?: () => TextEffectRenderer | undefined;
 }
 
 export interface UseSplitUnitsOptions {
@@ -136,10 +142,23 @@ export function useSplitUnits(
   // `document.fonts.ready`, so between `el.textContent = text` and the split
   // landing there are no handles to hide). Cleared once per-unit values apply.
   let rootMirrored: HTMLElement | null = null;
+  // Measured on-axis unit sizes (offsetHeight/Width) for the kinetic renderers,
+  // used to compute centered stack positions. Re-measured on split and on
+  // `document.fonts.ready` (loaded web fonts change word metrics).
+  let kineticSizes: number[] | null = null;
+  let fontReadyHandler: (() => void) | null = null;
 
   const getUnits = (): string => toValue(options.units) ?? "chars";
   const getText = () => (options.text === undefined ? undefined : toValue(options.text));
   const getInitial = (): Partial<SplitUnitInitialValues> => toValue(options.unit) ?? {};
+
+  /** The build renderer from the active phase driver, if any. */
+  const getRenderer = (): TextEffectRenderer | undefined => toValue(options.effect)?.renderer?.();
+
+  const isKinetic = (): boolean => {
+    const r = getRenderer();
+    return r === "kinetic-top-build" || r === "kinetic-center-build";
+  };
 
   /** Writes the from-state onto an element's inline styles. */
   const mirrorInitial = (el: HTMLElement, initial: Partial<SplitUnitInitialValues>) => {
@@ -179,10 +198,54 @@ export function useSplitUnits(
 
   const buildHandles = () => {
     const initial = getInitial();
-    handles = collect().map(({ type, el }, index) => new SplitUnitHandle(type, index, el, initial));
+    const centered = isKinetic();
+    handles = collect().map(
+      ({ type, el }, index) => new SplitUnitHandle(type, index, el, initial, centered),
+    );
+  };
+
+  /** Sets the kinetic host's dimensions to the measured stack extent. */
+  const applyKineticLayout = () => {
+    const el = toValue(target);
+    if (!el || !kineticSizes || kineticSizes.length === 0) return;
+    const knobs = toValue(options.effect)?.knobs?.();
+    const gap = knobs?.kinetic?.gap ?? 0;
+    const { totalSize } = computeKineticLayout(kineticSizes, gap);
+    const maxUnit = Math.max(...kineticSizes);
+    if (getRenderer() === "kinetic-top-build") {
+      el.style.height = `${totalSize}px`;
+      el.style.width = `${maxUnit}px`;
+    } else {
+      el.style.width = `${totalSize}px`;
+      el.style.height = `${maxUnit}px`;
+    }
+  };
+
+  /** Measures word sizes and re-applies the stack layout for kinetic builds. */
+  const measureKinetic = () => {
+    if (!isKinetic() || handles.length === 0) return;
+    const axis = getRenderer() === "kinetic-top-build" ? "y" : "x";
+    kineticSizes = handles.map((handle) =>
+      axis === "y" ? handle.element.offsetHeight : handle.element.offsetWidth,
+    );
+    applyKineticLayout();
+  };
+
+  /** Re-measures when the loaded web fonts change unit metrics. */
+  const scheduleFontRemeasure = () => {
+    const fonts = typeof document !== "undefined" ? document.fonts : undefined;
+    if (!fonts || !fonts.ready) return;
+    if (!fontReadyHandler) {
+      fontReadyHandler = () => {
+        if (isKinetic()) measureKinetic();
+      };
+    }
+    void fonts.ready.then(fontReadyHandler);
   };
 
   const teardown = () => {
+    fontReadyHandler = null;
+    kineticSizes = null;
     for (const handle of handles) handle.dispose();
     handles = [];
     if (rootMirrored) {
@@ -222,6 +285,10 @@ export function useSplitUnits(
     }
     lastBuild = { el, text };
     buildHandles();
+    if (isKinetic()) {
+      measureKinetic();
+      scheduleFontRemeasure();
+    }
 
     // Apply the current MC state immediately to newly-created spans.
     // Otherwise they render once in their default (fully visible) state.
@@ -278,6 +345,7 @@ export function useSplitUnits(
       const exitMode = driver.exitStaggerMode?.() ?? mode;
       const ranks = mode === "normal" ? null : staggerRanks(handles.length, mode);
       const exitRanks = exitMode === "normal" ? null : staggerRanks(handles.length, exitMode);
+      const renderer = driver.renderer?.();
       const applyValues = (handle: SplitUnitHandle, values: WholeValues) => {
         handle.opacity(values.opacity);
         handle.x(values.x);
@@ -288,19 +356,33 @@ export function useSplitUnits(
           handle.element.style.backgroundPosition = `${values.backgroundPositionPercent}% 0%`;
         }
       };
-      for (const handle of handles) {
-        if (handle.type === "whole") {
-          applyValues(
-            handle,
-            exiting ? exitWholeValuesAt(knobs, exit) : wholeValuesAt(knobs, phase, driver.sweep),
-          );
-        } else {
+
+      if (renderer === "kinetic-top-build" || renderer === "kinetic-center-build") {
+        if (!kineticSizes || kineticSizes.length !== handles.length) measureKinetic();
+        const sizes = kineticSizes ?? [];
+        for (const handle of handles) {
           applyValues(
             handle,
             exiting
-              ? exitUnitValuesAt(knobs, exit, handle.index, handles.length, exitRanks)
-              : unitValuesAt(knobs, phase, handle.index, handles.length, ranks),
+              ? exitKineticValuesAt(knobs, exit, handle.index, handles.length, sizes)
+              : kineticValuesAt(knobs, phase, handle.index, handles.length, sizes),
           );
+        }
+      } else {
+        for (const handle of handles) {
+          if (handle.type === "whole") {
+            applyValues(
+              handle,
+              exiting ? exitWholeValuesAt(knobs, exit) : wholeValuesAt(knobs, phase, driver.sweep),
+            );
+          } else {
+            applyValues(
+              handle,
+              exiting
+                ? exitUnitValuesAt(knobs, exit, handle.index, handles.length, exitRanks)
+                : unitValuesAt(knobs, phase, handle.index, handles.length, ranks),
+            );
+          }
         }
       }
     }

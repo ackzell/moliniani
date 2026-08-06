@@ -11,7 +11,7 @@ export default makeScene(function* (view) {
   view.add(
     <>
       <Txt text="short-slide-down" fill="#8fa3b8" fontSize={28} y={-420} />
-      <ShortSlideDown ref={ref} text="" fontSize={64} color="#ffd166" y={-60} stagger={130} />
+      <ShortSlideDown ref={ref} text="" fontSize={64} color="#ffd166" y={-60} />
     </>,
   );
 

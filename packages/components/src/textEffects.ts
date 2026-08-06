@@ -1,5 +1,5 @@
 import type { SplitUnit } from "./useSplitUnits";
-import type { StaggerMode, TextEffectKnobs } from "./effectTiming";
+import type { KineticBuildParams, StaggerMode, TextEffectKnobs } from "./effectTiming";
 
 /**
  * Generic text-effect specs ported from the `animate-text` skill catalog
@@ -73,6 +73,8 @@ export interface TextEffectProps {
    * the same left-to-right direction the enter used, not as a rewind.
    */
   exitStaggerMode?: StaggerMode;
+  /** Kinetic build params (spec-level; consumed by the kinetic renderers). */
+  kinetic?: KineticBuildParams;
 }
 
 /** Which unit the effect splits into; `"whole"` animates the full span. */
@@ -81,9 +83,10 @@ export type TextEffectTarget = SplitUnit | "whole";
 /**
  * How the animation is produced. `"generic"` animates every split unit from the
  * `from` frame with a per-unit delay; `"sweep"` animates a whole-text gradient
- * highlight (no split).
+ * highlight (no split); `"kinetic-top-build"` / `"kinetic-center-build"` are the
+ * layout-aware measured push/reflow renderers (see `KineticBuildParams`).
  */
-export type TextEffectRenderer = "generic" | "sweep";
+export type TextEffectRenderer = "generic" | "sweep" | "kinetic-top-build" | "kinetic-center-build";
 
 export interface TextEffectSpec {
   id: string;
@@ -147,6 +150,7 @@ export function resolveEffectKnobs(spec: TextEffectSpec, props: TextEffectProps)
     exitBlur: props.exitBlur ?? exit?.blur ?? 0,
     exitScale: props.exitScale ?? exit?.scale ?? 1,
     exitOpacity: props.exitOpacity ?? exit?.opacity ?? 0,
+    kinetic: props.kinetic ?? defaults.kinetic,
   };
 }
 
@@ -550,13 +554,26 @@ export const KINETIC_CENTER_BUILD: TextEffectSpec = {
   id: "kinetic-center-build",
   name: "Kinetic Center Build",
   target: "words",
+  renderer: "kinetic-center-build",
   defaults: {
-    duration: 259,
+    duration: 310,
     ease: "cubic-bezier(0.2, 0.8, 0.2, 1)",
     x: 88,
     rise: 6,
     scaleFrom: 0.992,
     blur: 3.5,
+    kinetic: {
+      axis: "x",
+      gap: 10,
+      entryOffset: 88,
+      firstWordDuration: 245,
+      firstWordY: 6,
+      entryScale: 0.992,
+      entryBlur: 3.5,
+      reflowBlur: 0.8,
+      exitY: -6,
+      exitBlur: 2.5,
+    },
   },
   exit: {
     duration: 187,
@@ -589,12 +606,25 @@ export const SHORT_SLIDE_DOWN: TextEffectSpec = {
   id: "short-slide-down",
   name: "Short Slide Down",
   target: "words",
+  renderer: "kinetic-top-build",
   defaults: {
-    duration: 374,
+    duration: 360,
     ease: "cubic-bezier(0.2, 0.8, 0.2, 1)",
     rise: -24,
     scaleFrom: 0.992,
     blur: 2.4,
+    kinetic: {
+      axis: "y",
+      gap: 12,
+      entryOffset: -28,
+      firstWordDuration: 259,
+      firstWordY: -14,
+      entryScale: 0.992,
+      entryBlur: 2.4,
+      reflowBlur: 0.7,
+      exitY: 10,
+      exitBlur: 1.2,
+    },
   },
   exit: {
     duration: 230,

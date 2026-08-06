@@ -126,6 +126,17 @@ function splitCount(text: string, target: TextEffectTarget): number {
  */
 export function phraseTiming(spec: TextEffectSpec, text: string): PhraseTiming {
   const units = splitCount(text, spec.target);
+  const kinetic = spec.defaults.kinetic;
+  if (kinetic) {
+    // The kinetic build is sequential: the first word enters over its own
+    // duration, then each later word pushes over the per-word duration.
+    return {
+      units,
+      enterMs:
+        kinetic.firstWordDuration + (units > 1 ? (units - 1) * (spec.defaults.duration ?? 0) : 0),
+      exitMs: spec.exit?.duration ?? 0,
+    };
+  }
   const cascade = (duration: number, stagger: number) =>
     units > 1 && stagger > 0 ? duration + stagger * (units - 1) : duration;
   return {
@@ -453,35 +464,53 @@ export function createPhraseSwitcher<N extends PhraseSwitcherNode>(
       }
 
       // Enter over [in, out]: duration = out − in, so dragging either marker
-      // re-times the reveal (falls back to `enterFallback` when `out` is
-      // missing — the auto-place puts it exactly `enterFallback` after `in`).
-      const enterDur = Math.max(0, outTime - inTime);
+      // re-times the reveal. A degenerate window — `out` at or before `in` (a
+      // stale or inverted marker, e.g. a dragged-out reveal) — falls back to the
+      // caller/spec default enter and corrects the `out` marker to `in + enter`,
+      // so the phrase always animates instead of snapping straight to full.
+      let enterDur = outTime - inTime;
+      if (enterDur <= 0) {
+        enterDur = enterFallback;
+        const correctedOut = inTime + enterFallback;
+        registerCue(outMarker, correctedOut);
+        molinianiDebugLog(
+          `phrase-switcher: "${outMarker}" (${outTime.toFixed(3)}s) is at or before ` +
+            `"${inMarker}" (${inTime.toFixed(3)}s) — entering over the default ` +
+            `${(enterFallback * 1000).toFixed(1)}ms and re-anchored out to ${correctedOut.toFixed(3)}s`,
+        );
+      }
       current = defaultsFor(text);
       currentText = text;
       reset(text);
       yield* ref().phase(1, enterDur, options.enterEase ?? linear);
-      lastEnterEnd = useThread().time();
+      // The enter tween always runs [in, in + enterDur] — the waitFor / previous
+      // exit thread lands exactly on `in` — so the enter end is deterministic
+      // (and testable) even when a degenerate window forced the fallback.
+      const enterDone = inTime + enterDur;
+      lastEnterEnd = enterDone;
 
       // The final phrase can exit toward an `exitOn` marker (e.g.
       // `next-scene`), mirroring how earlier phrases exit across [out, nextIn]:
-      // the exit length derives from [`out`, `exitOn`], so dragging the marker
-      // re-times it. A missing marker is auto-placed at `out + exitMs + hold`;
-      // an existing one is re-registered at `out` so its left-drag floor stays
-      // there — registering it at its own position would pin `offset` to 0 and
-      // make it one-way-draggable right.
+      // the exit length derives from [enter end, `exitOn`], so dragging the
+      // marker re-times it. A missing marker is auto-placed at `enterDone +
+      // exitMs + hold`; an existing one is re-registered at `enterDone` so its
+      // left-drag floor stays at the real end of the enter — registering it at
+      // its own position would pin `offset` to 0 and make it one-way-draggable
+      // right. Using `enterDone` (not the possibly-degenerate marker `out`)
+      // guarantees the exit never overshoots `next-scene`.
       if (options.exitOn !== undefined) {
         let exitOnTime = resolveCueTime(options.exitOn);
         if (exitOnTime === null) {
-          exitOnTime = outTime + (options.exit ?? current.exit) + DEFAULT_SWAP_HOLD;
+          exitOnTime = enterDone + (options.exit ?? current.exit) + DEFAULT_SWAP_HOLD;
           useScene().timeEvents.register(options.exitOn, exitOnTime);
           molinianiDebugLog(
             `phrase-switcher: exit marker "${options.exitOn}" wasn't on the timeline — ` +
               `auto-placed at ${exitOnTime.toFixed(3)}s (drag it in the editor to sync audio)`,
           );
         } else {
-          registerCue(options.exitOn, outTime);
+          registerCue(options.exitOn, enterDone);
         }
-        const exitDur = Math.max(0, exitOnTime - outTime);
+        const exitDur = Math.max(0, exitOnTime - enterDone);
         if (exitDur > 0) {
           yield* ref().exit(1, exitDur, options.exitEase ?? linear);
         }

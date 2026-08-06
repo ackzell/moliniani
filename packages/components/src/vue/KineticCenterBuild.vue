@@ -69,6 +69,7 @@ const split = useSplitUnits(
       knobs: () => resolveEffectKnobs(KINETIC_CENTER_BUILD, props),
       staggerMode: () => KINETIC_CENTER_BUILD.staggerMode,
       exitStaggerMode: () => props.exitStaggerMode,
+      renderer: () => KINETIC_CENTER_BUILD.renderer,
     }),
   },
 );
@@ -99,7 +100,7 @@ watch(
    large text (background-clip: text and overflow: clip line wrappers cut the
    letters). `normal` makes the line box follow the font's own metrics. */
 .kinetic-center-build {
-  display: inline-block;
+  display: block;
   white-space: pre;
   line-height: normal;
 }
@@ -107,5 +108,9 @@ watch(
 .kinetic-center-build :deep(span) {
   display: inline-block;
   will-change: transform, opacity, filter;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  white-space: nowrap;
 }
 </style>

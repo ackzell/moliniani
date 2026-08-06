@@ -286,32 +286,32 @@ cue), while `duration` / `stagger` (ms) shape the internal wave (how much the
 units spread). To make the cascade spread exactly across the scene tween, set
 `duration + stagger × (units − 1) ≈ tweenMs`.
 
-| Effect               | Component            | target | default timing (ms) | signature easing                    |
-| -------------------- | -------------------- | ------ | ------------------- | ----------------------------------- |
-| soft-blur-in         | `SoftBlurIn`         | chars  | 648 / stagger 18    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| per-character-rise   | `PerCharacterRise`   | chars  | 504 / stagger 17    | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
-| per-word-crossfade   | `PerWordCrossfade`   | words  | 504 / stagger 50    | `cubic-bezier(0.16, 1, 0.3, 1)`     |
-| spring-scale-in      | `SpringScaleIn`      | words  | 259 / stagger 68    | `cubic-bezier(0.34, 1.56, 0.64, 1)` |
-| mask-reveal-up       | `MaskRevealUp`       | lines  | 547 / stagger 65    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| line-by-line-slide   | `LineByLineSlide`    | lines  | 648 / stagger 86    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| typewriter           | `TypingText`         | chars  | 173 / stagger 33    | `steps(1, end)`                     |
-| micro-scale-fade     | `MicroScaleFade`     | whole  | 432                 | `cubic-bezier(0.32, 0.72, 0, 1)`    |
-| shimmer-sweep        | `ShimmerSweep`       | whole  | 612                 | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| fade-through         | `FadeThrough`        | whole  | 302                 | `cubic-bezier(0.2, 0, 0, 1)`        |
-| shared-axis-y        | `SharedAxisY`        | words  | 140 / stagger 56    | `steps(1, end)`                     |
-| shared-axis-z        | `SharedAxisZ`        | whole  | 374                 | `cubic-bezier(0.2, 0, 0, 1)`        |
-| blur-out-up          | `BlurOutUp`          | words  | 403 / stagger 20    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| scale-down-fade      | `ScaleDownFade`      | whole  | 374                 | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| focus-blur-resolve   | `FocusBlurResolve`   | whole  | 547                 | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| bottom-up-letters    | `BottomUpLetters`    | chars  | 288 / stagger 63    | `cubic-bezier(0.18, 1, 0.32, 1)`    |
-| top-down-letters     | `TopDownLetters`     | chars  | 288 / stagger 63    | `cubic-bezier(0.18, 1, 0.32, 1)`    |
-| depth-parallax-words | `DepthParallaxWords` | words  | 504 / stagger 50    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| shared-axis-x        | `SharedAxisX`        | whole  | 360                 | `cubic-bezier(0.2, 0, 0, 1)`        |
-| stagger-from-center  | `StaggerFromCenter`  | chars  | 446 / stagger 16    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| stagger-from-edges   | `StaggerFromEdges`   | chars  | 446 / stagger 16    | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| kinetic-center-build | `KineticCenterBuild` | words  | 259 / x 88          | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
-| short-slide-right    | `ShortSlideRight`    | whole  | 374                 | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
-| short-slide-down     | `ShortSlideDown`     | words  | 374                 | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
+| Effect               | Component            | target | default timing (ms)   | signature easing                    |
+| -------------------- | -------------------- | ------ | --------------------- | ----------------------------------- |
+| soft-blur-in         | `SoftBlurIn`         | chars  | 648 / stagger 18      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| per-character-rise   | `PerCharacterRise`   | chars  | 504 / stagger 17      | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
+| per-word-crossfade   | `PerWordCrossfade`   | words  | 504 / stagger 50      | `cubic-bezier(0.16, 1, 0.3, 1)`     |
+| spring-scale-in      | `SpringScaleIn`      | words  | 259 / stagger 68      | `cubic-bezier(0.34, 1.56, 0.64, 1)` |
+| mask-reveal-up       | `MaskRevealUp`       | lines  | 547 / stagger 65      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| line-by-line-slide   | `LineByLineSlide`    | lines  | 648 / stagger 86      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| typewriter           | `TypingText`         | chars  | 173 / stagger 33      | `steps(1, end)`                     |
+| micro-scale-fade     | `MicroScaleFade`     | whole  | 432                   | `cubic-bezier(0.32, 0.72, 0, 1)`    |
+| shimmer-sweep        | `ShimmerSweep`       | whole  | 612                   | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| fade-through         | `FadeThrough`        | whole  | 302                   | `cubic-bezier(0.2, 0, 0, 1)`        |
+| shared-axis-y        | `SharedAxisY`        | words  | 140 / stagger 56      | `steps(1, end)`                     |
+| shared-axis-z        | `SharedAxisZ`        | whole  | 374                   | `cubic-bezier(0.2, 0, 0, 1)`        |
+| blur-out-up          | `BlurOutUp`          | words  | 403 / stagger 20      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| scale-down-fade      | `ScaleDownFade`      | whole  | 374                   | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| focus-blur-resolve   | `FocusBlurResolve`   | whole  | 547                   | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| bottom-up-letters    | `BottomUpLetters`    | chars  | 288 / stagger 63      | `cubic-bezier(0.18, 1, 0.32, 1)`    |
+| top-down-letters     | `TopDownLetters`     | chars  | 288 / stagger 63      | `cubic-bezier(0.18, 1, 0.32, 1)`    |
+| depth-parallax-words | `DepthParallaxWords` | words  | 504 / stagger 50      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| shared-axis-x        | `SharedAxisX`        | whole  | 360                   | `cubic-bezier(0.2, 0, 0, 1)`        |
+| stagger-from-center  | `StaggerFromCenter`  | chars  | 446 / stagger 16      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| stagger-from-edges   | `StaggerFromEdges`   | chars  | 446 / stagger 16      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| kinetic-center-build | `KineticCenterBuild` | words  | 245 + 310/word (push) | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
+| short-slide-right    | `ShortSlideRight`    | whole  | 374                   | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
+| short-slide-down     | `ShortSlideDown`     | words  | 259 + 360/word (push) | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
 
 > Defaults are the site-scaled values from the catalog (durations/staggers ×
 > `0.72`, vertical travel × `0.58`); the portable source values live in the
@@ -334,15 +334,16 @@ Notes on the table:
 - The **hidden catalog effects** (`stagger-from-center`, `stagger-from-edges`,
   `shared-axis-x`, `depth-parallax-words`) are ported for completeness but don't
   appear on the skill's site.
-- **Kinetic builds** (`kinetic-center-build`, `short-slide-down`,
-  `short-slide-right`) recreate their spec's _enter frame_ with the generic
-  per-unit model: center-build slides each word in from the right
-  (`x: 88`, the spec's `entry_offset_px`), slide-down drops each word from above
-  (`rise: -24`), slide-right moves the whole phrase as one unit (`target: "whole"`,
-  `opacityFrom: 1` — no per-word positional delay). The layout-aware _push/reflow_
-  of the spec (measuring word widths, re-centering the line/stack as each word
-  enters) is fine-tune pending; a measured `useKineticBuild` renderer is future
-  work.
+- **Kinetic builds** (`kinetic-center-build`, `short-slide-down`) are the
+  measured push/reflow renderers from the skill's `kinetic-*-build` recipes.
+  Each word is an absolutely-centered unit; the build is sequential — the first
+  word enters over its own duration, then each later word drops/pushes in over
+  the per-word duration and physically re-centers the stack (`short-slide-down`
+  stacks a vertical column with `line_gap_px: 12`; `kinetic-center-build` builds
+  a centered line with `word_gap_px: 10`). Word heights/widths are measured at
+  split time and re-measured on `document.fonts.ready`. `short-slide-right`
+  stays a generic whole-text slide (`target: "whole"`, `opacityFrom: 1` — no
+  per-word positional delay).
 
 ```tsx
 const ref = createMnRef(SoftBlurIn);

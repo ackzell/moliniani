@@ -11,15 +11,15 @@
     },
     {
       "name": "short-slide-down-in-2",
-      "targetTime": 1.1540000000000001
+      "targetTime": 1.375561710774576
     },
     {
       "name": "short-slide-down-out-2",
-      "targetTime": 1.528
+      "targetTime": 1.708253595206433
     },
     {
       "name": "short-slide-down-in-3",
-      "targetTime": 2.3080000000000003
+      "targetTime": 3.2806183574680507
     },
     {
       "name": "short-slide-down-out-3",
@@ -27,7 +27,7 @@
     },
     {
       "name": "next-scene",
-      "targetTime": 4.376448311923255
+      "targetTime": 4.556701907129688
     }
   ],
   "seed": 1139564741

@@ -9,9 +9,10 @@
 // `textEffects.ts` registry, then run `pnpm gen` to compile the SFCs.
 //
 // Hand-written effects (shimmer-sweep, typewriter) are intentionally not
-// generated. The kinetic builds are generated as enter-frame approximations of
-// their skill specs (see the README's "kinetic builds" note); the measured
-// push/reflow renderer is future work.
+// generated. The kinetic builds (short-slide-down, kinetic-center-build) are
+// generated with a `renderer: "kinetic-*"` line and their `kinetic` CSS so the
+// shared `useSplitUnits` composable runs the measured push/reflow renderer
+// (see the README's "kinetic builds" note).
 
 import { readdirSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -51,7 +52,10 @@ const sfcPropsInterface = propsInterface
   .join("\n");
 
 // id -> { spec: registry const name, component: PascalCase name, target,
-//          wrapLines }
+//          wrapLines, renderer }
+// renderer (optional) mirrors the spec's `renderer` so the emitted SFC's phase
+// driver routes through the measured kinetic mapping and its spans are laid out
+// absolutely-centered for the kinetic stack/line host.
 const EFFECTS = [
   ["per-character-rise", "PER_CHARACTER_RISE", "PerCharacterRise", "chars"],
   ["per-word-crossfade", "PER_WORD_CROSSFADE", "PerWordCrossfade", "words"],
@@ -71,16 +75,36 @@ const EFFECTS = [
   ["shared-axis-x", "SHARED_AXIS_X", "SharedAxisX", "whole"],
   ["stagger-from-center", "STAGGER_FROM_CENTER", "StaggerFromCenter", "chars"],
   ["stagger-from-edges", "STAGGER_FROM_EDGES", "StaggerFromEdges", "chars"],
-  // Kinetic builds — enter-frame approximations (fine-tune pending).
-  ["kinetic-center-build", "KINETIC_CENTER_BUILD", "KineticCenterBuild", "words"],
-  ["short-slide-down", "SHORT_SLIDE_DOWN", "ShortSlideDown", "words"],
+  // Kinetic builds — measured push/reflow renderers (short-slide-down stacks a
+  // column, kinetic-center-build builds a centered line).
+  [
+    "kinetic-center-build",
+    "KINETIC_CENTER_BUILD",
+    "KineticCenterBuild",
+    "words",
+    false,
+    "kinetic-center-build",
+  ],
+  ["short-slide-down", "SHORT_SLIDE_DOWN", "ShortSlideDown", "words", false, "kinetic-top-build"],
   ["short-slide-right", "SHORT_SLIDE_RIGHT", "ShortSlideRight", "whole"],
 ];
 
-function sfcFor(id, specConst, component, target, wrapLines = false) {
+function sfcFor(id, specConst, component, target, wrapLines = false, renderer = null) {
   const klass = id; // kebab-case id doubles as the root class name.
-  const innerDisplay = target === "lines" ? "block" : "inline-block";
   const wrapParams = wrapLines ? `, wrap: true` : "";
+  const rendererLine = renderer ? `\n      renderer: () => ${specConst}.renderer,` : "";
+  // Per-line targets lay their spans as block lines; everything else (chars /
+  // words) uses inline units. Kinetic hosts additionally lay every word
+  // absolutely-center in the root so the measured y/x offsets (driven by the
+  // per-word MC signals) place and push the stack.
+  const innerDisplay = target === "lines" ? "block" : "inline-block";
+  const rootDisplay = renderer ? "block" : "inline-block";
+  const spanStyles = renderer
+    ? `\n  position: absolute;
+  left: 50%;
+  top: 50%;
+  white-space: nowrap;`
+    : "";
   return `<script setup lang="ts">
 // Generated once by scripts/gen-text-effect-sfcs.mjs — edit directly.
 import { ref, watch } from "vue";
@@ -133,7 +157,7 @@ const split = useSplitUnits(
       exit: "exit",
       knobs: () => resolveEffectKnobs(${specConst}, props),
       staggerMode: () => ${specConst}.staggerMode,
-      exitStaggerMode: () => props.exitStaggerMode,
+      exitStaggerMode: () => props.exitStaggerMode,${rendererLine}
     }),
   },
 );
@@ -164,14 +188,14 @@ watch(
    large text (background-clip: text and overflow: clip line wrappers cut the
    letters). \`normal\` makes the line box follow the font's own metrics. */
 .${klass} {
-  display: inline-block;
+  display: ${rootDisplay};
   white-space: pre;
   line-height: normal;
 }
 
 .${klass} :deep(span) {
   display: ${innerDisplay};
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity, filter;${spanStyles}
 }
 </style>
 `;
@@ -228,9 +252,9 @@ ${blocks}
 `;
 }
 
-for (const [id, specConst, component, target, wrapLines] of EFFECTS) {
+for (const [id, specConst, component, target, wrapLines, renderer] of EFFECTS) {
   const file = resolve(vueDir, `${component}.vue`);
-  writeFileSync(file, sfcFor(id, specConst, component, target, wrapLines));
+  writeFileSync(file, sfcFor(id, specConst, component, target, wrapLines, renderer));
   console.log(`wrote ${component}.vue`);
 }
 

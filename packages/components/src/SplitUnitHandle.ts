@@ -57,16 +57,26 @@ export class SplitUnitHandle {
   readonly scale: SimpleSignal<number>;
   /** MC signal backing `filter: blur(...)` (px). */
   readonly blur: SimpleSignal<number>;
+  /**
+   * When `true` the element is laid out absolutely centered in its host
+   * (`left: 50%; top: 50%`), so `syncDom()` prefixes the MC translate with a
+   * `translate(-50%, -50%)` that keeps the unit centered while its x/y signals
+   * offset it. Used by the kinetic build renderers, whose word spans are
+   * positioned absolutely rather than in normal flow.
+   */
+  readonly centered: boolean;
 
   constructor(
     type: SplitUnitType,
     index: number,
     element: HTMLElement,
     initial: SplitUnitInitialValues = {},
+    centered = false,
   ) {
     this.type = type;
     this.index = index;
     this.element = element;
+    this.centered = centered;
     this.opacity = createSignal(initial.opacity ?? 1);
     this.x = createSignal(initial.x ?? 0);
     this.y = createSignal(initial.y ?? 0);
@@ -79,7 +89,10 @@ export class SplitUnitHandle {
   syncDom(): void {
     const el = this.element;
     el.style.opacity = String(this.opacity());
-    el.style.transform = `translate(${this.x()}px, ${this.y()}px) rotate(${this.rotation()}deg) scale(${this.scale()})`;
+    const translate = this.centered
+      ? `translate(-50%, -50%) translate(${this.x()}px, ${this.y()}px)`
+      : `translate(${this.x()}px, ${this.y()}px)`;
+    el.style.transform = `${translate} rotate(${this.rotation()}deg) scale(${this.scale()})`;
     const blur = this.blur();
     el.style.filter = blur > 0 ? `blur(${blur}px)` : "";
   }

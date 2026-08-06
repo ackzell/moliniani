@@ -11,7 +11,7 @@ export default makeScene(function* (view) {
   view.add(
     <>
       <Txt text="kinetic-center-build" fill="#8fa3b8" fontSize={28} y={-420} />
-      <KineticCenterBuild ref={ref} text="" fontSize={64} color="#ffd166" y={-60} stagger={140} />
+      <KineticCenterBuild ref={ref} text="" fontSize={64} color="#ffd166" y={-60} />
     </>,
   );
 

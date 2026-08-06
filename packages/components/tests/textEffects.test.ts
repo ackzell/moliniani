@@ -23,6 +23,9 @@ import {
   staggerRanks,
   unitValuesAt,
   wholeValuesAt,
+  computeKineticLayout,
+  kineticValuesAt,
+  exitKineticValuesAt,
   type TextEffectKnobs,
 } from "../src/effectTiming";
 
@@ -264,22 +267,115 @@ describe("unitValuesAt", () => {
     expect(aBitLater.opacity).toBe(0);
     expect(unitValuesAt(knobs, 1, 0, 1).opacity).toBe(1);
   });
+});
 
-  it("approximates the kinetic center build with a right-to-left word slide", () => {
-    const knobs = resolveEffectKnobs(KINETIC_CENTER_BUILD, {});
-    const at0 = unitValuesAt(knobs, 0, 0, 1);
-    expect(at0.x).toBe(88);
-    expect(at0.y).toBe(6);
-    expect(at0.scale).toBe(0.992);
-    expect(at0.blur).toBe(3.5);
+describe("kinetic build mapping", () => {
+  // Three unequal word sizes; the stack is centered with 12px gaps.
+  const sizes = [24, 40, 20];
+  const gap = 12;
+
+  it("centers the stack and returns each unit's on-axis position", () => {
+    const { positions, totalSize } = computeKineticLayout(sizes, gap);
+    // totalSize = 24 + 40 + 20 + 2*12 = 108; cursor starts at -54.
+    expect(totalSize).toBe(108);
+    // -54 + 12, -18 + 20, 34 + 10.
+    expect(positions).toEqual([-42, 2, 44]);
   });
 
-  it("drops words in from above (short-slide-down)", () => {
+  it("single-unit stacks center the unit at 0", () => {
+    expect(computeKineticLayout([30], gap).positions).toEqual([0]);
+  });
+
+  it("hides later words until their stage and settles every word at phase 1", () => {
     const knobs = resolveEffectKnobs(SHORT_SLIDE_DOWN, {});
-    const at0 = unitValuesAt(knobs, 0, 0, 1);
-    expect(at0.y).toBe(-24);
-    expect(at0.scale).toBe(0.992);
-    expect(at0.blur).toBe(2.4);
+    expect(knobs.kinetic?.axis).toBe("y");
+    // At the very start only word 0 is entering; words 1+ are hidden.
+    const hidden = kineticValuesAt(knobs, 0, 2, 3, sizes);
+    expect(hidden.opacity).toBe(0);
+    // At phase 1 every word sits at its final centered y, full opacity.
+    const finalPositions = [-42, 2, 44];
+    for (let i = 0; i < 3; i++) {
+      const settled = kineticValuesAt(knobs, 1, i, 3, sizes);
+      expect(settled.opacity).toBe(1);
+      expect(settled.x).toBe(0);
+      expect(settled.y).toBe(finalPositions[i]);
+      expect(settled.scale).toBe(1);
+      expect(settled.blur).toBe(0);
+    }
+  });
+
+  it("drops the first word in from above with the entry pose", () => {
+    const knobs = resolveEffectKnobs(SHORT_SLIDE_DOWN, {});
+    const at0 = kineticValuesAt(knobs, 0, 0, 3, sizes);
+    expect(at0.opacity).toBe(0);
+    expect(at0.y).toBe(knobs.kinetic!.firstWordY);
+    expect(at0.scale).toBe(knobs.kinetic!.entryScale);
+    expect(at0.blur).toBe(knobs.kinetic!.entryBlur);
+  });
+
+  it("pushes already-entered words upward when the next word drops in", () => {
+    const knobs = resolveEffectKnobs(SHORT_SLIDE_DOWN, {});
+    // Build timeline: firstWordDuration (259) + 2 pushes (360 each). Midway
+    // through the *first* push (word 1 entering), word 0 is reflowing from its
+    // 1-word-stack center (0) toward its 2-word-stack position (-26), while
+    // word 1 drops from -10 (target 18 + entryOffset -28) toward 18.
+    const buildTotal = knobs.kinetic!.firstWordDuration + 2 * (knobs.duration ?? 0);
+    const midPush = (knobs.kinetic!.firstWordDuration + (knobs.duration ?? 0) / 2) / buildTotal;
+    const reflowing = kineticValuesAt(knobs, midPush, 0, 3, sizes);
+    expect(reflowing.y).toBeGreaterThan(-26);
+    expect(reflowing.y).toBeLessThan(0);
+    expect(reflowing.opacity).toBe(1);
+    const incoming = kineticValuesAt(knobs, midPush, 1, 3, sizes);
+    expect(incoming.y).toBeGreaterThan(-10);
+    expect(incoming.y).toBeLessThan(18);
+    expect(incoming.opacity).toBeLessThan(1);
+  });
+
+  it("scales the build to fill the recorded scene tween total", () => {
+    // A 1.0s tween records total = 1000; the internal build must still land
+    // every word at its final position exactly at phase 1.
+    const knobs = resolveEffectKnobs(SHORT_SLIDE_DOWN, { total: 1000 });
+    const settled = kineticValuesAt(knobs, 1, 2, 3, sizes);
+    expect(settled.opacity).toBe(1);
+    expect(settled.y).toBe(44);
+    const beforeDone = 0.999;
+    expect(kineticValuesAt(knobs, beforeDone, 2, 3, sizes).opacity).toBeGreaterThan(0.999);
+  });
+
+  it("builds the center line along x with a from-right entry (kinetic-center-build)", () => {
+    const knobs = resolveEffectKnobs(KINETIC_CENTER_BUILD, {});
+    expect(knobs.kinetic?.axis).toBe("x");
+    const widths = [60, 40, 50];
+    const { positions } = computeKineticLayout(widths, knobs.kinetic!.gap);
+    // totalSize = 60+40+50 + 2*10 = 170; cursor -85.
+    expect(positions).toEqual([-55, 5, 60]);
+    const entering = kineticValuesAt(knobs, 0, 1, 3, widths);
+    // Word 1 is hidden at its entry pose: targetX + entryOffset(88) to the right.
+    expect(entering.x).toBe(positions[1] + knobs.kinetic!.entryOffset);
+    expect(entering.y).toBe(0);
+    const settled = kineticValuesAt(knobs, 1, 2, 3, widths);
+    expect(settled.x).toBe(positions[2]);
+    expect(settled.opacity).toBe(1);
+  });
+
+  it("exits every word together on the three-key exit path", () => {
+    const knobs = resolveEffectKnobs(SHORT_SLIDE_DOWN, {});
+    const at0 = exitKineticValuesAt(knobs, 0, 0, 3, sizes);
+    expect(at0).toEqual({ opacity: 1, x: 0, y: -42, scale: 1, blur: 0 });
+    const at1 = exitKineticValuesAt(knobs, 1, 0, 3, sizes);
+    expect(at1.opacity).toBe(0);
+    expect(at1.y).toBe(-42 + knobs.kinetic!.exitY);
+    expect(at1.blur).toBe(knobs.kinetic!.exitBlur);
+  });
+
+  it("exits the center line holding x while sinking exitY (kinetic-center-build)", () => {
+    const knobs = resolveEffectKnobs(KINETIC_CENTER_BUILD, {});
+    const widths = [60, 40, 50];
+    const { positions } = computeKineticLayout(widths, knobs.kinetic!.gap);
+    const at1 = exitKineticValuesAt(knobs, 1, 1, 3, widths);
+    expect(at1.opacity).toBe(0);
+    expect(at1.x).toBe(positions[1]);
+    expect(at1.y).toBe(knobs.kinetic!.exitY);
   });
 });
 

@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import type { Reference, TimingFunction } from "@motion-canvas/core";
 import {
+  KINETIC_CENTER_BUILD,
   MICRO_SCALE_FADE,
   PER_WORD_CROSSFADE,
   SHIMMER_SWEEP,
+  SHORT_SLIDE_DOWN,
   SOFT_BLUR_IN,
 } from "../src/textEffects";
 
@@ -121,6 +123,24 @@ describe("phraseTiming", () => {
       units: 2,
       enterMs: 554,
       exitMs: 389,
+    });
+  });
+
+  it("sums the first-word + pushes for kinetic build effects", () => {
+    // "Drop into place." = 3 words → firstWordDuration 259 + 2 pushes × 360,
+    // single exit length.
+    expect(phraseTiming(SHORT_SLIDE_DOWN, "Drop into place.")).toEqual({
+      units: 3,
+      enterMs: 259 + 2 * 360,
+      exitMs: 230,
+    });
+  });
+
+  it("uses just the first-word duration for a one-word kinetic phrase", () => {
+    expect(phraseTiming(KINETIC_CENTER_BUILD, "Words")).toEqual({
+      units: 1,
+      enterMs: 245,
+      exitMs: 187,
     });
   });
 });
@@ -544,5 +564,29 @@ describe("createPhraseSwitcher.phrase", () => {
     expect(placed![1]).toBeCloseTo(2.648);
     const exitCalls = node.calls.filter(([k, a]) => k === "exit" && a[0] === 1);
     expect(exitCalls[0][1][1]).toBeCloseTo(1.018);
+  });
+
+  it("enters over the default and corrects the out marker when it sits at or before the in marker", () => {
+    mockTimeEvents([
+      { name: "in-1", targetTime: 1 },
+      { name: "out-1", targetTime: 0.5 },
+      { name: "next-scene", targetTime: 3 },
+    ]);
+    const { node, ref } = makeNode();
+    const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
+    run(t.phrase("in-1", "out-1", "Glide with intent.", { exitOn: "next-scene" }));
+
+    // out-1 (0.5) is before in-1 (1) — a stale/inverted reveal window. Instead of
+    // snapping to full with a 0ms enter, phrase() falls back to the full cascade
+    // default (0.612s) and corrects out-1 to in + enter (1.612) on the timeline.
+    const phaseCalls = node.calls.filter(([k]) => k === "phase");
+    expect(phaseCalls[1][1][1]).toBeCloseTo(0.612);
+    const outRegs = mocks.register.mock.calls.filter(([name]) => name === "out-1");
+    expect(outRegs.some(([, when]) => Math.abs((when as number) - 1.612) < 1e-6)).toBe(true);
+
+    // The final exit still runs from the corrected enter end (1.612) to
+    // next-scene (3) — it never overshoots the marker.
+    const exitCalls = node.calls.filter(([k, a]) => k === "exit" && a[0] === 1);
+    expect(exitCalls[0][1][1]).toBeCloseTo(3 - 1.612);
   });
 });

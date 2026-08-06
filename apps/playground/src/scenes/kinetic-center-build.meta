@@ -7,27 +7,27 @@
     },
     {
       "name": "kinetic-center-build-out-1",
-      "targetTime": 0.259
+      "targetTime": 0.34288524036821166
     },
     {
       "name": "kinetic-center-build-in-2",
-      "targetTime": 0.996
+      "targetTime": 1.2461686645708347
     },
     {
       "name": "kinetic-center-build-out-2",
-      "targetTime": 1.255
+      "targetTime": 1.9499129571412057
     },
     {
       "name": "kinetic-center-build-in-3",
-      "targetTime": 1.992
+      "targetTime": 3.1872502862828744
     },
     {
       "name": "kinetic-center-build-out-3",
-      "targetTime": 2.251
+      "targetTime": 3.971295631678454
     },
     {
       "name": "next-scene",
-      "targetTime": 3.8051430170111287
+      "targetTime": 5.309243506467873
     }
   ],
   "seed": 316609176
