@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   register: vi.fn(),
   waitFor: vi.fn(),
   debugLog: vi.fn(),
+  loggerWarn: vi.fn(),
 }));
 
 vi.mock("@motion-canvas/core", () => ({
@@ -43,10 +44,12 @@ beforeEach(() => {
   mocks.register.mockClear();
   mocks.waitFor.mockClear();
   mocks.debugLog.mockClear();
+  mocks.loggerWarn.mockClear();
   mocks.useThread.mockReturnValue({ time: mocks.time });
   mocks.time.mockReturnValue(0);
   mocks.waitFor.mockImplementation(() => gen());
   mocks.useScene.mockReturnValue({
+    logger: { warn: mocks.loggerWarn },
     meta: { timeEvents: { get: () => [] } },
     timeEvents: { register: mocks.register },
   });
@@ -55,6 +58,7 @@ beforeEach(() => {
 /** Stub the scene's `.meta` time events so `swapOn` resolves cue times. */
 function mockTimeEvents(events: { name: string; targetTime: number }[]) {
   mocks.useScene.mockReturnValue({
+    logger: { warn: mocks.loggerWarn },
     meta: { timeEvents: { get: () => events } },
     timeEvents: { register: mocks.register },
   });
@@ -578,13 +582,20 @@ describe("createPhraseSwitcher.phrase", () => {
 
     // out-1 (0.5) is before in-1 (1) — a stale/inverted reveal window. Instead of
     // snapping to full with a 0ms enter, phrase() falls back to the full cascade
-    // default (0.612s) and corrects out-1 to in + enter (1.612) on the timeline.
+    // default (0.612s). The out marker is left exactly as placed (no re-register)
+    // — double-registering it would trip MC's time-event collision guard.
     const phaseCalls = node.calls.filter(([k]) => k === "phase");
     expect(phaseCalls[1][1][1]).toBeCloseTo(0.612);
     const outRegs = mocks.register.mock.calls.filter(([name]) => name === "out-1");
-    expect(outRegs.some(([, when]) => Math.abs((when as number) - 1.612) < 1e-6)).toBe(true);
+    expect(outRegs).toHaveLength(1);
 
-    // The final exit still runs from the corrected enter end (1.612) to
+    // The scene logger warns (surfaces in the editor's Console tab) with the
+    // degenerate marker names and the chosen fallback.
+    expect(mocks.loggerWarn).toHaveBeenCalledWith(
+      expect.stringContaining('"out-1" (0.500s) is at or before "in-1" (1.000s)'),
+    );
+
+    // The final exit runs from the chosen enter end (in 1 + 0.612 = 1.612) to
     // next-scene (3) — it never overshoots the marker.
     const exitCalls = node.calls.filter(([k, a]) => k === "exit" && a[0] === 1);
     expect(exitCalls[0][1][1]).toBeCloseTo(3 - 1.612);

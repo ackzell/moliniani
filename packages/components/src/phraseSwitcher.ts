@@ -336,6 +336,11 @@ export function createPhraseSwitcher<N extends PhraseSwitcherNode>(
   let current = defaultsFor("");
   let currentText = "";
   let lastEnterEnd = -1;
+  // Out markers currently flagged as degenerate (out at/before in). A marker
+  // stays in the set while its window is broken so the scene-logger warning
+  // fires once per contiguous episode, and is dropped again once the user drags
+  // it back past `in` (so re-breaking it warns afresh).
+  const warnedDegenerateOut = new Set<string>();
 
   // Replacement is exit-before-enter: drop the current text, reset both signals
   // to their from-state (the driver re-splits on the `text` change), so the new
@@ -466,18 +471,27 @@ export function createPhraseSwitcher<N extends PhraseSwitcherNode>(
       // Enter over [in, out]: duration = out − in, so dragging either marker
       // re-times the reveal. A degenerate window — `out` at or before `in` (a
       // stale or inverted marker, e.g. a dragged-out reveal) — falls back to the
-      // caller/spec default enter and corrects the `out` marker to `in + enter`,
-      // so the phrase always animates instead of snapping straight to full.
+      // caller/spec default enter so the phrase always animates instead of
+      // snapping straight to full. The markers are left untouched: MC treats in
+      // and out as independent events with no ordering constraint (dragging out
+      // past in is allowed), so we can't rely on the editor to prevent it — and
+      // re-registering the already-placed out marker here would trip its
+      // collision guard. Warn through the scene logger (the editor's Console tab
+      // surfaces it) once per contiguous episode — re-warn after the window is
+      // dragged back healthy, without spamming on every scrub.
       let enterDur = outTime - inTime;
       if (enterDur <= 0) {
         enterDur = enterFallback;
-        const correctedOut = inTime + enterFallback;
-        registerCue(outMarker, correctedOut);
-        molinianiDebugLog(
-          `phrase-switcher: "${outMarker}" (${outTime.toFixed(3)}s) is at or before ` +
-            `"${inMarker}" (${inTime.toFixed(3)}s) — entering over the default ` +
-            `${(enterFallback * 1000).toFixed(1)}ms and re-anchored out to ${correctedOut.toFixed(3)}s`,
-        );
+        if (!warnedDegenerateOut.has(outMarker)) {
+          warnedDegenerateOut.add(outMarker);
+          useScene().logger.warn(
+            `phrase-switcher: "${outMarker}" (${outTime.toFixed(3)}s) is at or before ` +
+              `"${inMarker}" (${inTime.toFixed(3)}s) — entering over the default ` +
+              `${(enterFallback * 1000).toFixed(1)}ms. Drag the out marker after the in marker to retime.`,
+          );
+        }
+      } else {
+        warnedDegenerateOut.delete(outMarker);
       }
       current = defaultsFor(text);
       currentText = text;
@@ -578,6 +592,12 @@ export interface PhraseSwitcher {
    * Both markers are always registered (they persist and are draggable); a
    * marker that isn't on the timeline yet is auto-placed at a readable default
    * and the per-call/spec duration is used until it's placed or dragged.
+   *
+   * The editor treats `in` and `out` as independent events with no ordering
+   * constraint, so `out` can be dragged to or before `in`. In that degenerate
+   * case the phrase enters over the caller/spec default duration (the markers
+   * are left as placed) and a one-time `console.warn` is emitted — the enter
+   * always animates rather than snapping straight to full.
    *
    * To exit the *final* phrase too (there is no next `in` to derive the exit
    * window from), pass `{ exitOn: "next-scene" }` — the exit tween then runs
