@@ -2,28 +2,28 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "blur-out-up-in-1",
-      "targetTime": 0
+      "name": "clear-in-airy-out-in",
+      "targetTime": 0.896
     },
     {
-      "name": "blur-out-up-out-1",
-      "targetTime": 0.463
+      "name": "clear-in-airy-out-out",
+      "targetTime": 1.359
     },
     {
-      "name": "blur-out-up-in-2",
-      "targetTime": 1.4100000000000001
+      "name": "lightweight-typography-in",
+      "targetTime": 1.41
     },
     {
-      "name": "blur-out-up-out-2",
-      "targetTime": 1.8330000000000002
+      "name": "lightweight-typography-out",
+      "targetTime": 1.833
     },
     {
-      "name": "blur-out-up-in-3",
-      "targetTime": 2.746
+      "name": "exit-with-grace-in",
+      "targetTime": 2.1959999999999997
     },
     {
-      "name": "blur-out-up-out-3",
-      "targetTime": 3.189
+      "name": "exit-with-grace-out",
+      "targetTime": 2.639
     },
     {
       "name": "next-scene",

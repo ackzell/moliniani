@@ -1,17 +1,17 @@
 import { createMnRef, makeScene } from "@moliniani/core";
-import { BlurOutUp } from "@moliniani/components/vue";
+import { AnimatedText } from "@moliniani/components/vue";
 import { BLUR_OUT_UP, createPhraseSwitcher } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
 
 export default makeScene(function* (view) {
   view.fill("#22263d");
 
-  const ref = createMnRef(BlurOutUp);
+  const ref = createMnRef(AnimatedText);
 
   view.add(
     <>
       <Txt text="blur-out-up" fill="#8fa3b8" fontSize={28} y={-420} />
-      <BlurOutUp ref={ref} text="" fontSize={64} color="#ffd166" y={-60} />
+      <AnimatedText ref={ref} effect={BLUR_OUT_UP} text="" fontSize={64} color="#ffd166" y={-60} />
     </>,
   );
 
@@ -20,11 +20,11 @@ export default makeScene(function* (view) {
   // and the exit starts). Enter and exit lengths derive from the markers
   // (`enter = out − in`, `exit = nextIn − out`), so dragging a marker re-times
   // the reveal or the exit gap in the editor.
-  const t = createPhraseSwitcher(ref, BLUR_OUT_UP);
+  const t = createPhraseSwitcher(ref);
 
-  yield* t.phrase("blur-out-up-in-1", "blur-out-up-out-1", "Clear in, airy out.");
-  yield* t.phrase("blur-out-up-in-2", "blur-out-up-out-2", "Lightweight typography.");
-  yield* t.phrase("blur-out-up-in-3", "blur-out-up-out-3", "Exit with grace.", {
+  yield* t.phrase("Clear in, airy out.");
+  yield* t.phrase("Lightweight typography.");
+  yield* t.phrase("Exit with grace.", {
     exitOn: "next-scene",
   });
 

@@ -1,17 +1,24 @@
 import { createMnRef, makeScene } from "@moliniani/core";
-import { StaggerFromCenter } from "@moliniani/components/vue";
+import { AnimatedText } from "@moliniani/components/vue";
 import { createPhraseSwitcher, STAGGER_FROM_CENTER } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
 
 export default makeScene(function* (view) {
   view.fill("#22263d");
 
-  const ref = createMnRef(StaggerFromCenter);
+  const ref = createMnRef(AnimatedText);
 
   view.add(
     <>
       <Txt text="stagger-from-center" fill="#8fa3b8" fontSize={28} y={-420} />
-      <StaggerFromCenter ref={ref} text="" fontSize={64} color="#ffd166" y={-60} />
+      <AnimatedText
+        ref={ref}
+        effect={STAGGER_FROM_CENTER}
+        text=""
+        fontSize={64}
+        color="#ffd166"
+        y={-60}
+      />
     </>,
   );
 
@@ -20,11 +27,11 @@ export default makeScene(function* (view) {
   // and the exit starts). Enter and exit lengths derive from the markers
   // (`enter = out − in`, `exit = nextIn − out`), so dragging a marker re-times
   // the reveal or the exit gap in the editor.
-  const t = createPhraseSwitcher(ref, STAGGER_FROM_CENTER);
+  const t = createPhraseSwitcher(ref);
 
-  yield* t.phrase("stagger-from-center-in-1", "stagger-from-center-out-1", "From the middle.");
-  yield* t.phrase("stagger-from-center-in-2", "stagger-from-center-out-2", "Ripple outward.");
-  yield* t.phrase("stagger-from-center-in-3", "stagger-from-center-out-3", "Center-first motion.", {
+  yield* t.phrase("From the middle.");
+  yield* t.phrase("Ripple outward.");
+  yield* t.phrase("Center-first motion.", {
     exitOn: "next-scene",
   });
 

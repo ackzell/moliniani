@@ -2,32 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "short-slide-down-in-1",
-      "targetTime": 0
+      "name": "drop-into-place-in",
+      "targetTime": 0.78
     },
     {
-      "name": "short-slide-down-out-1",
-      "targetTime": 0.374
+      "name": "drop-into-place-out",
+      "targetTime": 1.759
     },
     {
-      "name": "short-slide-down-in-2",
-      "targetTime": 1.375561710774576
+      "name": "words-settle-lower-in",
+      "targetTime": 1.759
     },
     {
-      "name": "short-slide-down-out-2",
-      "targetTime": 1.708253595206433
+      "name": "words-settle-lower-out",
+      "targetTime": 2.738
     },
     {
-      "name": "short-slide-down-in-3",
-      "targetTime": 3.2806183574680507
+      "name": "build-from-above-in",
+      "targetTime": 2.9679999999999995
     },
     {
-      "name": "short-slide-down-out-3",
-      "targetTime": 2.6820000000000004
+      "name": "build-from-above-out",
+      "targetTime": 3.9469999999999996
     },
     {
       "name": "next-scene",
-      "targetTime": 4.556701907129688
+      "targetTime": 4.99558801710965
     }
   ],
   "seed": 1139564741

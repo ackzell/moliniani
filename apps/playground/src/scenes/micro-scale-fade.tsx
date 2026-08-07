@@ -1,17 +1,24 @@
 import { createMnRef, makeScene } from "@moliniani/core";
-import { MicroScaleFade } from "@moliniani/components/vue";
+import { AnimatedText } from "@moliniani/components/vue";
 import { createPhraseSwitcher, MICRO_SCALE_FADE } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
 
 export default makeScene(function* (view) {
   view.fill("#22263d");
 
-  const ref = createMnRef(MicroScaleFade);
+  const ref = createMnRef(AnimatedText);
 
   view.add(
     <>
       <Txt text="micro-scale-fade" fill="#8fa3b8" fontSize={28} y={-420} />
-      <MicroScaleFade ref={ref} text="" fontSize={64} color="#ffd166" y={-60} />
+      <AnimatedText
+        ref={ref}
+        effect={MICRO_SCALE_FADE}
+        text=""
+        fontSize={64}
+        color="#ffd166"
+        y={-60}
+      />
     </>,
   );
 
@@ -20,11 +27,11 @@ export default makeScene(function* (view) {
   // and the exit starts). Enter and exit lengths derive from the markers
   // (`enter = out − in`, `exit = nextIn − out`), so dragging a marker re-times
   // the reveal or the exit gap in the editor.
-  const t = createPhraseSwitcher(ref, MICRO_SCALE_FADE);
+  const t = createPhraseSwitcher(ref);
 
-  yield* t.phrase("micro-scale-fade-in-1", "micro-scale-fade-out-1", "Welcome to motion.");
-  yield* t.phrase("micro-scale-fade-in-2", "micro-scale-fade-out-2", "Small details matter.");
-  yield* t.phrase("micro-scale-fade-in-3", "micro-scale-fade-out-3", "Quietly premium.", {
+  yield* t.phrase("Welcome to motion.");
+  yield* t.phrase("Small details matter.");
+  yield* t.phrase("Quietly premium.", {
     exitOn: "next-scene",
   });
 

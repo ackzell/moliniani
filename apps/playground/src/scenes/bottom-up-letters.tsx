@@ -1,17 +1,24 @@
 import { createMnRef, makeScene } from "@moliniani/core";
-import { BottomUpLetters } from "@moliniani/components/vue";
+import { AnimatedText } from "@moliniani/components/vue";
 import { BOTTOM_UP_LETTERS, createPhraseSwitcher } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
 
 export default makeScene(function* (view) {
   view.fill("#22263d");
 
-  const ref = createMnRef(BottomUpLetters);
+  const ref = createMnRef(AnimatedText);
 
   view.add(
     <>
       <Txt text="bottom-up-letters" fill="#8fa3b8" fontSize={28} y={-420} />
-      <BottomUpLetters ref={ref} text="" fontSize={64} color="#ffd166" y={-60} />
+      <AnimatedText
+        ref={ref}
+        effect={BOTTOM_UP_LETTERS}
+        text=""
+        fontSize={64}
+        color="#ffd166"
+        y={-60}
+      />
     </>,
   );
 
@@ -20,11 +27,11 @@ export default makeScene(function* (view) {
   // and the exit starts). Enter and exit lengths derive from the markers
   // (`enter = out − in`, `exit = nextIn − out`), so dragging a marker re-times
   // the reveal or the exit gap in the editor.
-  const t = createPhraseSwitcher(ref, BOTTOM_UP_LETTERS);
+  const t = createPhraseSwitcher(ref);
 
-  yield* t.phrase("bottom-up-letters-in-1", "bottom-up-letters-out-1", "Shift");
-  yield* t.phrase("bottom-up-letters-in-2", "bottom-up-letters-out-2", "Stage");
-  yield* t.phrase("bottom-up-letters-in-3", "bottom-up-letters-out-3", "Letter", {
+  yield* t.phrase("Shift");
+  yield* t.phrase("Stage");
+  yield* t.phrase("Letter", {
     exitOn: "next-scene",
   });
 

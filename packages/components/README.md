@@ -25,12 +25,15 @@ Ready-made Motion Canvas nodes and pre-wrapped Vue SFCs for `@moliniani/core`.
   per-unit reveal (chars/words/lines) that slides units in from below with a
   per-unit `stagger` (and optional blur), driven by a tweenable `phase`
   signal. See the `reveal` scene in the playground.
-- **`SoftBlurIn`** (`./vue` entry) — the first effect ported from the
-  `animate-text` skill catalog: a per-character fade-in with a gentle blur and
-  upward motion (Apple's hero-title reveal), driven by a tweenable `phase`
-  signal. See the `soft-blur-in` scene and the
-  [Text effects](#text-effects-animate-text-port) section below.
-- **`createPhraseSwitcher(ref, spec)`** (root entry) — scene-side phrase
+- **`AnimatedText`** (`./vue` entry) — one generic spec-driven node for every
+  text effect in the `animate-text` skill catalog. You pass a `TextEffectSpec`
+  (`effect`), and the node splits text into `data-char` / `data-word` /
+  `data-line` units and drives them from a tweenable `phase` signal — matching
+  the exact per-effect timings/eases in the
+  [Text effects](#text-effects-animate-text-port) section below, replacing the
+  old per-effect SFCs (`SoftBlurIn`, `TypingText`, `ShimmerSweep`, and the 21
+  `TextEffectWrappers` ones).
+- **`createPhraseSwitcher(ref, spec?)`** (root entry) — scene-side phrase
   orchestration. Its `phrase(in, out, text)` generator derives each phrase's
   enter/exit lengths from **two markers per phrase** on the MC timeline
   (`enter = out − in`, `exit = nextIn − out`), so every start frame and duration
@@ -190,6 +193,11 @@ yield* all(...units.map((u, i) => delay(i * 0.05, u.opacity(1, 0.4))));
 yield* all(...units.map((u, i) => delay(i * 0.05, u.y(0, 0.3))));
 ```
 
+The `hand-rolled` scene in the playground is the live worked example of this path:
+a two-row reveal (`opacity + y` on chars, `rotation + blur` on words) composed
+entirely from the scene with `all()` / `delay()` and no Vue component, `phase`
+signal, or effect registry.
+
 Rules of the road:
 
 - **`splitText` mutates the target's `innerHTML`.** Render an empty `<span>` and
@@ -286,32 +294,32 @@ cue), while `duration` / `stagger` (ms) shape the internal wave (how much the
 units spread). To make the cascade spread exactly across the scene tween, set
 `duration + stagger × (units − 1) ≈ tweenMs`.
 
-| Effect               | Component            | target | default timing (ms)   | signature easing                    |
-| -------------------- | -------------------- | ------ | --------------------- | ----------------------------------- |
-| soft-blur-in         | `SoftBlurIn`         | chars  | 648 / stagger 18      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| per-character-rise   | `PerCharacterRise`   | chars  | 504 / stagger 17      | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
-| per-word-crossfade   | `PerWordCrossfade`   | words  | 504 / stagger 50      | `cubic-bezier(0.16, 1, 0.3, 1)`     |
-| spring-scale-in      | `SpringScaleIn`      | words  | 259 / stagger 68      | `cubic-bezier(0.34, 1.56, 0.64, 1)` |
-| mask-reveal-up       | `MaskRevealUp`       | lines  | 547 / stagger 65      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| line-by-line-slide   | `LineByLineSlide`    | lines  | 648 / stagger 86      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| typewriter           | `TypingText`         | chars  | 173 / stagger 33      | `steps(1, end)`                     |
-| micro-scale-fade     | `MicroScaleFade`     | whole  | 432                   | `cubic-bezier(0.32, 0.72, 0, 1)`    |
-| shimmer-sweep        | `ShimmerSweep`       | whole  | 612                   | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| fade-through         | `FadeThrough`        | whole  | 302                   | `cubic-bezier(0.2, 0, 0, 1)`        |
-| shared-axis-y        | `SharedAxisY`        | words  | 140 / stagger 56      | `steps(1, end)`                     |
-| shared-axis-z        | `SharedAxisZ`        | whole  | 374                   | `cubic-bezier(0.2, 0, 0, 1)`        |
-| blur-out-up          | `BlurOutUp`          | words  | 403 / stagger 20      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| scale-down-fade      | `ScaleDownFade`      | whole  | 374                   | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| focus-blur-resolve   | `FocusBlurResolve`   | whole  | 547                   | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| bottom-up-letters    | `BottomUpLetters`    | chars  | 288 / stagger 63      | `cubic-bezier(0.18, 1, 0.32, 1)`    |
-| top-down-letters     | `TopDownLetters`     | chars  | 288 / stagger 63      | `cubic-bezier(0.18, 1, 0.32, 1)`    |
-| depth-parallax-words | `DepthParallaxWords` | words  | 504 / stagger 50      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| shared-axis-x        | `SharedAxisX`        | whole  | 360                   | `cubic-bezier(0.2, 0, 0, 1)`        |
-| stagger-from-center  | `StaggerFromCenter`  | chars  | 446 / stagger 16      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| stagger-from-edges   | `StaggerFromEdges`   | chars  | 446 / stagger 16      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
-| kinetic-center-build | `KineticCenterBuild` | words  | 245 + 310/word (push) | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
-| short-slide-right    | `ShortSlideRight`    | whole  | 374                   | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
-| short-slide-down     | `ShortSlideDown`     | words  | 259 + 360/word (push) | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
+| Effect               | Spec (on `AnimatedText`) | target | default timing (ms)   | signature easing                    |
+| -------------------- | ------------------------ | ------ | --------------------- | ----------------------------------- |
+| soft-blur-in         | `SOFT_BLUR_IN`           | chars  | 648 / stagger 18      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| per-character-rise   | `PER_CHARACTER_RISE`     | chars  | 504 / stagger 17      | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
+| per-word-crossfade   | `PER_WORD_CROSSFADE`     | words  | 504 / stagger 50      | `cubic-bezier(0.16, 1, 0.3, 1)`     |
+| spring-scale-in      | `SPRING_SCALE_IN`        | words  | 259 / stagger 68      | `cubic-bezier(0.34, 1.56, 0.64, 1)` |
+| mask-reveal-up       | `MASK_REVEAL_UP`         | lines  | 547 / stagger 65      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| line-by-line-slide   | `LINE_BY_LINE_SLIDE`     | lines  | 648 / stagger 86      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| typewriter           | `TYPING_TEXT`            | chars  | 173 / stagger 33      | `steps(1, end)`                     |
+| micro-scale-fade     | `MICRO_SCALE_FADE`       | whole  | 432                   | `cubic-bezier(0.32, 0.72, 0, 1)`    |
+| shimmer-sweep        | `SHIMMER_SWEEP`          | whole  | 612                   | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| fade-through         | `FADE_THROUGH`           | whole  | 302                   | `cubic-bezier(0.2, 0, 0, 1)`        |
+| shared-axis-y        | `SHARED_AXIS_Y`          | words  | 140 / stagger 56      | `steps(1, end)`                     |
+| shared-axis-z        | `SHARED_AXIS_Z`          | whole  | 374                   | `cubic-bezier(0.2, 0, 0, 1)`        |
+| blur-out-up          | `BLUR_OUT_UP`            | words  | 403 / stagger 20      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| scale-down-fade      | `SCALE_DOWN_FADE`        | whole  | 374                   | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| focus-blur-resolve   | `FOCUS_BLUR_RESOLVE`     | whole  | 547                   | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| bottom-up-letters    | `BOTTOM_UP_LETTERS`      | chars  | 288 / stagger 63      | `cubic-bezier(0.18, 1, 0.32, 1)`    |
+| top-down-letters     | `TOP_DOWN_LETTERS`       | chars  | 288 / stagger 63      | `cubic-bezier(0.18, 1, 0.32, 1)`    |
+| depth-parallax-words | `DEPTH_PARALLAX_WORDS`   | words  | 504 / stagger 50      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| shared-axis-x        | `SHARED_AXIS_X`          | whole  | 360                   | `cubic-bezier(0.2, 0, 0, 1)`        |
+| stagger-from-center  | `STAGGER_FROM_CENTER`    | chars  | 446 / stagger 16      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| stagger-from-edges   | `STAGGER_FROM_EDGES`     | chars  | 446 / stagger 16      | `cubic-bezier(0.22, 1, 0.36, 1)`    |
+| kinetic-center-build | `KINETIC_CENTER_BUILD`   | words  | 245 + 310/word (push) | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
+| short-slide-right    | `SHORT_SLIDE_RIGHT`      | whole  | 374                   | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
+| short-slide-down     | `SHORT_SLIDE_DOWN`       | words  | 259 + 360/word (push) | `cubic-bezier(0.2, 0.8, 0.2, 1)`    |
 
 > Defaults are the site-scaled values from the catalog (durations/staggers ×
 > `0.72`, vertical travel × `0.58`); the portable source values live in the
@@ -319,9 +327,13 @@ units spread). To make the cascade spread exactly across the scene tween, set
 
 Notes on the table:
 
-- **`typewriter` maps to `TypingText`**, so it doesn't collide with the existing
-  cursor `Typewriter` component. Its `steps(1, end)` easing snaps each char to
-  visible at its stagger delay — a deterministic, MC-timeline typewriter.
+- **All 24 effects render through the single `AnimatedText` node** — pick the
+  spec, pass it as `effect` (`<AnimatedText effect={PER_WORD_CROSSFADE} … />`),
+  and the node handles the split target, cascade, and exit.
+- **`TYPING_TEXT` is the catalog typewriter**, so it doesn't collide with the
+  existing cursor `Typewriter` component. Its `steps(1, end)` easing snaps each
+  char to visible at its stagger delay — a deterministic, MC-timeline
+  typewriter.
 - **`shimmer-sweep` is the one non-stagger effect**: no split. The whole text is
   the animated unit and a subtle sweep blends it in while gliding left-to-center
   (enter `x −22px`, `blur 8px`), then glides the phrase back out to the right on
@@ -346,9 +358,9 @@ Notes on the table:
   per-word positional delay).
 
 ```tsx
-const ref = createMnRef(SoftBlurIn);
+const ref = createMnRef(AnimatedText);
 
-view.add(<SoftBlurIn ref={ref} text="Think different." fontSize={64} />);
+view.add(<AnimatedText ref={ref} effect={SOFT_BLUR_IN} text="Think different." fontSize={64} />);
 
 yield * ref().phase(1, 1.4); // play the reveal
 ```
@@ -364,10 +376,10 @@ the editor:
 ```tsx
 import { createPhraseSwitcher, SHIMMER_SWEEP } from "@moliniani/components";
 
-const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
+const t = createPhraseSwitcher(ref); // effect comes from ref().effect
 
-yield * t.phrase("sway-in-1", "sway-out-1", "Shiny details.");
-yield * t.phrase("sway-in-2", "sway-out-2", "Glide with intent.");
+yield * t.phrase("Shiny details.");
+yield * t.phrase("Glide with intent.");
 ```
 
 Each phrase gets an `in` marker (its start frame, i.e. the audio beat) and an
@@ -378,6 +390,16 @@ are **derived from the markers**, not from the spec:
   markers, so dragging either one re-times it.
 - `exit = nextIn − out` — the previous phrase exits across the gap between its
   `out` and the next phrase's `in`, so that window is draggable too.
+
+**Pass the phrase text first** — the `in`/`out` markers are optional. When they
+are omitted they derive from the text via `kebabCase()` (`"Shiny details."` →
+`shiny-details-in` / `shiny-details-out`), with a `-<n>` index appended when the
+same phrase appears more than once so each occurrence keeps its own draggable
+markers. Pass them explicitly to override (`phrase(text, in, out)`):
+
+```tsx
+yield * t.phrase("Shiny details.", "sway-in-1", "sway-out-1");
+```
 
 Markers that aren't on the timeline yet are never an error: `phrase()`
 auto-places them at readable defaults (`in` at `now + hold + exit`, `out` at
@@ -413,9 +435,7 @@ pnpm gen        # regenerate (also runs automatically before build/test/check)
 
 Never hand-edit the `*.gen.ts` files; edit the `.vue` sources instead.
 
-The 21 formulaic text-effect SFCs above are emitted once by
-`scripts/gen-text-effect-sfcs.mjs` (they're committed as normal, hand-editable
-files). When a new effect is added to the `textEffects.ts` registry, re-run that
-script — `pnpm gen` then compiles the new SFCs. `SoftBlurIn.vue`,
-`TypingText.vue`, `ShimmerSweep.vue`, and the `TextEffectWrappers.ts`
-registrations are the hand-authored carve-outs.
+All 24 catalog text effects render through the single generic `AnimatedText`
+SFC (`src/vue/AnimatedText.vue`), driven by the `effect` prop. When a new effect
+is added to the `textEffects.ts` registry, it is immediately usable by passing
+its spec as `effect` — no new SFC or wrapper is required.

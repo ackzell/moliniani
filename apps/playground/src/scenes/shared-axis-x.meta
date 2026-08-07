@@ -2,28 +2,28 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "shared-axis-x-in-1",
-      "targetTime": 0
+      "name": "shift-across-in",
+      "targetTime": 0.809
     },
     {
-      "name": "shared-axis-x-out-1",
-      "targetTime": 0.36
-    },
-    {
-      "name": "shared-axis-x-in-2",
+      "name": "shift-across-out",
       "targetTime": 1.169
     },
     {
-      "name": "shared-axis-x-out-2",
+      "name": "slide-with-purpose-in",
+      "targetTime": 1.169
+    },
+    {
+      "name": "slide-with-purpose-out",
       "targetTime": 1.529
     },
     {
-      "name": "shared-axis-x-in-3",
-      "targetTime": 2.3379999999999996
+      "name": "seamless-transitions-in",
+      "targetTime": 1.7879999999999998
     },
     {
-      "name": "shared-axis-x-out-3",
-      "targetTime": 2.6979999999999995
+      "name": "seamless-transitions-out",
+      "targetTime": 2.1479999999999997
     },
     {
       "name": "next-scene",

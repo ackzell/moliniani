@@ -12,7 +12,7 @@ import { molinianiDebugLog } from "@moliniani/core";
 import type { TextEffectSpec, TextEffectTarget } from "./textEffects";
 
 /**
- * Default settled hold (seconds) between a phrase finishing entering and its
+ * The default settled hold (seconds) between a phrase finishing entering and its
  * exit starting when a `swapOn` cue hasn't been placed on the timeline yet —
  * long enough that the phrase reads as a beat. Matches `phraseSchedule`'s
  * first-phrase `holdMs` (550ms).
@@ -24,11 +24,15 @@ const DEFAULT_SWAP_HOLD = 0.55;
  * `exit` MC signal methods every phase-driven text-effect SFC exposes (whole
  * and cascade targets alike). Numeric props become tweenable signal methods;
  * string props (`text`) instant-set when called without a duration.
+ * `effect` (when present) is the active `TextEffectSpec` — when the spec arg is
+ * omitted, `createPhraseSwitcher` derives its timing defaults from it, so a
+ * scene names the effect once.
  */
 export interface PhraseSwitcherNode {
   text(value: string): unknown;
   phase(to: number, duration?: number, ease?: TimingFunction): ThreadGenerator;
   exit(to: number, duration?: number, ease?: TimingFunction): ThreadGenerator;
+  effect?: TextEffectSpec;
 }
 
 /**
@@ -111,6 +115,23 @@ function splitCount(text: string, target: TextEffectTarget): number {
     default:
       return 1;
   }
+}
+
+/**
+ * Kebab-cases a phrase for use as a marker-name base: lowercases, strips
+ * punctuation, and collapses every run of non-alphanumerics into a single `-`.
+ *
+ * ```ts
+ * kebabCase("One more thing."); // "one-more-thing"
+ * kebabCase("  Do it — NOW!?  "); // "do-it-now"
+ * ```
+ */
+export function kebabCase(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/ +/g, "-");
 }
 
 /**
@@ -292,10 +313,16 @@ export function logPhraseSchedule(
  * sync every start frame and every enter/exit length to the beat:
  *
  * ```ts
- * const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
+ * const t = createPhraseSwitcher(ref); // derives the effect from ref().effect
  * yield* t.phrase("sway-in-1", "sway-out-1", "Shiny details.");
  * yield* t.phrase("sway-in-2", "sway-out-2", "Glide with intent.");
  * ```
+ *
+ * The effect spec (the timing/target data the switcher derives its default
+ * enter/exit lengths from) comes from the node's `effect` prop — so a scene
+ * names the effect once, on the JSX — unless you pass a spec explicitly as the
+ * 2nd argument (`createPhraseSwitcher(ref, SHIMMER_SWEEP)`), which is also how
+ * unit tests drive a mock node.
  *
  * Markers that aren't on the timeline yet are never an error: `phrase`
  * auto-places them at readable defaults (`in` at `now + hold + exit`, `out` at
@@ -318,24 +345,65 @@ export function logPhraseSchedule(
  */
 export function createPhraseSwitcher<N extends PhraseSwitcherNode>(
   ref: Reference<N>,
-  spec: TextEffectSpec,
+  spec?: TextEffectSpec,
   options: CreatePhraseSwitcherOptions = {},
 ): PhraseSwitcher {
   const warnMinSettleMs = options.warnMinSettleMs ?? 250;
 
+  // Resolves the effect spec lazily (on the first generator run, when the node
+  // is mounted): an explicit `spec` arg wins; otherwise it is read off the
+  // node's `effect` prop. Deriving at construction would touch an unmounted ref.
+  let resolvedSpec: TextEffectSpec | null = spec ?? null;
+  const specOf = (): TextEffectSpec => {
+    if (!resolvedSpec) {
+      const fromNode = (ref() as unknown as PhraseSwitcherNode).effect;
+      if (!fromNode) {
+        throw new Error(
+          `createPhraseSwitcher: no effect — pass a TextEffectSpec as the 2nd argument, or ` +
+            `set the \`effect\` prop on the node so it can be derived from ref().effect ` +
+            `before the first phrase()/swap().`,
+        );
+      }
+      resolvedSpec = fromNode;
+    }
+    return resolvedSpec;
+  };
+
   // The tween lengths default to the phrase's full cascade (per-unit duration
   // + stagger across the units), matching the site's per-phrase window. The
-  // count varies per phrase, so the defaults are derived per call.
+  // count varies per phrase, so the defaults are derived per call from the
+  // resolved spec.
   const defaultsFor = (text: string) => {
-    const { enterMs, exitMs } = phraseTiming(spec, text);
+    const { enterMs, exitMs } = phraseTiming(specOf(), text);
     return { enter: enterMs / 1000, exit: exitMs / 1000 };
   };
 
   // The exit tween plays against the *current* phrase; `swap` computes the new
-  // phrase's defaults after the exit has run.
-  let current = defaultsFor("");
+  // phrase's defaults after the exit has run. Lazy so the ref isn't touched at
+  // construction (the node may not be mounted yet).
+  let current: ReturnType<typeof defaultsFor> | null = null;
+  const currentPacing = () => (current ??= defaultsFor(""));
   let currentText = "";
   let lastEnterEnd = -1;
+  // Occurrence count per kebab-ed phrase, used to derive unique marker names
+  // for `phrase()` when the caller omits them — the first occurrence gets no
+  // index, repeats get `-<n>` appended.
+  const phraseSeen = new Map<string, number>();
+
+  // Resolves the marker names for a `phrase()` call: explicit markers win,
+  // otherwise they derive from the phrase text in kebab-case (`<kebab>-in` /
+  // `<kebab>-out`, plus a `-<n>` index on repeated phrases).
+  const markerNames = (text: string, inArg?: string, outArg?: string) => {
+    const kebab = kebabCase(text);
+    const seen = (phraseSeen.get(kebab) ?? 0) + 1;
+    phraseSeen.set(kebab, seen);
+    const suffix = seen > 1 ? `-${seen}` : "";
+    return {
+      inMarker: inArg ?? `${kebab}-in${suffix}`,
+      outMarker: outArg ?? `${kebab}-out${suffix}`,
+    };
+  };
+
   // Out markers currently flagged as degenerate (out at/before in). A marker
   // stays in the set while its window is broken so the scene-logger warning
   // fires once per contiguous episode, and is dropped again once the user drags
@@ -393,16 +461,16 @@ export function createPhraseSwitcher<N extends PhraseSwitcherNode>(
     },
     *exit(options = {}) {
       warnIfTightAt(useThread().time());
-      yield* ref().exit(1, options.exit ?? current.exit, options.exitEase ?? linear);
+      yield* ref().exit(1, options.exit ?? currentPacing().exit, options.exitEase ?? linear);
     },
     *swap(text, options = {}) {
       warnIfTightAt(useThread().time(), text);
-      yield* ref().exit(1, options.exit ?? current.exit, options.exitEase ?? linear);
+      yield* ref().exit(1, options.exit ?? currentPacing().exit, options.exitEase ?? linear);
       yield* playEnter(text, options);
     },
     *swapOn(cue, text, options = {}) {
       const now = useThread().time();
-      const exitRequested = options.exit ?? current.exit;
+      const exitRequested = options.exit ?? currentPacing().exit;
       let cueTime = resolveCueTime(cue);
       if (cueTime === null) {
         cueTime = now + DEFAULT_SWAP_HOLD + exitRequested;
@@ -425,10 +493,27 @@ export function createPhraseSwitcher<N extends PhraseSwitcherNode>(
       yield* ref().exit(1, exitDur, options.exitEase ?? linear);
       yield* playEnter(text, options);
     },
-    *phrase(inMarker: string, outMarker: string, text: string, options = {}) {
+    *phrase(
+      text: string,
+      inArg?: string | PhraseSwitcherOptions,
+      outArg?: string,
+      optionsArg?: PhraseSwitcherOptions,
+    ) {
+      // Accept the options object in the 2nd slot too (`phrase(text, options)`)
+      // for the common "just tweak this phrase / exit the last one" case, so
+      // callers don't have to leave `in`/`out` blank.
+      const inIsMarker = typeof inArg === "string";
+      const options = inIsMarker ? (optionsArg ?? {}) : ((inArg as PhraseSwitcherOptions) ?? {});
+      const explicitIn = inIsMarker ? inArg : undefined;
+      const explicitOut = inIsMarker ? outArg : undefined;
+
       const now = useThread().time();
       const enterFallback = options.enter ?? defaultsFor(text).enter;
-      const exitFallback = options.exit ?? current.exit;
+      const exitFallback = options.exit ?? currentPacing().exit;
+
+      // Explicit markers win; otherwise they derive from the phrase text in
+      // kebab-case (a `-<n>` index is appended on repeated phrases).
+      const { inMarker, outMarker } = markerNames(text, explicitIn, explicitOut);
 
       // Both markers are always registered so they persist and stay draggable;
       // a missing marker is auto-placed at a readable default and the
@@ -515,7 +600,7 @@ export function createPhraseSwitcher<N extends PhraseSwitcherNode>(
       if (options.exitOn !== undefined) {
         let exitOnTime = resolveCueTime(options.exitOn);
         if (exitOnTime === null) {
-          exitOnTime = enterDone + (options.exit ?? current.exit) + DEFAULT_SWAP_HOLD;
+          exitOnTime = enterDone + (options.exit ?? currentPacing().exit) + DEFAULT_SWAP_HOLD;
           useScene().timeEvents.register(options.exitOn, exitOnTime);
           molinianiDebugLog(
             `phrase-switcher: exit marker "${options.exitOn}" wasn't on the timeline — ` +
@@ -572,22 +657,27 @@ export interface PhraseSwitcher {
    */
   swapOn(cue: string, text: string, options?: PhraseSwitcherOptions): ThreadGenerator;
   /**
-   * Timeline-driven phrase slot. Enter the phrase over `[in, out]`, where `in`
-   * is the phrase's start frame (the audio beat) and `out` is where its enter
-   * completes (and its exit starts):
-   *
-   * - `enter = out − in` — the reveal fills the window between the phrase's
-   *   two markers, so dragging either one re-times it.
-   * - `exit = nextIn − out` — the previous phrase exits across the gap between
-   *   its `out` and the next phrase's `in`, derived from the timeline and
-   *   draggable.
-   *
-   * Call it once per phrase, chaining `in`/`out` markers:
+   * Call it once per phrase with the **text first**, so the markers are the
+   * only thing you have to sync to the beat:
    *
    * ```ts
-   * yield* t.phrase("sway-in-1", "sway-out-1", "Shiny details.");
-   * yield* t.phrase("sway-in-2", "sway-out-2", "Glide with intent.");
+   * yield* t.phrase("One more thing.");                          // one-more-thing-in / one-more-thing-out
+   * yield* t.phrase("One more thing.", { exitOn: "next-scene" }); // ...-in-2 / ...-out-2 (repeated phrase)
    * ```
+   *
+   * The `in`/`out` markers are **optional**: when omitted they derive from the
+   * phrase text via {@link kebabCase} (`one-more-thing` → `one-more-thing-in` /
+   * `one-more-thing-out`), with a `-<n>` index appended when the same phrase
+   * appears more than once so each occurrence gets its own draggable markers.
+   * Pass explicit markers to override the derivation — they take the form
+   * `phrase(text, inMarker, outMarker, options)`:
+   *
+   * ```ts
+   * yield* t.phrase("Fast. Crisp. Fluid.", "rise-in-1", "rise-out-1");
+   * ```
+   *
+   * For the common "just this phrase" case the options object can also sit in
+   * the second slot: `phrase(text, { exitOn: "next-scene" })`.
    *
    * Both markers are always registered (they persist and are draggable); a
    * marker that isn't on the timeline yet is auto-placed at a readable default
@@ -605,10 +695,11 @@ export interface PhraseSwitcher {
    * thread to the marker, so skip the usual trailing `waitUntil("next-scene")`;
    * an existing marker is re-registered at `out` so it stays left-draggable.
    */
+  phrase(text: string, options?: PhraseSwitcherOptions): ThreadGenerator;
   phrase(
-    inMarker: string,
-    outMarker: string,
     text: string,
+    inMarker?: string,
+    outMarker?: string,
     options?: PhraseSwitcherOptions,
   ): ThreadGenerator;
 }

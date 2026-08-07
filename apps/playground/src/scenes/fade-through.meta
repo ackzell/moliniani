@@ -2,32 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "fade-through-in-1",
-      "targetTime": 0
+      "name": "calm-transitions-in",
+      "targetTime": 0.7370000000000001
     },
     {
-      "name": "fade-through-out-1",
-      "targetTime": 0.302
-    },
-    {
-      "name": "fade-through-in-2",
+      "name": "calm-transitions-out",
       "targetTime": 1.0390000000000001
     },
     {
-      "name": "fade-through-out-2",
+      "name": "fade-through-content-in",
+      "targetTime": 1.0390000000000001
+    },
+    {
+      "name": "fade-through-content-out",
       "targetTime": 1.3410000000000002
     },
     {
-      "name": "fade-through-in-3",
+      "name": "focus-shifts-smoothly-in",
       "targetTime": 2.0780000000000003
     },
     {
-      "name": "fade-through-out-3",
-      "targetTime": 2.3800000000000003
+      "name": "focus-shifts-smoothly-out",
+      "targetTime": 1.8300000000000003
     },
     {
       "name": "next-scene",
-      "targetTime": 5.858376728407816
+      "targetTime": 5.778865884668724
     }
   ],
   "seed": 400517256

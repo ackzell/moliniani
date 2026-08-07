@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 import { createApp, defineComponent, h, provide } from "vue";
-import SoftBlurIn from "../src/vue/SoftBlurIn.gen";
+import AnimatedText from "../src/vue/AnimatedText.gen";
+import { SOFT_BLUR_IN } from "../src/textEffects";
 
-// SoftBlurIn.vue injects the Moliniani VueNode context from core;
+// The AnimatedText SFC injects the Moliniani VueNode context from core;
 // importing the real package would drag Motion Canvas into the jsdom test env.
 const mocks = vi.hoisted(() => ({
   contextKey: Symbol("mocked-mn-context"),
@@ -27,7 +28,7 @@ if (document.fonts === undefined) {
   });
 }
 
-describe("SoftBlurIn SFC", () => {
+describe("SoftBlurIn effect", () => {
   const makeMounted = (props: Record<string, unknown>) => {
     const host = document.createElement("div");
     document.body.appendChild(host);
@@ -46,25 +47,25 @@ describe("SoftBlurIn SFC", () => {
     const Comp = defineComponent({
       setup() {
         provide(mocks.contextKey, ctx);
-        return () => h(SoftBlurIn, props);
+        return () => h(AnimatedText, props);
       },
     });
 
     const app = createApp({ render: () => h(Comp) });
     app.mount(host);
-    const span = host.querySelector<HTMLElement>(".soft-blur-in")!;
+    const span = host.querySelector<HTMLElement>(".animated-text")!;
 
     return { app, span, values, capturedUpdater };
   };
 
-  it("splits the text into data-char units with the effect class", () => {
-    const { app, span } = makeMounted({ text: "hello" });
-    expect(span.querySelectorAll("[data-char].soft-blur-in-chars").length).toBe(5);
+  it("splits the text into data-char units with the unit class", () => {
+    const { app, span } = makeMounted({ effect: SOFT_BLUR_IN, text: "hello" });
+    expect(span.querySelectorAll("[data-char].animated-text-unit").length).toBe(5);
     app.unmount();
   });
 
   it("starts blurred and below the baseline at phase 0, settled by phase 1", () => {
-    const { span, values, capturedUpdater } = makeMounted({ text: "hello" });
+    const { span, values, capturedUpdater } = makeMounted({ effect: SOFT_BLUR_IN, text: "hello" });
     const chars = span.querySelectorAll<HTMLElement>("[data-char]");
 
     values.phase = 0;
@@ -79,7 +80,7 @@ describe("SoftBlurIn SFC", () => {
   });
 
   it("cascades the units via the stagger", () => {
-    const { span, values, capturedUpdater } = makeMounted({ text: "abc" });
+    const { span, values, capturedUpdater } = makeMounted({ effect: SOFT_BLUR_IN, text: "abc" });
     const chars = span.querySelectorAll<HTMLElement>("[data-char]");
 
     // Early on, the first char has started revealing while the last (stagger

@@ -2,28 +2,28 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "stagger-from-edges-in-1",
-      "targetTime": 0
+      "name": "from-the-edges-in",
+      "targetTime": 0.8520000000000001
     },
     {
-      "name": "stagger-from-edges-out-1",
-      "targetTime": 0.67
+      "name": "from-the-edges-out",
+      "targetTime": 1.5220000000000002
     },
     {
-      "name": "stagger-from-edges-in-2",
-      "targetTime": 1.69
+      "name": "ripple-inward-in",
+      "targetTime": 1.6900000000000002
     },
     {
-      "name": "stagger-from-edges-out-2",
+      "name": "ripple-inward-out",
       "targetTime": 2.3440000000000003
     },
     {
-      "name": "stagger-from-edges-in-3",
-      "targetTime": 3.3520000000000003
+      "name": "bracketed-focus-in",
+      "targetTime": 2.8020000000000005
     },
     {
-      "name": "stagger-from-edges-out-3",
-      "targetTime": 4.038
+      "name": "bracketed-focus-out",
+      "targetTime": 3.4880000000000004
     },
     {
       "name": "next-scene",

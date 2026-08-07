@@ -2,28 +2,28 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "mask-reveal-up-in-1",
-      "targetTime": 0.027193417426801154
+      "name": "designed-to-move-built-to-focus-in",
+      "targetTime": 0.924
     },
     {
-      "name": "mask-reveal-up-out-1",
-      "targetTime": 0.8541934174268011
+      "name": "designed-to-move-built-to-focus-out",
+      "targetTime": 1.751
     },
     {
-      "name": "mask-reveal-up-in-2",
-      "targetTime": 1.633193417426801
+      "name": "quiet-motion-strong-hierarchy-in",
+      "targetTime": 1.8009999999999997
     },
     {
-      "name": "mask-reveal-up-out-2",
-      "targetTime": 2.460193417426801
+      "name": "quiet-motion-strong-hierarchy-out",
+      "targetTime": 2.6279999999999997
     },
     {
-      "name": "mask-reveal-up-in-3",
-      "targetTime": 3.1991934174268013
+      "name": "premium-feel-every-frame-in",
+      "targetTime": 3.052
     },
     {
-      "name": "mask-reveal-up-out-3",
-      "targetTime": 4.026193417426802
+      "name": "premium-feel-every-frame-out",
+      "targetTime": 3.879
     },
     {
       "name": "next-scene",

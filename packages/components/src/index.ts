@@ -28,6 +28,7 @@ export {
 export type { StaggerMode, TextEffectKnobs, UnitValues, WholeValues } from "./effectTiming";
 export {
   createPhraseSwitcher,
+  kebabCase,
   logPhraseSchedule,
   phraseSchedule,
   phraseTiming,

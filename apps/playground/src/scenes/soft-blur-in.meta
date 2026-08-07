@@ -2,32 +2,32 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "soft-blur-in-in-1",
-      "targetTime": 0
+      "name": "think-different-in",
+      "targetTime": 0.982
     },
     {
-      "name": "soft-blur-in-out-1",
-      "targetTime": 0.8588446675642054
+      "name": "think-different-out",
+      "targetTime": 1.9
     },
     {
-      "name": "soft-blur-in-in-2",
-      "targetTime": 1.6487066974354363
+      "name": "built-to-flow-in",
+      "targetTime": 2.065
     },
     {
-      "name": "soft-blur-in-out-2",
-      "targetTime": 3.01524176915634
+      "name": "built-to-flow-out",
+      "targetTime": 2.947
     },
     {
-      "name": "soft-blur-in-in-3",
-      "targetTime": 4.14024176915634
+      "name": "motion-with-intent-in",
+      "targetTime": 3.5220000000000002
     },
     {
-      "name": "soft-blur-in-out-3",
-      "targetTime": 5.1122417691563395
+      "name": "motion-with-intent-out",
+      "targetTime": 4.494
     },
     {
       "name": "next-scene",
-      "targetTime": 6.8354849192712415
+      "targetTime": 6.598914249840874
     }
   ],
   "seed": 1034009983

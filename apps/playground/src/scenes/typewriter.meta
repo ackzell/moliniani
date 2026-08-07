@@ -2,19 +2,19 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "typewriter-in-1",
-      "targetTime": 0
+      "name": "precision-in-motion-in",
+      "targetTime": 0.7370000000000001
     },
     {
-      "name": "typewriter-out-1",
-      "targetTime": 0.8
+      "name": "precision-in-motion-out",
+      "targetTime": 1.5370000000000001
     },
     {
-      "name": "typewriter-in-2",
+      "name": "write-pause-continue-in",
       "targetTime": 1.6700000000000002
     },
     {
-      "name": "typewriter-out-2",
+      "name": "write-pause-continue-out",
       "targetTime": 2.569
     },
     {

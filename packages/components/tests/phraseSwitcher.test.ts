@@ -7,6 +7,7 @@ import {
   SHIMMER_SWEEP,
   SHORT_SLIDE_DOWN,
   SOFT_BLUR_IN,
+  type TextEffectSpec,
 } from "../src/textEffects";
 
 const mocks = vi.hoisted(() => ({
@@ -30,6 +31,7 @@ vi.mock("@moliniani/core", () => ({ molinianiDebugLog: mocks.debugLog }));
 
 import {
   createPhraseSwitcher,
+  kebabCase,
   logPhraseSchedule,
   phraseSchedule,
   phraseTiming,
@@ -73,9 +75,10 @@ interface MockNode {
   text: (...args: any[]) => any;
   phase: (...args: any[]) => any;
   exit: (...args: any[]) => any;
+  effect?: TextEffectSpec;
 }
 
-function makeNode(): { node: MockNode; ref: Reference<MockNode> } {
+function makeNode(effect?: TextEffectSpec): { node: MockNode; ref: Reference<MockNode> } {
   const calls: [string, unknown[]][] = [];
   const method =
     (key: string) =>
@@ -88,6 +91,7 @@ function makeNode(): { node: MockNode; ref: Reference<MockNode> } {
     text: method("text"),
     phase: method("phase"),
     exit: method("exit"),
+    ...(effect ? { effect } : {}),
   };
   const ref = (() => node) as unknown as Reference<MockNode>;
   return { node, ref };
@@ -228,6 +232,23 @@ describe("createPhraseSwitcher", () => {
     expect(exitCalls[0][1]).toEqual([0]);
     // Default tween ease is `linear` so the spec's signature ease governs.
     expect(phaseCalls[1][1][2]).toBe(mocks.linear);
+  });
+
+  it("derives the spec from ref().effect when the spec argument is omitted", () => {
+    const { node, ref } = makeNode(SHIMMER_SWEEP);
+    const t = createPhraseSwitcher(ref);
+    run(t.enter("Shiny details."));
+
+    const phaseCalls = node.calls.filter(([k]) => k === "phase");
+    expect(phaseCalls[1][1][0]).toBe(1);
+    // SHIMMER_SWEEP "Shiny details." → 612ms full enter cascade.
+    expect(phaseCalls[1][1][1]).toBeCloseTo(0.612);
+  });
+
+  it("throws a clear error when no spec is provided and the node has no effect", () => {
+    const { ref } = makeNode();
+    const t = createPhraseSwitcher(ref);
+    expect(() => run(t.enter("Shiny details."))).toThrow(/no effect/);
   });
 
   it("exit tweens the exit signal to 1 with the spec exit duration", () => {
@@ -451,6 +472,15 @@ describe("createPhraseSwitcher", () => {
   });
 });
 
+describe("kebabCase", () => {
+  it("lowercases and collapses runs of non-alphanumerics into a single dash", () => {
+    expect(kebabCase("One more thing.")).toBe("one-more-thing");
+    expect(kebabCase("  Do it — NOW!?  ")).toBe("do-it-now");
+    expect(kebabCase("Café au lait")).toBe("caf-au-lait");
+    expect(kebabCase("simple")).toBe("simple");
+  });
+});
+
 describe("createPhraseSwitcher.phrase", () => {
   it("waits for the first phrase's in marker, then enters over [in, out]", () => {
     mockTimeEvents([
@@ -461,7 +491,7 @@ describe("createPhraseSwitcher.phrase", () => {
     const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
     // Thread starts at 0; the first phrase waits 1s for its beat, then enters
     // over [1, 1.6] → phase tween of 0.6s.
-    run(t.phrase("in-1", "out-1", "Shiny details."));
+    run(t.phrase("Shiny details.", "in-1", "out-1"));
 
     expect(mocks.waitFor.mock.calls[0][0]).toBeCloseTo(1);
     const phaseCalls = node.calls.filter(([k]) => k === "phase");
@@ -478,12 +508,12 @@ describe("createPhraseSwitcher.phrase", () => {
     ]);
     const { node, ref } = makeNode();
     const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
-    run(t.phrase("in-1", "out-1", "Shiny details."));
+    run(t.phrase("Shiny details.", "in-1", "out-1"));
     node.calls.length = 0;
     // Second phrase: the thread is at out-1 = 1.6; the previous phrase exits
     // over [1.6, 2.3] (0.7s), then the new phrase enters over [2.3, 2.9] (0.6s).
     mocks.time.mockReturnValue(1.6);
-    run(t.phrase("in-2", "out-2", "Glide with intent."));
+    run(t.phrase("Glide with intent.", "in-2", "out-2"));
 
     const exitCalls = node.calls.filter(([k]) => k === "exit");
     expect(exitCalls[0][1][0]).toBe(1);
@@ -500,7 +530,7 @@ describe("createPhraseSwitcher.phrase", () => {
     ]);
     const { ref } = makeNode();
     const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
-    run(t.phrase("in-1", "out-1", "Shiny details."));
+    run(t.phrase("Shiny details.", "in-1", "out-1"));
 
     // Existing markers are re-registered at the thread time, matching
     // waitUntil's always-register contract so the editor keeps them rendered.
@@ -513,7 +543,7 @@ describe("createPhraseSwitcher.phrase", () => {
     const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
     run(t.enter("Shiny details."));
     node.calls.length = 0;
-    run(t.phrase("in-x", "out-x", "Glide with intent."));
+    run(t.phrase("Glide with intent.", "in-x", "out-x"));
 
     // Missing markers are registered at readable defaults: in at now + hold +
     // exit (0 + 0.55 + 0.468), out at in + enter (… + 0.612).
@@ -538,7 +568,7 @@ describe("createPhraseSwitcher.phrase", () => {
     ]);
     const { node, ref } = makeNode();
     const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
-    run(t.phrase("in-1", "out-1", "Shiny details.", { exitOn: "next-scene" }));
+    run(t.phrase("Shiny details.", "in-1", "out-1", { exitOn: "next-scene" }));
 
     // After the enter completes at out-1 = 1.6, the final phrase exits across
     // [1.6, 3.0] (1.4s) toward the exitOn marker — mirroring how earlier
@@ -558,7 +588,7 @@ describe("createPhraseSwitcher.phrase", () => {
   it("auto-places a missing exitOn marker and exits toward it", () => {
     const { node, ref } = makeNode();
     const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
-    run(t.phrase("in-1", "out-1", "Shiny details.", { exitOn: "next-scene" }));
+    run(t.phrase("Shiny details.", "in-1", "out-1", { exitOn: "next-scene" }));
 
     // All markers missing: in auto-places at 0 + 0.55 + 0.468 = 1.018, out at
     // 1.018 + 0.612 = 1.63, and next-scene at 1.63 + 0.468 + 0.55 = 2.648. The
@@ -578,7 +608,7 @@ describe("createPhraseSwitcher.phrase", () => {
     ]);
     const { node, ref } = makeNode();
     const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
-    run(t.phrase("in-1", "out-1", "Glide with intent.", { exitOn: "next-scene" }));
+    run(t.phrase("Glide with intent.", "in-1", "out-1", { exitOn: "next-scene" }));
 
     // out-1 (0.5) is before in-1 (1) — a stale/inverted reveal window. Instead of
     // snapping to full with a 0ms enter, phrase() falls back to the full cascade
@@ -599,5 +629,59 @@ describe("createPhraseSwitcher.phrase", () => {
     // next-scene (3) — it never overshoots the marker.
     const exitCalls = node.calls.filter(([k, a]) => k === "exit" && a[0] === 1);
     expect(exitCalls[0][1][1]).toBeCloseTo(3 - 1.612);
+  });
+
+  it("derives in/out marker names from the phrase in kebab-case when omitted", () => {
+    const { node, ref } = makeNode();
+    const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
+    run(t.phrase("One more thing."));
+
+    // "One more thing." → one-more-thing-in / one-more-thing-out. Both are
+    // missing, so they're auto-placed and registered at the readable defaults.
+    const placed = mocks.register.mock.calls;
+    expect(placed[0][0]).toBe("one-more-thing-in");
+    expect(placed[1][0]).toBe("one-more-thing-out");
+
+    const phaseCalls = node.calls.filter(([k]) => k === "phase");
+    expect(phaseCalls[1][1][0]).toBe(1);
+  });
+
+  it("appends a -<n> index only when the same phrase recurs", () => {
+    mockTimeEvents([
+      { name: "one-more-thing-in", targetTime: 1 },
+      { name: "one-more-thing-out", targetTime: 1.6 },
+      { name: "one-more-thing-in-2", targetTime: 2.3 },
+      { name: "one-more-thing-out-2", targetTime: 2.9 },
+    ]);
+    const { ref } = makeNode();
+    const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
+
+    run(t.phrase("One more thing."));
+    expect(mocks.register).toHaveBeenCalledWith("one-more-thing-in", 0);
+    expect(mocks.register).toHaveBeenCalledWith("one-more-thing-out", 0);
+
+    mocks.register.mockClear();
+    mocks.time.mockReturnValue(1.6);
+    run(t.phrase("One more thing."));
+
+    // The second occurrence derives a -2 marker pair instead of clobbering the
+    // first phrase's markers.
+    expect(mocks.register).toHaveBeenCalledWith("one-more-thing-in-2", 1.6);
+    expect(mocks.register).toHaveBeenCalledWith("one-more-thing-out-2", 1.6);
+  });
+
+  it("uses explicit markers as an override, ignoring the derived names", () => {
+    const { node, ref } = makeNode();
+    const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
+    run(t.phrase("Pop.", "rise-in-1", "rise-out-1"));
+
+    expect(mocks.register).toHaveBeenCalledWith("rise-in-1", expect.any(Number));
+    expect(mocks.register).toHaveBeenCalledWith("rise-out-1", expect.any(Number));
+    expect(mocks.register).not.toHaveBeenCalledWith(
+      expect.stringMatching(/^pop-in/),
+      expect.anything(),
+    );
+    const phaseCalls = node.calls.filter(([k]) => k === "phase");
+    expect(phaseCalls[1][1][0]).toBe(1);
   });
 });

@@ -3,7 +3,16 @@ import { linear, type ThreadGenerator } from "@motion-canvas/core";
 import { molinianiDebugLog, type VueNodeConstructor } from "@moliniani/core";
 
 /**
- * `defineVueNode()` `extend` factory shared by the text-effect SFC wrappers.
+ * How the "is this a cascade effect?" decision resolves for the `phase`/`exit`
+ * interception. A `boolean` is baked per-component (the pre-generic per-effect
+ * SFCs pass `true`/`false` up front); a function decides per-instance from the
+ * node's current effect (`spec.target !== "whole"`), which is what the single
+ * generic `AnimatedText` node needs.
+ */
+export type CascadeSelector = boolean | ((instance: Record<string, any>) => boolean);
+
+/**
+ * `defineVueNode()` `extend` factory shared by the text-effect SFCs.
  *
  * Cascade effects (`target !== "whole"`) tween every split unit with a per-unit
  * stagger, so the scene tween's own easing would compound with the signature
@@ -21,26 +30,42 @@ import { molinianiDebugLog, type VueNodeConstructor } from "@moliniani/core";
  *    easing a cascade applies — a scene ease would be a double-ease and would
  *    shift every unit off its per-unit timeline.
  *
- * Whole-text / sweep effects (scramble, glow, typewriter, shimmer-sweep, …)
- * apply no per-unit stagger and keep their scene easing — don't wrap those with
- * this factory.
+ * Whole-text / sweep effects (shimmer-sweep, whole targets, …) apply no
+ * per-unit stagger and keep their scene easing — for those the cascade
+ * selector returns `false`.
+ *
+ * With `specKey`, the node also exposes `instance[specKey]` as a getter that
+ * returns the effect object currently driving it (read from `_vueState`). The
+ * phrase switcher derives its timing defaults from this, so a scene names the
+ * effect once instead of pairing a component with a separate spec import.
  */
-export function textEffectExtend(cascade: boolean) {
-  return <P extends Record<string, any>>(Base: VueNodeConstructor<P>): VueNodeConstructor<P> =>
-    class extends (Base as unknown as new (props: Record<string, any>) => any) {
+export function textEffectExtend(cascade: CascadeSelector, specKey?: string) {
+  return <P extends Record<string, any>, I extends Record<string, any> = {}>(
+    Base: VueNodeConstructor<P>,
+  ): VueNodeConstructor<P, I> => {
+    const Selected = class extends (Base as unknown as new (props: Record<string, any>) => any) {
       constructor(props: Record<string, any>) {
         super(props);
-        wrapPhaseSignal(this, "phase", "total", cascade);
-        wrapPhaseSignal(this, "exit", "exitTotal", cascade);
+        const select = () => (typeof cascade === "function" ? cascade(this) : cascade);
+        wrapPhaseSignal(this, "phase", "total", select);
+        wrapPhaseSignal(this, "exit", "exitTotal", select);
+        if (specKey) {
+          Object.defineProperty(this, specKey, {
+            get: () => (this as any)._vueState?.[specKey],
+            enumerable: false,
+          });
+        }
       }
-    } as unknown as VueNodeConstructor<P>;
+    };
+    return Selected as unknown as VueNodeConstructor<P, I>;
+  };
 }
 
 function wrapPhaseSignal(
   instance: Record<string, any>,
   name: "phase" | "exit",
   totalKey: "total" | "exitTotal",
-  cascade: boolean,
+  cascade: () => boolean,
 ) {
   const signal = instance[name] as
     | ((to: number, duration?: number, ease?: unknown) => ThreadGenerator)
@@ -50,7 +75,7 @@ function wrapPhaseSignal(
     if (typeof duration === "number" && duration > 0) {
       instance._vueState[totalKey] = duration * 1000;
     }
-    if (cascade) {
+    if (cascade()) {
       if (ease !== undefined && ease !== linear) {
         molinianiDebugLog(
           `textEffectExtend: "${instance.constructor.name}" is a cascade effect — the ${name} ` +

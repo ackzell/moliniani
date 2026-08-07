@@ -1,17 +1,17 @@
 import { createMnRef, makeScene } from "@moliniani/core";
-import { FadeThrough } from "@moliniani/components/vue";
+import { AnimatedText } from "@moliniani/components/vue";
 import { createPhraseSwitcher, FADE_THROUGH } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
 
 export default makeScene(function* (view) {
   view.fill("#22263d");
 
-  const ref = createMnRef(FadeThrough);
+  const ref = createMnRef(AnimatedText);
 
   view.add(
     <>
       <Txt text="fade-through" fill="#8fa3b8" fontSize={28} y={-420} />
-      <FadeThrough ref={ref} text="" fontSize={64} color="#ffd166" y={-60} />
+      <AnimatedText ref={ref} effect={FADE_THROUGH} text="" fontSize={64} color="#ffd166" y={-60} />
     </>,
   );
 
@@ -20,13 +20,11 @@ export default makeScene(function* (view) {
   // and the exit starts). Enter and exit lengths derive from the markers
   // (`enter = out − in`, `exit = nextIn − out`), so dragging a marker re-times
   // the reveal or the exit gap in the editor.
-  const t = createPhraseSwitcher(ref, FADE_THROUGH);
+  const t = createPhraseSwitcher(ref);
 
-  yield* t.phrase("fade-through-in-1", "fade-through-out-1", "Calm transitions.");
-  yield* t.phrase("fade-through-in-2", "fade-through-out-2", "Fade through content.");
-  yield* t.phrase("fade-through-in-3", "fade-through-out-3", "Focus shifts smoothly.", {
-    exitOn: "next-scene",
-  });
+  yield* t.phrase("Calm transitions.");
+  yield* t.phrase("Fade through content.");
+  yield* t.phrase("Focus shifts smoothly.", { exitOn: "next-scene" });
 
   yield* ref().opacity(0, 0.5);
 });

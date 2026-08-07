@@ -1,17 +1,24 @@
 import { createMnRef, makeScene } from "@moliniani/core";
-import { ShimmerSweep } from "@moliniani/components/vue";
+import { AnimatedText } from "@moliniani/components/vue";
 import { createPhraseSwitcher, SHIMMER_SWEEP } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
 
 export default makeScene(function* (view) {
   view.fill("#22263d");
 
-  const ref = createMnRef(ShimmerSweep);
+  const ref = createMnRef(AnimatedText);
 
   view.add(
     <>
       <Txt text="shimmer-sweep" fill="#8fa3b8" fontSize={28} y={-420} />
-      <ShimmerSweep ref={ref} text="" fontSize={64} color="#ffffff" y={-60} />
+      <AnimatedText
+        ref={ref}
+        effect={SHIMMER_SWEEP}
+        text=""
+        fontSize={64}
+        color="#ffffff"
+        y={-60}
+      />
     </>,
   );
 
@@ -20,11 +27,11 @@ export default makeScene(function* (view) {
   // and the exit starts). Enter and exit lengths derive from the markers
   // (`enter = out − in`, `exit = nextIn − out`), so dragging a marker re-times
   // the reveal or the exit gap in the editor.
-  const t = createPhraseSwitcher(ref, SHIMMER_SWEEP);
+  const t = createPhraseSwitcher(ref);
 
-  yield* t.phrase("shimmer-sweep-in-1", "shimmer-sweep-out-1", "Shiny details.");
-  yield* t.phrase("shimmer-sweep-in-2", "shimmer-sweep-out-2", "Glide with intent.");
-  yield* t.phrase("shimmer-sweep-in-3", "shimmer-sweep-out-3", "Soft and precise.", {
+  yield* t.phrase("Shiny details.");
+  yield* t.phrase("Glide with intent.");
+  yield* t.phrase("Soft and precise.", {
     exitOn: "next-scene",
   });
 

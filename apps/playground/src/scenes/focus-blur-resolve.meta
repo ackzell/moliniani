@@ -2,28 +2,28 @@
   "version": 0,
   "timeEvents": [
     {
-      "name": "focus-blur-resolve-in-1",
-      "targetTime": 0
+      "name": "focus-resolves-clearly-in",
+      "targetTime": 0.924
     },
     {
-      "name": "focus-blur-resolve-out-1",
-      "targetTime": 0.547
-    },
-    {
-      "name": "focus-blur-resolve-in-2",
+      "name": "focus-resolves-clearly-out",
       "targetTime": 1.471
     },
     {
-      "name": "focus-blur-resolve-out-2",
+      "name": "detail-emerges-in",
+      "targetTime": 1.471
+    },
+    {
+      "name": "detail-emerges-out",
       "targetTime": 2.0180000000000002
     },
     {
-      "name": "focus-blur-resolve-in-3",
-      "targetTime": 2.9420000000000006
+      "name": "then-softly-recedes-in",
+      "targetTime": 2.3920000000000003
     },
     {
-      "name": "focus-blur-resolve-out-3",
-      "targetTime": 3.4890000000000008
+      "name": "then-softly-recedes-out",
+      "targetTime": 2.9390000000000005
     },
     {
       "name": "next-scene",

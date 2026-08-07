@@ -1,10 +1,13 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 import { createApp, defineComponent, h, provide } from "vue";
-import MaskRevealUp from "../src/vue/MaskRevealUp.gen";
-import PerWordCrossfade from "../src/vue/PerWordCrossfade.gen";
-import StaggerFromCenter from "../src/vue/StaggerFromCenter.gen";
-import ShimmerSweep from "../src/vue/ShimmerSweep.gen";
-import ShortSlideRight from "../src/vue/ShortSlideRight.gen";
+import AnimatedText from "../src/vue/AnimatedText.gen";
+import {
+  MASK_REVEAL_UP,
+  PER_WORD_CROSSFADE,
+  SHIMMER_SWEEP,
+  SHORT_SLIDE_RIGHT,
+  STAGGER_FROM_CENTER,
+} from "../src/textEffects";
 
 // The text-effect SFCs inject the Moliniani VueNode context from core;
 // importing the real package would drag Motion Canvas into the jsdom test env.
@@ -31,7 +34,7 @@ if (document.fonts === undefined) {
   });
 }
 
-function makeMounted(component: unknown, props: Record<string, unknown>) {
+function makeMounted(props: Record<string, unknown>) {
   const host = document.createElement("div");
   document.body.appendChild(host);
   const values: Record<string, number> = { phase: 0 };
@@ -49,7 +52,7 @@ function makeMounted(component: unknown, props: Record<string, unknown>) {
   const Comp = defineComponent({
     setup() {
       provide(mocks.contextKey, ctx);
-      return () => h(component as never, props);
+      return () => h(AnimatedText, props);
     },
   });
 
@@ -60,17 +63,19 @@ function makeMounted(component: unknown, props: Record<string, unknown>) {
   return { app, root, values, capturedUpdater };
 }
 
-describe("PerWordCrossfade SFC", () => {
-  it("splits the text into word units with the effect class", () => {
-    const { app, root } = makeMounted(PerWordCrossfade, {
+describe("PerWordCrossfade effect", () => {
+  it("splits the text into word units with the unit class", () => {
+    const { app, root } = makeMounted({
+      effect: PER_WORD_CROSSFADE,
       text: "Beautifully, unmistakably simple.",
     });
-    expect(root!.querySelectorAll("[data-word].per-word-crossfade-words").length).toBe(3);
+    expect(root!.querySelectorAll("[data-word].animated-text-unit").length).toBe(3);
     app.unmount();
   });
 
   it("fades words in with a rise as phase goes 0 → 1", () => {
-    const { root, values, capturedUpdater } = makeMounted(PerWordCrossfade, {
+    const { root, values, capturedUpdater } = makeMounted({
+      effect: PER_WORD_CROSSFADE,
       text: "Beautifully, unmistakably simple.",
     });
     const words = root!.querySelectorAll<HTMLElement>("[data-word]");
@@ -85,7 +90,8 @@ describe("PerWordCrossfade SFC", () => {
   });
 
   it("derives the per-unit stagger from the total knob so the cascade fills it", () => {
-    const { root, values, capturedUpdater } = makeMounted(PerWordCrossfade, {
+    const { root, values, capturedUpdater } = makeMounted({
+      effect: PER_WORD_CROSSFADE,
       text: "Beautifully, unmistakably simple.",
       total: 1200,
     });
@@ -114,15 +120,16 @@ describe("PerWordCrossfade SFC", () => {
   });
 });
 
-describe("MaskRevealUp SFC", () => {
+describe("MaskRevealUp effect", () => {
   it("wraps each line in a static overflow: clip container", async () => {
-    const { app, root } = makeMounted(MaskRevealUp, {
+    const { app, root } = makeMounted({
+      effect: MASK_REVEAL_UP,
       text: "Designed to move.\nBuilt to focus.",
     });
     // animejs defers line splitting to document.fonts.ready; flush it.
     await Promise.resolve();
     await Promise.resolve();
-    const lines = root!.querySelectorAll<HTMLElement>("[data-line].mask-reveal-up-lines");
+    const lines = root!.querySelectorAll<HTMLElement>("[data-line].animated-text-unit");
     expect(lines.length).toBeGreaterThan(0);
     for (const line of lines) {
       expect(line.parentElement!.style.overflow).toBe("clip");
@@ -131,7 +138,8 @@ describe("MaskRevealUp SFC", () => {
   });
 
   it("hides the raw text until the deferred line split lands", async () => {
-    const { app, root, values, capturedUpdater } = makeMounted(MaskRevealUp, {
+    const { app, root, values, capturedUpdater } = makeMounted({
+      effect: MASK_REVEAL_UP,
       text: "Designed to move.\nBuilt to focus.",
     });
 
@@ -145,7 +153,7 @@ describe("MaskRevealUp SFC", () => {
     // The fonts microtask lands the split, creating the line wrappers.
     await Promise.resolve();
     await Promise.resolve();
-    const lines = root!.querySelectorAll<HTMLElement>("[data-line].mask-reveal-up-lines");
+    const lines = root!.querySelectorAll<HTMLElement>("[data-line].animated-text-unit");
     expect(lines.length).toBeGreaterThan(0);
 
     // The frame updater applies the from-state to the line spans and drops the
@@ -167,9 +175,10 @@ describe("MaskRevealUp SFC", () => {
   });
 });
 
-describe("StaggerFromCenter SFC", () => {
+describe("StaggerFromCenter effect", () => {
   it("splits into chars and reveals the center first", () => {
-    const { root, values, capturedUpdater } = makeMounted(StaggerFromCenter, {
+    const { root, values, capturedUpdater } = makeMounted({
+      effect: STAGGER_FROM_CENTER,
       text: "Center",
     });
     const chars = root!.querySelectorAll<HTMLElement>("[data-char]");
@@ -188,17 +197,18 @@ describe("StaggerFromCenter SFC", () => {
   });
 });
 
-describe("ShimmerSweep SFC", () => {
+describe("ShimmerSweep effect", () => {
   it("renders the text as a single unsplit span", () => {
-    const { app, root } = makeMounted(ShimmerSweep, { text: "Shiny details." });
-    expect(root!.classList.contains("shimmer-sweep")).toBe(true);
+    const { app, root } = makeMounted({ effect: SHIMMER_SWEEP, text: "Shiny details." });
+    expect(root!.classList.contains("animated-text")).toBe(true);
     expect(root!.textContent).toContain("Shiny details.");
     expect(root!.querySelectorAll("[data-char]").length).toBe(0);
     app.unmount();
   });
 
   it("glides the whole phrase in from the left as phase goes 0 → 1", () => {
-    const { root, values, capturedUpdater } = makeMounted(ShimmerSweep, {
+    const { root, values, capturedUpdater } = makeMounted({
+      effect: SHIMMER_SWEEP,
       text: "Shiny details.",
     });
 
@@ -218,7 +228,8 @@ describe("ShimmerSweep SFC", () => {
   });
 
   it("glides the phrase back out to the right as exit goes 0 → 1", () => {
-    const { root, values, capturedUpdater } = makeMounted(ShimmerSweep, {
+    const { root, values, capturedUpdater } = makeMounted({
+      effect: SHIMMER_SWEEP,
       text: "Shiny details.",
     });
 
@@ -234,16 +245,17 @@ describe("ShimmerSweep SFC", () => {
   });
 });
 
-describe("ShortSlideRight SFC", () => {
+describe("ShortSlideRight effect", () => {
   it("renders the whole phrase as one unsplit span", () => {
-    const { app, root } = makeMounted(ShortSlideRight, { text: "One more thing." });
-    expect(root!.classList.contains("short-slide-right")).toBe(true);
+    const { app, root } = makeMounted({ effect: SHORT_SLIDE_RIGHT, text: "One more thing." });
+    expect(root!.classList.contains("animated-text")).toBe(true);
     expect(root!.querySelectorAll("[data-word]").length).toBe(0);
     app.unmount();
   });
 
   it("slides the whole phrase without fading as phase goes 0 → 1", () => {
-    const { root, values, capturedUpdater } = makeMounted(ShortSlideRight, {
+    const { root, values, capturedUpdater } = makeMounted({
+      effect: SHORT_SLIDE_RIGHT,
       text: "One more thing.",
     });
 

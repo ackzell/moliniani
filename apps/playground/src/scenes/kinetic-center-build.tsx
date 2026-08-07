@@ -1,17 +1,24 @@
 import { createMnRef, makeScene } from "@moliniani/core";
-import { KineticCenterBuild } from "@moliniani/components/vue";
+import { AnimatedText } from "@moliniani/components/vue";
 import { createPhraseSwitcher, KINETIC_CENTER_BUILD } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
 
 export default makeScene(function* (view) {
   view.fill("#22263d");
 
-  const ref = createMnRef(KineticCenterBuild);
+  const ref = createMnRef(AnimatedText);
 
   view.add(
     <>
       <Txt text="kinetic-center-build" fill="#8fa3b8" fontSize={28} y={-420} />
-      <KineticCenterBuild ref={ref} text="" fontSize={64} color="#ffd166" y={-60} />
+      <AnimatedText
+        ref={ref}
+        effect={KINETIC_CENTER_BUILD}
+        text=""
+        fontSize={64}
+        color="#ffd166"
+        y={-60}
+      />
     </>,
   );
 
@@ -20,11 +27,11 @@ export default makeScene(function* (view) {
   // and the exit starts). Enter and exit lengths derive from the markers
   // (`enter = out − in`, `exit = nextIn − out`), so dragging a marker re-times
   // the reveal or the exit gap in the editor.
-  const t = createPhraseSwitcher(ref, KINETIC_CENTER_BUILD);
+  const t = createPhraseSwitcher(ref);
 
-  yield* t.phrase("kinetic-center-build-in-1", "kinetic-center-build-out-1", "Words push left.");
-  yield* t.phrase("kinetic-center-build-in-2", "kinetic-center-build-out-2", "Type locks center.");
-  yield* t.phrase("kinetic-center-build-in-3", "kinetic-center-build-out-3", "Build the line.", {
+  yield* t.phrase("Words push left.");
+  yield* t.phrase("Type locks center.");
+  yield* t.phrase("Build the line.", {
     exitOn: "next-scene",
   });
 

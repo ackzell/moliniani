@@ -1,17 +1,24 @@
 import { createMnRef, makeScene } from "@moliniani/core";
-import { ShortSlideDown } from "@moliniani/components/vue";
+import { AnimatedText } from "@moliniani/components/vue";
 import { createPhraseSwitcher, SHORT_SLIDE_DOWN } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
 
 export default makeScene(function* (view) {
   view.fill("#22263d");
 
-  const ref = createMnRef(ShortSlideDown);
+  const ref = createMnRef(AnimatedText);
 
   view.add(
     <>
       <Txt text="short-slide-down" fill="#8fa3b8" fontSize={28} y={-420} />
-      <ShortSlideDown ref={ref} text="" fontSize={64} color="#ffd166" y={-60} />
+      <AnimatedText
+        ref={ref}
+        effect={SHORT_SLIDE_DOWN}
+        text=""
+        fontSize={64}
+        color="#ffd166"
+        y={-60}
+      />
     </>,
   );
 
@@ -20,11 +27,11 @@ export default makeScene(function* (view) {
   // and the exit starts). Enter and exit lengths derive from the markers
   // (`enter = out − in`, `exit = nextIn − out`), so dragging a marker re-times
   // the reveal or the exit gap in the editor.
-  const t = createPhraseSwitcher(ref, SHORT_SLIDE_DOWN);
+  const t = createPhraseSwitcher(ref);
 
-  yield* t.phrase("short-slide-down-in-1", "short-slide-down-out-1", "Drop into place.");
-  yield* t.phrase("short-slide-down-in-2", "short-slide-down-out-2", "Words settle lower.");
-  yield* t.phrase("short-slide-down-in-3", "short-slide-down-out-3", "Build from above.", {
+  yield* t.phrase("Drop into place.");
+  yield* t.phrase("Words settle lower.");
+  yield* t.phrase("Build from above.", {
     exitOn: "next-scene",
   });
 

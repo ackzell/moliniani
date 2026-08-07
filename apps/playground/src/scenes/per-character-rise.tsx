@@ -1,17 +1,25 @@
 import { createMnRef, makeScene } from "@moliniani/core";
-import { PerCharacterRise } from "@moliniani/components/vue";
+import { AnimatedText } from "@moliniani/components/vue";
 import { createPhraseSwitcher, PER_CHARACTER_RISE } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
+import { waitUntil } from "@motion-canvas/core";
 
 export default makeScene(function* (view) {
   view.fill("#22263d");
 
-  const ref = createMnRef(PerCharacterRise);
+  const ref = createMnRef(AnimatedText);
 
   view.add(
     <>
       <Txt text="per-character-rise" fill="#8fa3b8" fontSize={28} y={-420} />
-      <PerCharacterRise ref={ref} text="" fontSize={64} color="#ffd166" y={-60} />
+      <AnimatedText
+        ref={ref}
+        effect={PER_CHARACTER_RISE}
+        text=""
+        fontSize={64}
+        color="#ffd166"
+        y={-60}
+      />
     </>,
   );
 
@@ -20,13 +28,13 @@ export default makeScene(function* (view) {
   // and the exit starts). Enter and exit lengths derive from the markers
   // (`enter = out − in`, `exit = nextIn − out`), so dragging a marker re-times
   // the reveal or the exit gap in the editor.
-  const t = createPhraseSwitcher(ref, PER_CHARACTER_RISE);
+  const t = createPhraseSwitcher(ref);
 
-  yield* t.phrase("per-character-rise-in-1", "per-character-rise-out-1", "One more thing.");
-  yield* t.phrase("per-character-rise-in-2", "per-character-rise-out-2", "Fast and fluid.");
-  yield* t.phrase("per-character-rise-in-3", "per-character-rise-out-3", "Sharp by design.", {
-    exitOn: "next-scene",
+  yield* t.phrase("One more thing.");
+  yield* t.phrase("Fast and fluid.");
+  yield* t.phrase("Sharp by design.", {
+    exitOn: "exit-rise",
   });
 
-  yield* ref().opacity(0, 0.5);
+  yield* waitUntil("next-scene");
 });

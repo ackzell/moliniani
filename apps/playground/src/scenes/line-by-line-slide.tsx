@@ -1,17 +1,24 @@
 import { createMnRef, makeScene } from "@moliniani/core";
-import { LineByLineSlide } from "@moliniani/components/vue";
+import { AnimatedText } from "@moliniani/components/vue";
 import { createPhraseSwitcher, LINE_BY_LINE_SLIDE } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
 
 export default makeScene(function* (view) {
   view.fill("#22263d");
 
-  const ref = createMnRef(LineByLineSlide);
+  const ref = createMnRef(AnimatedText);
 
   view.add(
     <>
       <Txt text="line-by-line-slide" fill="#8fa3b8" fontSize={28} y={-420} />
-      <LineByLineSlide ref={ref} text="" fontSize={64} color="#ffd166" y={-60} />
+      <AnimatedText
+        ref={ref}
+        effect={LINE_BY_LINE_SLIDE}
+        text=""
+        fontSize={64}
+        color="#ffd166"
+        y={-60}
+      />
     </>,
   );
 
@@ -20,24 +27,11 @@ export default makeScene(function* (view) {
   // and the exit starts). Enter and exit lengths derive from the markers
   // (`enter = out − in`, `exit = nextIn − out`), so dragging a marker re-times
   // the reveal or the exit gap in the editor.
-  const t = createPhraseSwitcher(ref, LINE_BY_LINE_SLIDE);
+  const t = createPhraseSwitcher(ref);
 
-  yield* t.phrase(
-    "line-by-line-slide-in-1",
-    "line-by-line-slide-out-1",
-    "Think different.\nDo more.",
-  );
-  yield* t.phrase(
-    "line-by-line-slide-in-2",
-    "line-by-line-slide-out-2",
-    "Built for speed.\nMade to last.",
-  );
-  yield* t.phrase(
-    "line-by-line-slide-in-3",
-    "line-by-line-slide-out-3",
-    "Clear ideas.\nClean motion.",
-    { exitOn: "next-scene" },
-  );
+  yield* t.phrase("Think different.\nDo more.");
+  yield* t.phrase("Built for speed.\nMade to last.");
+  yield* t.phrase("Clear ideas.\nClean motion.", { exitOn: "next-scene" });
 
   yield* ref().opacity(0, 0.5);
 });
