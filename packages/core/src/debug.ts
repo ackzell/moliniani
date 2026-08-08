@@ -20,8 +20,8 @@ export function isMolinianiDebugEnabled(): boolean {
 export function molinianiDebugLog(message: string, payload?: unknown): void {
   if (!isMolinianiDebugEnabled()) return;
   if (payload === undefined) {
-    console.log(`[moliniani] ${message}`);
+    console.warn(`[moliniani] ${message}`);
     return;
   }
-  console.log(`[moliniani] ${message}`, payload);
+  console.warn(`[moliniani] ${message}`, payload);
 }

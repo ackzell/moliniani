@@ -26,7 +26,11 @@
       "targetTime": 2.19
     },
     {
-      "name": "next-scene",
+      "name": "last-out",
+      "targetTime": 2.9989999999999997
+    },
+    {
+      "name": "nex-scene",
       "targetTime": 2.9989999999999997
     }
   ],

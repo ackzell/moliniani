@@ -2,6 +2,7 @@ import { createMnRef, makeScene } from "@moliniani/core";
 import { AnimatedText } from "@moliniani/components/vue";
 import { createPhraseSwitcher, SHARED_AXIS_Z } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
+import { waitUntil } from "@motion-canvas/core";
 
 export default makeScene(function* (view) {
   view.fill("#22263d");
@@ -31,8 +32,8 @@ export default makeScene(function* (view) {
   yield* t.phrase("Zooming between states.");
   yield* t.phrase("Elevate and settle.");
   yield* t.phrase("Scale with purpose.", {
-    exitOn: "next-scene",
+    exitOn: "last-out",
   });
 
-  yield* ref().opacity(0, 0.5);
+  yield* waitUntil("nex-scene");
 });

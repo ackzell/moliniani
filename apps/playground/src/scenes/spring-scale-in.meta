@@ -3,7 +3,7 @@
   "timeEvents": [
     {
       "name": "fast-crisp-fluid-in",
-      "targetTime": 0.6940000000000001
+      "targetTime": 0.2971536743106026
     },
     {
       "name": "fast-crisp-fluid-out",
@@ -23,11 +23,15 @@
     },
     {
       "name": "smooth-by-default-out",
-      "targetTime": 2.255
+      "targetTime": 3.137251091916692
+    },
+    {
+      "name": "smooth-out",
+      "targetTime": 3.7520024435809427
     },
     {
       "name": "next-scene",
-      "targetTime": 4.356070370826247
+      "targetTime": 4.062349982431608
     }
   ],
   "seed": 1587838090

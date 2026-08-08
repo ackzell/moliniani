@@ -2,6 +2,7 @@ import { createMnRef, makeScene } from "@moliniani/core";
 import { AnimatedText } from "@moliniani/components/vue";
 import { createPhraseSwitcher, SPRING_SCALE_IN } from "@moliniani/components";
 import { Txt } from "@motion-canvas/2d";
+import { waitUntil } from "@motion-canvas/core";
 
 export default makeScene(function* (view) {
   view.fill("#22263d");
@@ -33,7 +34,9 @@ export default makeScene(function* (view) {
 
   yield* t.phrase("Fast. Crisp. Fluid.");
   yield* t.phrase("Pop into place.");
-  yield* t.phrase("Smooth by default.", { exitOn: "next-scene" });
+  yield* t.phrase("Smooth by default.", {
+    exitOn: "smooth-out",
+  });
 
-  yield* ref().opacity(0, 0.5);
+  yield* waitUntil("next-scene");
 });

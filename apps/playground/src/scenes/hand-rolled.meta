@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "hand-rolled",
+      "targetTime": 0
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 1.3800000000000001
+    }
+  ],
+  "seed": 847267813
+}

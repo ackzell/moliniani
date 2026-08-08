@@ -7,6 +7,7 @@ import scramble from "./scenes/scramble?scene";
 import glow from "./scenes/glow?scene";
 import split from "./scenes/split?scene";
 import reveal from "./scenes/reveal?scene";
+import handRolled from "./scenes/hand-rolled?scene";
 import softBlurIn from "./scenes/soft-blur-in?scene";
 import perCharacterRise from "./scenes/per-character-rise?scene";
 import perWordCrossfade from "./scenes/per-word-crossfade?scene";
@@ -41,6 +42,7 @@ export default makeProject({
     glow,
     split,
     reveal,
+    handRolled,
     softBlurIn,
     perCharacterRise,
     perWordCrossfade,

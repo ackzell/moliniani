@@ -1,4 +1,4 @@
-import { easeInBack, easeInOutCubic, useDuration, waitUntil } from "@motion-canvas/core";
+import { easeInOutCubic, useDuration, waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { ScrambleText } from "@moliniani/components/vue";
 import { Txt } from "@motion-canvas/2d";
@@ -33,8 +33,6 @@ export default makeScene(function* (view) {
   yield* scrambleRef().phase(1, scrambleDuration, easeInOutCubic);
 
   yield* scrambleRef().phase(0, scrambleDuration, easeInOutCubic);
-  yield* scrambleRef().text("hello there", 1.5, easeInBack);
-  yield* scrambleRef().phase(1, 0.4, easeInOutCubic);
 
   yield* waitUntil("next-scene");
   yield* scrambleRef().opacity(0, 0.5);
