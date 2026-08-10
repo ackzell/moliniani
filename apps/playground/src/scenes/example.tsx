@@ -51,7 +51,8 @@ export default makeScene(function* (view) {
           borderRadius={10}
         />
       </Layout>
-      <Typewriter ref={vueTwRef} text="" fontSize={36} color="#9fd6ff" y={-250} />,
+      <Typewriter ref={vueTwRef} text="" fontSize={36} color="#9fd6ff" y={-250} />
+      ,
       <TypewriterText ref={twRef} text="" fontSize={36} fill="#ffd166" y={250} />,
     </>,
   );

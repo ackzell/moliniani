@@ -53,6 +53,19 @@ Ready-made Motion Canvas nodes and pre-wrapped Vue SFCs for `@moliniani/core`.
   `animate()` timeline onto MC's virtual timeline. Used by `ScrambleText` and
   `GlowText` (and any custom ports) — see
   [Authoring your own animejs components](#authoring-your-own-animejs-components).
+- **`GroovySquaresBackground`** (`./backgrounds` entry) — a built-in dynamic
+  background: a full-screen Motion Canvas `Rect` running a GLSL fragment
+  shader, driven by MC's project-global `time` signal. Registered project-wide
+  via `makeProject(settings, { background })` or per scene via `makeScene(...,
+{ background })` — pass the class or a `background(Ctor, props)` descriptor
+  (nodes can only be constructed inside a live scene, so this lazy config is
+  materialized per scene at generator time); you can also use it as a JSX tag
+  directly. Tween its props like any MC signal: `yield* bgRef().density(20, 2)`
+  (density is the square-size knob — higher = more, smaller squares) or
+  `yield* bgRef().speed(1.2, 1)` to speed up the per-square wobble.
+  Shader rendering is an MC experimental feature, so set
+  `experimentalFeatures: true` in project settings. Discover every built-in
+  with the `backgroundCatalog` export (see below).
 
 ```tsx
 import { TypewriterText } from "@moliniani/components";
@@ -72,6 +85,43 @@ view.add(
 yield * twRef().type("Native TypewriterText", 1.5);
 yield * vueRef().text("Vue <Typewriter>", 1.5);
 ```
+
+## Backgrounds catalog
+
+Dynamic backgrounds live in the `@moliniani/components/backgrounds` subpath.
+Every built-in is a Motion Canvas node (a full-screen `Rect` running a GLSL
+fragment shader driven by MC's `time` signal), so props are tweenable MC
+signals and everything scrubs/renders like native nodes.
+
+Import what you need by name, or enumerate everything via `backgroundCatalog`
+(`backgroundCatalog.` autocompletes the ids, and `Object.values(backgroundCatalog)`
+lists them at runtime):
+
+```ts
+import { backgroundCatalog, GroovySquaresBackground } from "@moliniani/components/backgrounds";
+```
+
+Apply one project-wide (`makeProject(settings, { background })`) or per scene
+(`makeScene(runner, { background })`) — as the class **or** a
+`background(Ctor, props)` descriptor (nodes can't be constructed at module
+scope, so the descriptor defers `new` to when the scene generator runs):
+
+```ts
+import { background, makeProject } from "@moliniani/core";
+import { GroovySquaresBackground } from "@moliniani/components/backgrounds";
+
+export default makeProject(
+  { scenes: [...] },
+  { background: background(GroovySquaresBackground, { color0: "#02020a", color1: "#4a4a8a" }) },
+);
+```
+
+> Shader rendering is an MC experimental feature — set `experimentalFeatures: true`
+> in your project settings, or MC throws an `ExperimentalError` at runtime.
+
+| catalog id      | export                    | props (type → default)                                                                                                                                                                                           |
+| --------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `groovySquares` | `GroovySquaresBackground` | `color0` color → `#02020266`, `color1` color → `#5c5c5c66`, `density` number → `7.6` (squares across the screen — higher = smaller), `random` number → `16`, `speed` number → `0.3` (per-square wobble velocity) |
 
 ## Authoring your own animejs components
 

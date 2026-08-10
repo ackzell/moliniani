@@ -34,6 +34,4 @@ export default makeScene(function* (view) {
   yield* t.phrase("Build the rhythm.", {
     exitOn: "next-scene",
   });
-
-  yield* ref().opacity(0, 0.5);
 });

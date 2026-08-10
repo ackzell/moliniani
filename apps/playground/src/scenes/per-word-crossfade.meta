@@ -7,27 +7,27 @@
     },
     {
       "name": "beautifully-simple-out",
-      "targetTime": 1.464
+      "targetTime": 1.7368195386145142
     },
     {
       "name": "designed-for-focus-in",
-      "targetTime": 1.493
+      "targetTime": 2.9252971805659085
     },
     {
       "name": "designed-for-focus-out",
-      "targetTime": 2.097
+      "targetTime": 4.241990344805639
     },
     {
       "name": "built-for-people-in",
-      "targetTime": 2.5149999999999997
+      "targetTime": 6.3471035848677255
     },
     {
       "name": "built-for-people-out",
-      "targetTime": 3.1189999999999998
+      "targetTime": 7.64298442162935
     },
     {
       "name": "next-scene",
-      "targetTime": 6.30932271821327
+      "targetTime": 9.065609339134115
     }
   ],
   "seed": 2795475707

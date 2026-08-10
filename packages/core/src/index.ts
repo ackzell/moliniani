@@ -1,4 +1,5 @@
 export * from "./types";
+export * from "./Background";
 export * from "./mount";
 export * from "./VueNode";
 export * from "./scene";

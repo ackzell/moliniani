@@ -9,6 +9,7 @@
   "type": "module",
   "exports": {
     ".": "./dist/index.mjs",
+    "./backgrounds": "./dist/backgrounds/index.mjs",
     "./vue": "./dist/vue/index.mjs",
     "./package.json": "./package.json"
   },
@@ -36,6 +37,7 @@
     "@vue/compiler-sfc": "catalog:",
     "typescript": "^6.0.3",
     "vite": "npm:@voidzero-dev/vite-plus-core@0.2.7",
+    "vite-plugin-glsl": "^1.6.1",
     "vite-plus": "catalog:",
     "vue": "catalog:"
   },

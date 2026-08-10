@@ -1,6 +1,7 @@
 import { createRef } from "@motion-canvas/core";
 import type { DefineComponent, ComponentInstance } from "vue";
 import type { VueNodeConstructor } from "./types";
+import type { BackgroundConstructor, BackgroundPropDef } from "./Background";
 
 /**
  * Creates a typed Motion Canvas ref for a Moliniani component (Vue or TresJS).
@@ -25,6 +26,9 @@ export function createMnRef<P extends Record<string, any>, I extends Record<stri
 export function createMnRef<C extends DefineComponent<any, any, any>>(
   sfc: C,
 ): ReturnType<typeof createRef<InstanceType<VueNodeConstructor<ComponentInstance<C>["$props"]>>>>;
+export function createMnRef<P extends Record<string, BackgroundPropDef>>(
+  cls: BackgroundConstructor<P>,
+): ReturnType<typeof createRef<InstanceType<BackgroundConstructor<P>>>>;
 export function createMnRef(_sfcOrCls: any): ReturnType<typeof createRef<any>> {
   return createRef<any>();
 }

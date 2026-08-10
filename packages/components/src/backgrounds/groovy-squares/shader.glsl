@@ -7,6 +7,7 @@ uniform vec4 _Color0;
 uniform vec4 _Color1;
 uniform float _Number;
 uniform float _Random;
+uniform float _Speed;
 
 vec2 hash(vec2 p) {
     p += vec2(_Random);
@@ -17,7 +18,7 @@ vec2 hash(vec2 p) {
 
 float cellDist(vec2 cell, vec2 offset, vec2 uv) {
     vec2 h = hash(cell + offset);
-    vec2 r = offset - uv + (0.5 + 0.5 * sin(time * 0.3 + 6.1831 * h));
+    vec2 r = offset - uv + (0.5 + 0.5 * sin(_Speed * time + 6.1831 * h));
     return dot(r, r);
 }
 

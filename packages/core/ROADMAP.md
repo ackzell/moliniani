@@ -14,6 +14,12 @@
 - **Text reveal** — `revealText()` for character-by-character `Txt` animation.
 - **Scrubbing/seek fixes** — signal-driven props scrub correctly in both directions;
   the compositor and `TresNode` handle backward frame jumps.
+- **Dynamic backgrounds** — `makeProject(settings, { background })` /
+  `makeScene(runner, { background })` + `defineBackground()` in `@moliniani/core`
+  (`packages/core/src/Background.ts`); built-in `GroovySquaresBackground` ships
+  from `@moliniani/components/backgrounds` with `#include` inlining at build
+  time. Clock is MC's project-global `time` uniform (scrub-correct, continuous
+  across scenes).
 
 ## To work on later
 
@@ -26,3 +32,7 @@
 - **Publishing** — `packages/core/package.json` still carries default "author/library"
   metadata placeholders and no real `homepage`/`repository`; publishing flow is unset.
 - **Website** — `apps/website` is still boilerplate.
+- **Background escape hatches** — the supported clock is MC's `time` uniform
+  only, so custom speed/phase come from per-background props (`_Speed` is
+  realized as `GroovySquaresBackground`'s `speed` prop). A `_Phase` uniform for
+  per-background phase offsets is documented but not yet implemented.

@@ -24,12 +24,19 @@ JSX or via `mn()`.
 
 ---
 
-## `makeScene(runner)`
+## `makeScene(runner, options?)`
 
 Wraps Motion Canvas `makeScene2D` so Vue/MC nodes mount and reset correctly.
 
 ```ts
-function makeScene(runner: (view: View2D) => ThreadGenerator): Scene;
+interface MolinianiSceneConfig {
+  background?: BackgroundSource;
+}
+
+function makeScene(
+  runner: (view: View2D) => ThreadGenerator,
+  options?: MolinianiSceneConfig,
+): Scene;
 ```
 
 **Usage**
@@ -44,6 +51,40 @@ export default makeScene(function* (view) {
 
 > Always use `makeScene` instead of `makeScene2D` directly when a scene uses
 > Moliniani nodes, so cleanup hooks stay wired up.
+
+The second argument is the per-scene background override. Pass a
+`defineBackground()` class, a `background(Ctor, props)` descriptor (configure
+it at the scene definition — nodes can only be constructed inside a live
+scene, so the descriptor is materialized fresh per scene at generator time), a
+`() => Background` factory, or `false` to render no background in this scene.
+Omit it to inherit the project-wide default set via `makeProject()`:
+
+```ts
+export default makeScene(
+  function* (view) {
+    // no dynamic background here
+  },
+  { background: false },
+);
+```
+
+```ts
+import { background } from "@moliniani/core";
+import { GroovySquaresBackground } from "@moliniani/components/backgrounds";
+
+export default makeScene(
+  function* (view) {
+    // your scene logic
+  },
+  {
+    background: background(GroovySquaresBackground, {
+      color0: "#002b36",
+      color1: "#073642",
+      density: 14,
+    }),
+  },
+);
+```
 
 ---
 
@@ -308,8 +349,7 @@ const molinianiExporterPlugin = {
 
 ```ts
 // project.ts
-import { makeProject } from "@motion-canvas/core";
-import { molinianiExporterPlugin } from "@moliniani/core";
+import { makeProject, molinianiExporterPlugin } from "@moliniani/core";
 
 export default makeProject({
   plugins: [molinianiExporterPlugin],
@@ -317,8 +357,181 @@ export default makeProject({
 });
 ```
 
+> Import `makeProject` from `@moliniani/core` (a wrapper around Motion Canvas')
+> so scene-level and project-level backgrounds resolve. Plain
+> `@motion-canvas/core` `makeProject` works too, but then per-scene backgrounds
+> only apply when scenes are authored with `makeScene()`.
+
 The exporter is selected in the render settings as `@moliniani/core/ffmpeg` (the
 playground's `project.meta` already configures it).
+
+---
+
+## Dynamic backgrounds
+
+Moliniani dynamic backgrounds are native Motion Canvas nodes: a full-screen
+`Rect` hosting a GLSL fragment shader, positioned behind scene content. Because
+they are real MC nodes on MC's virtual timeline, prop animation, tweening,
+seeking, and scrubbing work exactly like native nodes, and there is no
+wall-clock animation.
+
+A background's clock is MC's built-in project-global `time` uniform
+(`view2D.globalTime()` → `scene.playback.time`), so it is scrub-correct and
+continuous across scenes. Shaders consume it from `common.glsl` directly — do
+not declare a custom `_Time` uniform; the only supported time source is `time`.
+Per-background animations scale that clock through their own props/`uniform`s —
+`GroovySquaresBackground` exposes the wobble velocity as a `speed` prop mapped
+to the `_Speed` uniform. (A `_Phase` uniform for per-background phase offsets
+is the remaining intended escape hatch; `_Speed` is realized today.)
+
+> Shader rendering is a Motion Canvas **experimental feature**. Set
+> `experimentalFeatures: true` in project settings or MC throws an
+> `ExperimentalError` telling you the flag is missing:
+
+```ts
+export default makeProject({
+  experimentalFeatures: true,
+  scenes: [...],
+});
+```
+
+### `makeProject(settings, config?)`
+
+Motion Canvas' `makeProject` wrapper that adds a project-wide background. The
+first argument is the standard `ProjectSettings`; the second carries Moliniani
+extensions:
+
+```ts
+interface MolinianiProjectConfig {
+  background?: BackgroundSource;
+}
+```
+
+Pass a `defineBackground()` class, a `background(Ctor, props)` descriptor
+(a lazy config — MC 3.17 can only construct nodes inside a live scene, so the
+node is materialized fresh per scene at generator time), a `() => Background`
+factory, or `false`:
+
+```ts
+// project.ts
+import { background, makeProject, molinianiExporterPlugin } from "@moliniani/core";
+import { GroovySquaresBackground } from "@moliniani/components/backgrounds";
+
+export default makeProject(
+  {
+    experimentalFeatures: true,
+    plugins: [molinianiExporterPlugin],
+    scenes: [...],
+  },
+  { background: background(GroovySquaresBackground, { color0: "#02020a", color1: "#4a4a8a" }) },
+);
+```
+
+The default background applies to every scene that does not override it
+(`makeScene(runner, { background })`) or opt out (`{ background: false }`).
+Scenes authored with `makeScene()` resolve the background themselves; scenes
+authored with raw `makeScene2D()` are wrapped by `makeProject()`.
+
+### `defineBackground(config)`
+
+Builds a typed `Background` subclass from a declarative config:
+
+```ts
+type Props = {
+  color0: { type: "color"; default: string };
+  color1: { type: "color"; default: string };
+  density: { type: "number"; default: number };
+  random: { type: "number"; default: number };
+  speed: { type: "number"; default: number };
+};
+
+const GroovySquaresBackground = defineBackground<Props>({
+  name: "GroovySquares",
+  fragment: shader, // imported .glsl with #includes already inlined
+  props: {
+    color0: { type: "color", default: "#02020266", description: "base square color" },
+    color1: { type: "color", default: "#5c5c5c66", description: "accent square color" },
+    density: { type: "number", default: 7.6, description: "squares across the screen" },
+    random: { type: "number", default: 16, description: "spatial-variety seed" },
+    speed: { type: "number", default: 0.3, description: "per-square wobble velocity" },
+  },
+  uniforms: {
+    _Color0: "color0",
+    _Color1: "color1",
+    _Number: "density",
+    _Random: "random",
+    _Speed: "speed",
+  },
+});
+```
+
+- `name` — human-readable class name for debugging. It also becomes the
+  runtime class name (`MyBackground.name`), and is exposed — with the full
+  config — on the class's static `__mnBackground` for introspection and catalog
+  tooling:
+  `GroovySquaresBackground.__mnBackground.props.density.default`.
+- `fragment` — GLSL ES 3.00 fragment source. `#include` directives must already
+  be resolved (the library's build inlines them).
+- `props` — declarative, tweenable props. `"color"` props become tweenable CSS
+  color signals; `"number"` props become tweenable number signals. Each may
+  carry `description` — plain-English hover text, read back through
+  `__mnBackground.props.<name>.description` and shown by editors on
+  `background(Ctor, { ... })` configs and JSX attributes when the class is
+  built with a JSDoc'd props-hint interface (e.g. `GroovySquaresBackgroundProps`).
+- `uniforms` — maps GLSL uniform names to prop names.
+
+The returned class is usable directly in JSX with autocompleted props, and its
+instances expose every prop as a tweenable signal method:
+
+```tsx
+const bgRef = createMnRef(GroovySquaresBackground);
+view.add(<GroovySquaresBackground density={9} color0="#3a3a3a" speed={1.1} ref={bgRef} />);
+yield * bgRef().color0("#ffd000", 1, easeInOutCubic);
+yield * bgRef().speed(0.3, 1, easeInOutCubic);
+```
+
+### `Background`
+
+The base class behind `defineBackground()`. Subclasses typically do not need to
+touch it — but power users can extend it directly, assign `this.shaders({ ... })`
+via the protected `_applyShader()`, and override the protected `setup()` /
+`teardown()` hooks for custom WebGL setup/cleanup per shader program.
+
+A background fills the current scene size, sits at `zIndex: -100` by default,
+and does not block pointer events (it is a plain `Rect`).
+
+MC 3.17 can only construct nodes inside a live scene, so instantiate
+backgrounds where a scene is active — a JSX tag (`<GroovySquaresBackground />`),
+`yield* view.add(...)`, or a `() => Background` factory. To configure one at a
+project/scene _definition_ point (module scope), use the `background(Ctor, props)`
+descriptor instead.
+
+### `background(Ctor, props?)`
+
+Declares a configured background without constructing it — the props to apply
+when the node is materialized, which happens fresh per scene once the generator
+runs:
+
+```ts
+import { background } from "@moliniani/core";
+import { GroovySquaresBackground } from "@moliniani/components/backgrounds";
+
+const bg = background(GroovySquaresBackground, { color0: "#02020a", density: 10 });
+```
+
+### `BackgroundSource`
+
+The accepted value type for `background` configs:
+
+```ts
+type BackgroundSource =
+  | BackgroundConstructor<any> // defineBackground() class
+  | BackgroundDescriptor<any> // background(Ctor, props) lazy config
+  | (() => Background) // zero-arg factory (also deferred)
+  | false // opt out
+  | null
+  | undefined; // inherit project default
+```
 
 ---
 

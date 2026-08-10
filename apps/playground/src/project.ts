@@ -1,5 +1,5 @@
-import { makeProject } from "@motion-canvas/core";
-import { molinianiExporterPlugin } from "@moliniani/core";
+import { background, makeProject, molinianiExporterPlugin } from "@moliniani/core";
+import { GroovySquaresBackground } from "@moliniani/components/backgrounds";
 
 import example from "./scenes/example?scene";
 import tresjs from "./scenes/tresjs?scene";
@@ -33,39 +33,56 @@ import kineticCenterBuild from "./scenes/kinetic-center-build?scene";
 import shortSlideDown from "./scenes/short-slide-down?scene";
 import shortSlideRight from "./scenes/short-slide-right?scene";
 
-export default makeProject({
-  plugins: [molinianiExporterPlugin],
-  scenes: [
-    example,
-    tresjs,
-    scramble,
-    glow,
-    split,
-    reveal,
-    handRolled,
-    softBlurIn,
-    perCharacterRise,
-    perWordCrossfade,
-    springScaleIn,
-    maskRevealUp,
-    lineByLineSlide,
-    microScaleFade,
-    fadeThrough,
-    sharedAxisY,
-    sharedAxisZ,
-    blurOutUp,
-    scaleDownFade,
-    focusBlurResolve,
-    bottomUpLetters,
-    topDownLetters,
-    depthParallaxWords,
-    sharedAxisX,
-    staggerFromCenter,
-    staggerFromEdges,
-    typingText,
-    shimmerSweep,
-    kineticCenterBuild,
-    shortSlideDown,
-    shortSlideRight,
-  ],
-});
+import shaderBackground from "./scenes/shader-background?scene";
+import shaderBackgroundOverride from "./scenes/shader-background-override?scene";
+import shaderBackgroundNone from "./scenes/shader-background-none?scene";
+
+export default makeProject(
+  {
+    plugins: [molinianiExporterPlugin],
+    scenes: [
+      example,
+      tresjs,
+      scramble,
+      glow,
+      split,
+      reveal,
+      handRolled,
+      softBlurIn,
+      perCharacterRise,
+      perWordCrossfade,
+      springScaleIn,
+      maskRevealUp,
+      lineByLineSlide,
+      microScaleFade,
+      fadeThrough,
+      sharedAxisY,
+      sharedAxisZ,
+      blurOutUp,
+      scaleDownFade,
+      focusBlurResolve,
+      bottomUpLetters,
+      topDownLetters,
+      depthParallaxWords,
+      sharedAxisX,
+      staggerFromCenter,
+      staggerFromEdges,
+      typingText,
+      shimmerSweep,
+      kineticCenterBuild,
+      shortSlideDown,
+      shortSlideRight,
+      shaderBackground,
+      shaderBackgroundOverride,
+      shaderBackgroundNone,
+    ],
+    experimentalFeatures: true,
+  },
+  {
+    background: background(GroovySquaresBackground, {
+      color0: "#02020a",
+      color1: "#4a4a8a",
+      speed: 1,
+    }),
+  },
+);
