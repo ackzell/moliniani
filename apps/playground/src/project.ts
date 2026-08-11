@@ -39,6 +39,7 @@ import shaderBackgroundNone from "./scenes/shader-background-none?scene";
 import shaderBackgroundFlowfield from "./scenes/shader-background-flowfield?scene";
 import shaderBackgroundTopographic from "./scenes/shader-background-topographic?scene";
 import shaderBackgroundSugarGlass from "./scenes/shader-background-sugar-glass?scene";
+import shaderBackgroundKineticGrid from "./scenes/shader-background-kinetic-grid?scene";
 
 export default makeProject(
   {
@@ -81,6 +82,7 @@ export default makeProject(
       shaderBackgroundFlowfield,
       shaderBackgroundTopographic,
       shaderBackgroundSugarGlass,
+      shaderBackgroundKineticGrid,
     ],
     experimentalFeatures: true,
   },

@@ -1,11 +1,13 @@
 import { FlowFieldBackground } from "./flow-field/background";
 import { GroovySquaresBackground } from "./groovy-squares/background";
+import { KineticGridBackground } from "./kinetic-grid/background";
 import { SugarGlassBackground } from "./sugar-glass/background";
 import { TopographicBackground } from "./topographic/background";
 
 export {
   FlowFieldBackground,
   GroovySquaresBackground,
+  KineticGridBackground,
   SugarGlassBackground,
   TopographicBackground,
 };
@@ -20,4 +22,5 @@ export const backgroundCatalog = {
   flowField: FlowFieldBackground,
   topographic: TopographicBackground,
   sugarGlass: SugarGlassBackground,
+  kineticGrid: KineticGridBackground,
 } as const;
