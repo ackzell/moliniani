@@ -17,8 +17,8 @@ import {
  * disable.
  */
 export type BackgroundSource =
-  | BackgroundConstructor<any>
-  | BackgroundDescriptor<any>
+  | BackgroundConstructor<any, any, any>
+  | BackgroundDescriptor<any, any, any>
   | (() => Background)
   | false
   | null

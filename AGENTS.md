@@ -107,6 +107,14 @@ pnpm playground
   facts that are safe to write early: prop names, prop types, and (for shaders)
   the uniform↔prop map. See [Porting gallery backgrounds](#porting-gallery-backgrounds-radiant-shaderscom)
   below for the full new-background workflow.
+- **Background prop prose is single-source and generated.** Every prop's hover
+  docs (JSX attributes, `background(Ctor, props)` configs, and `createMnRef()`
+  tween methods) come from **one** `description` string in the `props` config,
+  copied into `*.background.gen.ts` by `scripts/gen-background-docs.mjs`
+  (auto-run by the `gen`/`build`/`test`/`check` scripts — never hand-edit the
+  generated files). Keep each description table-safe (no `|`, backticks, or
+  newlines) so it can render in JSDoc and Markdown alike; lines longer than
+  ~78 characters are wrapped by the generator.
 - **GLSL files must never contain backticks () or `${` — not even in comments.**
   Motion Canvas's `webgl` plugin inlines every `.glsl` into a JS template literal
   (`export default \`...\``), so a stray backtick closes the literal early and
@@ -153,12 +161,24 @@ confirmation, then lock tests/docs.
    palettes, alpha ranges). Rename to dodge MC collisions: prop names are
    guarded against built-in node props (`scale` → `noiseScale`); a throw tells
    you a name is reserved.
-6. **Docs the IDE shows** — each prop carries three synchronized sources of
-   prose: the config `description` (read via `__mnBackground.props`), a JSDoc'd
-   props-hint interface passed as the `H` generic, and the class `@remarks Props`
-   table. Every description says what the knob does **and** its practical value
-   range: numbers get min–max, the default, and what the ends do; colors get
-   accepted formats and an alpha note. Keep the three in sync.
+6. **Docs the IDE shows** — each prop carries **one** canonical prose source:
+   the config `description` string (read via `__mnBackground.props`).
+   `scripts/gen-background-docs.mjs` (auto-run by the components
+   `gen`/`build`/`test`/`check` scripts) copies it verbatim into two generated
+   interfaces, so every hover surface reads the same bytes:
+   - `<Name>BackgroundProps` in `background.gen.ts` — JSX attributes and
+     `background(Ctor, props)` configs (the `H` generic).
+   - `<Name>BackgroundSignals` in `background.gen.ts` — `createMnRef()`
+     tween-method hovers (`bgRef().prop(...)`) via the constructor `S`
+     generic.
+     The class doc's `@remarks` links to both instead of duplicating a table.
+     Never hand-edit the generated `*.background.gen.ts`; edit the `description`,
+     then `pnpm gen`. Every description says what the knob does **and** its
+     practical value range: numbers get min–max, the default, and what the ends
+     do; colors get accepted formats and an alpha note. Descriptions must stay
+     **table-safe**: no `|`, backticks, or newlines — the generator throws
+     otherwise (multi-sentence prose, en/em-dashes, quotes, and ranges are all
+     fine).
 7. **Codify gotchas** — `.glsl` files must never contain backticks or `${`
    (see the GLSL rule above); the console `glUniform1i` error is MC noise, not
    a shader bug (see above).

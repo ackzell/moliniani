@@ -26,9 +26,13 @@ export function createMnRef<P extends Record<string, any>, I extends Record<stri
 export function createMnRef<C extends DefineComponent<any, any, any>>(
   sfc: C,
 ): ReturnType<typeof createRef<InstanceType<VueNodeConstructor<ComponentInstance<C>["$props"]>>>>;
-export function createMnRef<P extends Record<string, BackgroundPropDef>>(
-  cls: BackgroundConstructor<P>,
-): ReturnType<typeof createRef<InstanceType<BackgroundConstructor<P>>>>;
+export function createMnRef<
+  P extends Record<string, BackgroundPropDef>,
+  H extends object,
+  S extends object,
+>(
+  cls: BackgroundConstructor<P, H, S>,
+): ReturnType<typeof createRef<InstanceType<BackgroundConstructor<P, H, S>>>>;
 export function createMnRef(_sfcOrCls: any): ReturnType<typeof createRef<any>> {
   return createRef<any>();
 }

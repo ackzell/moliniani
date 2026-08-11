@@ -1,110 +1,9 @@
 import { defineCanvasBackground } from "@moliniani/core";
 import { renderKineticGrid } from "./renderer";
-
-/**
- * Declarative props of the KineticGrid neon-mesh background, carrying the
- * per-prop hover docs. `background(KineticGridBackground, { … })` config
- * literals and `<KineticGridBackground … />` JSX attributes surface these
- * comments on hover.
- */
-export interface KineticGridBackgroundProps {
-  /**
-   * First stop of the connection-line ramp — the dark rust resting color. Any
-   * CSS color (alpha is ignored — lines render on top of the backdrop).
-   * @default "#280e05"
-   */
-  lineColor0?: string;
-  /**
-   * Second ramp stop — low-tension fire orange. Any CSS color (alpha ignored).
-   * @default "#b43c10"
-   */
-  lineColor1?: string;
-  /**
-   * Third ramp stop — mid-tension bright orange. Any CSS color (alpha ignored).
-   * @default "#e6781e"
-   */
-  lineColor2?: string;
-  /**
-   * Fourth ramp stop — high-tension hot orange-white. Any CSS color (alpha
-   * ignored).
-   * @default "#ffdc78"
-   */
-  lineColor3?: string;
-  /**
-   * Fifth ramp stop — white-hot extreme tension. Any CSS color (alpha ignored).
-   * @default "#fffff0"
-   */
-  lineColor4?: string;
-  /**
-   * First stop of the node-dot ramp — deep midnight blue at rest. Any CSS
-   * color (alpha ignored).
-   * @default "#0f1e46"
-   */
-  nodeColor0?: string;
-  /**
-   * Second node-dot stop — electric cyan as nodes pick up speed. Any CSS color
-   * (alpha ignored).
-   * @default "#19c8ff"
-   */
-  nodeColor1?: string;
-  /**
-   * Third node-dot stop — near-white when a wavefront is tearing through. Past
-   * the last stop dots keep fading toward white. Any CSS color (alpha ignored).
-   * @default "#ebf0ff"
-   */
-  nodeColor2?: string;
-  /**
-   * Color of the impulse flashes — the radial glow core, the expanding ring
-   * and (as a warm tint) the wavefront halos. Any CSS color (alpha ignored).
-   * @default "#ffd296"
-   */
-  flashColor?: string;
-  /**
-   * Persistent backdrop the neon mesh trails over; the vignette is tinted with
-   * this too. Any CSS color (alpha is ignored — the panel renders opaque).
-   * @default "#0a0806"
-   */
-  backdrop?: string;
-  /**
-   * How often edge impulses fire — the "beat" of the grid. Range 0.3–3
-   * (default 0.7, every ~2.6s): lower = calm, mostly-still mesh; higher =
-   * constant waves.
-   */
-  impulseRate?: number;
-  /**
-   * Spring stiffness of the mesh connections — multiplies the base spring
-   * constant. Range 0.2–3 (default 1): lower = loose, floppy lattice; higher =
-   * taut, snappy propagation.
-   */
-  springTension?: number;
-  /**
-   * Strength of each impulse's kick on the edge it hits. Range 0.3–3 (default
-   * 1): lower = gentle ripples, higher = violent slaps across the mesh.
-   */
-  impulseForce?: number;
-  /**
-   * Per-frame velocity damping. Range 0.95–0.995 (default 0.978): higher
-   * values ring longer after an impulse, lower values settle faster.
-   */
-  damping?: number;
-  /**
-   * Per-frame pull back toward the rest position. Range 0.001–0.01 (default
-   * 0.003): higher = tauter, springier recovery; lower = slower drift back.
-   */
-  returnForce?: number;
-  /**
-   * Grid density — scales the 40×25 node grid the original uses. Range 0.5–2
-   * (default 1): 0.5 = ~20×12 coarse shards, 2 = 80×50 fine mesh (heavier on
-   * scrubs).
-   */
-  density?: number;
-  /**
-   * How long this frame's neon persists as a ghosted trail — the trace depth
-   * of the semi-transparent overlay. Range 0–40 (default 15, faded by frame
-   * across the 0.65 retention): 0 = crisp no-trails, 40 = long warm streaking.
-   */
-  trailFrames?: number;
-}
+import {
+  type KineticGridBackgroundProps,
+  type KineticGridBackgroundSignals,
+} from "./background.gen";
 
 const kineticGridProps = {
   lineColor0: {
@@ -243,30 +142,18 @@ const kineticGridProps = {
  * );
  * ```
  *
- * @remarks Props
- * | prop | type | default | effect |
- * | --- | --- | --- | --- |
- * | `lineColor0` | color | `#280e05` | line ramp stop 1 (dark rust rest) |
- * | `lineColor1` | color | `#b43c10` | line ramp stop 2 (low-tension orange) |
- * | `lineColor2` | color | `#e6781e` | line ramp stop 3 (mid-tension orange) |
- * | `lineColor3` | color | `#ffdc78` | line ramp stop 4 (hot orange-white) |
- * | `lineColor4` | color | `#fffff0` | line ramp stop 5 (white-hot) |
- * | `nodeColor0` | color | `#0f1e46` | node ramp stop 1 (deep blue rest) |
- * | `nodeColor1` | color | `#19c8ff` | node ramp stop 2 (electric cyan) |
- * | `nodeColor2` | color | `#ebf0ff` | node ramp stop 3 (near-white) |
- * | `flashColor` | color | `#ffd296` | impulse glow / ring / halo color |
- * | `backdrop` | color | `#0a0806` | persistent backdrop + vignette tint |
- * | `impulseRate` | number | `0.7` | edge-impulse frequency (0.3–3) |
- * | `springTension` | number | `1` | mesh spring stiffness (0.2–3) |
- * | `impulseForce` | number | `1` | impulse kick strength (0.3–3) |
- * | `damping` | number | `0.978` | per-frame velocity damping (0.95–0.995) |
- * | `returnForce` | number | `0.003` | per-frame pull to rest (0.001–0.01) |
- * | `density` | number | `1` | grid density — scales 40×25 (0.5–2) |
- * | `trailFrames` | number | `15` | neon trail persistence (0–40) |
+ * @remarks
+ * Per-prop hover docs (defaults, ranges, prose) live on
+ * {@link KineticGridBackgroundProps} (JSX / `background(...)` configs) and
+ * {@link KineticGridBackgroundSignals} (`createMnRef()` tween methods) — both
+ * generated verbatim from the config `description` strings by
+ * `scripts/gen-background-docs.mjs`. Edit those strings (then `pnpm gen`),
+ * never the generated files.
  */
 export const KineticGridBackground = defineCanvasBackground<
   typeof kineticGridProps,
-  KineticGridBackgroundProps
+  KineticGridBackgroundProps,
+  KineticGridBackgroundSignals
 >({
   name: "KineticGrid",
   canvas: renderKineticGrid,

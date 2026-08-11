@@ -1,45 +1,9 @@
 import { defineBackground } from "@moliniani/core";
 import shader from "./shader.glsl";
-
-/**
- * Declarative props of the GroovySquares glowy background, carrying the
- * per-prop hover docs. `background(GroovySquaresBackground, { … })` config
- * literals and `<GroovySquaresBackground … />` JSX attributes surface these
- * comments on hover.
- */
-export interface GroovySquaresBackgroundProps {
-  /**
-   * Base fill color of the squares. Twinned with `color1`: each square blends
-   * between the two as it drifts. Any CSS color; 8-digit hex adds alpha.
-   * @default "#02020266"
-   */
-  color0?: string;
-  /**
-   * Accent color the squares drift towards. Higher density gives the two
-   * colors more alternation across the screen. Any CSS color; 8-digit hex
-   * adds alpha.
-   * @default "#5c5c5c66"
-   */
-  color1?: string;
-  /**
-   * Number of squares across the screen — the square "size" knob. Range
-   * 2–40 (default 7.6): higher = more, smaller squares; lower = fewer,
-   * larger squares.
-   */
-  density?: number;
-  /**
-   * Spatial-variety seed. Randomizes each square's motion phase and color mix,
-   * so neighboring squares stay visually distinct. Range 1–100 (default 16):
-   * near 1 = nearly uniform, high = strong variance between adjacent squares.
-   */
-  random?: number;
-  /**
-   * How fast the individual squares drift/wobble — a multiplier on scene time
-   * for the per-square motion. Range 0–2 (default 0.3): 0 freezes the
-   * pattern, 0.3 is the original look, 2 is a fast wobble.
-   */
-  speed?: number;
-}
+import {
+  type GroovySquaresBackgroundProps,
+  type GroovySquaresBackgroundSignals,
+} from "./background.gen";
 
 const groovyProps = {
   color0: {
@@ -102,18 +66,18 @@ const groovyProps = {
  * );
  * ```
  *
- * @remarks Props
- * | prop | type | default | effect |
- * | --- | --- | --- | --- |
- * | `color0` | color | `#02020266` | base square color (blends toward `color1`; any CSS color) |
- * | `color1` | color | `#5c5c5c66` | accent square color (any CSS color) |
- * | `density` | number | `7.6` | squares across the screen (2–40) — higher = more, smaller |
- * | `random` | number | `16` | spatial-variety seed (1–100) — per-square motion phase |
- * | `speed` | number | `0.3` | per-square drift/wobble velocity (0–2; scene-time multiplier) |
+ * @remarks
+ * Per-prop hover docs (defaults, ranges, prose) live on
+ * {@link GroovySquaresBackgroundProps} (JSX / `background(...)` configs) and
+ * {@link GroovySquaresBackgroundSignals} (`createMnRef()` tween methods) — both
+ * generated verbatim from the config `description` strings by
+ * `scripts/gen-background-docs.mjs`. Edit those strings (then `pnpm gen`),
+ * never the generated files.
  */
 export const GroovySquaresBackground = defineBackground<
   typeof groovyProps,
-  GroovySquaresBackgroundProps
+  GroovySquaresBackgroundProps,
+  GroovySquaresBackgroundSignals
 >({
   name: "GroovySquares",
   fragment: shader,

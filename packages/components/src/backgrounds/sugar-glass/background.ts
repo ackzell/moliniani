@@ -1,74 +1,6 @@
 import { defineBackground } from "@moliniani/core";
 import shader from "./shader.glsl";
-
-/**
- * Declarative props of the SugarGlass caramelized-glass background, carrying the
- * per-prop hover docs. `background(SugarGlassBackground, { … })` config
- * literals and `<SugarGlassBackground … />` JSX attributes surface these
- * comments on hover.
- */
-export interface SugarGlassBackgroundProps {
-  /**
-   * Primary glass color, mixed toward `color1` per shard cell. Any CSS color
-   * (alpha is ignored — the glass renders opaque).
-   * @default "#c8956c"
-   */
-  color0?: string;
-  /**
-   * Secondary glass color; each shard blends between `color0` and `color1`
-   * for cell-to-cell variation. Any CSS color (alpha is ignored).
-   * @default "#d4a574"
-   */
-  color1?: string;
-  /**
-   * Deep tint pooled in the thickest shards — the mix amount keys off the
-   * per-cell thickness hash. Any CSS color (alpha is ignored).
-   * @default "#4a2000"
-   */
-  darkColor?: string;
-  /**
-   * Color of the warm light that bleeds around the fracture lines. Any CSS
-   * color (alpha is ignored).
-   * @default "#ffe8c0"
-   */
-  crackColor?: string;
-  /**
-   * Brightest core of the crack lines, reached at full crack intensity. Any
-   * CSS color (alpha is ignored).
-   * @default "#fff5e6"
-   */
-  crackHighlight?: string;
-  /**
-   * Rose-gold refraction tint caught near the cracks — a subtle accent mixed
-   * in at up to ~25%. Any CSS color (alpha is ignored).
-   * @default "#e6a699"
-   */
-  refractColor?: string;
-  /**
-   * How fast the fracture cells animate — a multiplier on scene time for the
-   * whole crack network. Range 0.1–2 (default 0.5): 0.1 is near-static
-   * caramel, 2 makes the cracks writhe quickly.
-   */
-  crackSpeed?: number;
-  /**
-   * How strongly light bleeds through the cracks — scales both the bright
-   * crack lines and their glow. Range 0.3–2 (default 1): 0.3 dims the light
-   * to a whisper, 2 floods the shards with warm glow.
-   */
-  lightBleed?: number;
-  /**
-   * Fracture-network density — scales the macro and micro Voronoi frequencies.
-   * Range 0.5–3 (default 1): lower = fewer, larger glass shards; higher =
-   * denser, finer cracking.
-   */
-  density?: number;
-  /**
-   * Crack line width — multiplier on the base fracture width. Range 0–2
-   * (default 1): 0 hides the cracks (only the glow remains), 1 is the original
-   * look, 2 draws thick chunky fissures.
-   */
-  crackWidth?: number;
-}
+import { type SugarGlassBackgroundProps, type SugarGlassBackgroundSignals } from "./background.gen";
 
 const sugarGlassProps = {
   color0: {
@@ -163,23 +95,18 @@ const sugarGlassProps = {
  * );
  * ```
  *
- * @remarks Props
- * | prop | type | default | effect |
- * | --- | --- | --- | --- |
- * | `color0` | color | `#c8956c` | primary glass color (blends toward `color1` per shard; any CSS color) |
- * | `color1` | color | `#d4a574` | secondary glass color (per-cell variation; any CSS color) |
- * | `darkColor` | color | `#4a2000` | deep tint pooled in thick shards (any CSS color) |
- * | `crackColor` | color | `#ffe8c0` | warm bleed around fracture lines (any CSS color) |
- * | `crackHighlight` | color | `#fff5e6` | bright crack-line cores (any CSS color) |
- * | `refractColor` | color | `#e6a699` | rose-gold refraction tint near cracks (any CSS color) |
- * | `crackSpeed` | number | `0.5` | fracture animation speed (0.1–2; scene-time multiplier) |
- * | `lightBleed` | number | `1` | crack light intensity (0.3–2) |
- * | `density` | number | `1` | fracture-network density (0.5–3; macro/micro frequency scale) |
- * | `crackWidth` | number | `1` | crack line width (0–2; 0 hides the lines) |
+ * @remarks
+ * Per-prop hover docs (defaults, ranges, prose) live on
+ * {@link SugarGlassBackgroundProps} (JSX / `background(...)` configs) and
+ * {@link SugarGlassBackgroundSignals} (`createMnRef()` tween methods) — both
+ * generated verbatim from the config `description` strings by
+ * `scripts/gen-background-docs.mjs`. Edit those strings (then `pnpm gen`),
+ * never the generated files.
  */
 export const SugarGlassBackground = defineBackground<
   typeof sugarGlassProps,
-  SugarGlassBackgroundProps
+  SugarGlassBackgroundProps,
+  SugarGlassBackgroundSignals
 >({
   name: "SugarGlass",
   fragment: shader,

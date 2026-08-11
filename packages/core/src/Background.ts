@@ -11,7 +11,11 @@ import {
 } from "@motion-canvas/core";
 import type { ThreadGenerator } from "@motion-canvas/core";
 
-type Timing = string | ((t: number) => number);
+/**
+ * The easing accepted by tween methods: a named timing function or a raw
+ * `(t) => t` interpolator. Same contract as MC tweening.
+ */
+export type BackgroundTiming = string | ((t: number) => number);
 
 /**
  * The supportable prop kinds for a `defineBackground()` config.
@@ -25,9 +29,12 @@ export type BackgroundPropType = "number" | "color";
 /**
  * One declarative prop of a `defineBackground()` config.
  *
- * `description` reads back through `__mnBackground.props` and drives hover docs
- * (the config's `background(Ctor, { ... })` object and JSX tags surface it via
- * `BackgroundProps`; the class JSDoc carries a rendered summary).
+ * `description` reads back through `__mnBackground.props` and is the **single
+ * source** for prop prose: the generated `…BackgroundProps` / `…BackgroundSignals`
+ * interfaces copy it verbatim into their JSDoc, so JSX attributes,
+ * `background(Ctor, { ... })` configs, and `createMnRef()` tween methods all
+ * show the same hover text. Keep it table-safe (no `|`, backticks, or
+ * newlines) — it is also rendered in catalog tooling.
  */
 export interface BackgroundPropDef {
   type: BackgroundPropType;
@@ -75,18 +82,19 @@ export type BackgroundPropValues<P extends Record<string, BackgroundPropDef>> = 
 export type BackgroundProps<
   P extends Record<string, BackgroundPropDef>,
   H extends object = {},
+  S extends object = BackgroundSignals<P>,
 > = BackgroundNodeProps &
   H & {
     /**
      * Capture the mounted background instance for tweening via
      * `createMnRef(Ctor)` (or any `Reference`/`(node) => void` receiver).
      */
-    ref?: ReferenceReceiver<Background & BackgroundSignals<P>>;
+    ref?: ReferenceReceiver<Background & S>;
   } & Partial<BackgroundPropValues<P>>;
 
 type BackgroundMethodFor<P, K extends keyof P> = P[K] extends { type: "color" }
-  ? (to: string, duration?: number, ease?: Timing) => ThreadGenerator
-  : (to: number, duration?: number, ease?: Timing) => ThreadGenerator;
+  ? (to: string, duration?: number, ease?: BackgroundTiming) => ThreadGenerator
+  : (to: number, duration?: number, ease?: BackgroundTiming) => ThreadGenerator;
 
 /**
  * The tweenable, on-instance signal methods created for a background's
@@ -96,6 +104,28 @@ type BackgroundMethodFor<P, K extends keyof P> = P[K] extends { type: "color" }
 export type BackgroundSignals<P extends Record<string, BackgroundPropDef>> = {
   [K in keyof P]: BackgroundMethodFor<P, K>;
 };
+
+/**
+ * The tween-method type for a numeric background prop: `(to, duration?, ease?)`
+ * returning a `ThreadGenerator`. Exported so generated per-background signals
+ * interfaces can reference it.
+ */
+export type NumberSignalMethod = (
+  to: number,
+  duration?: number,
+  ease?: BackgroundTiming,
+) => ThreadGenerator;
+
+/**
+ * The tween-method type for a color background prop: `(to, duration?, ease?)`
+ * returning a `ThreadGenerator`. `to` is a CSS color string. Exported so
+ * generated per-background signals interfaces can reference it.
+ */
+export type StringSignalMethod = (
+  to: string,
+  duration?: number,
+  ease?: BackgroundTiming,
+) => ThreadGenerator;
 
 /**
  * The config passed to `defineBackground()`.
@@ -154,13 +184,19 @@ export interface CanvasBackgroundConfig<P extends Record<string, BackgroundPropD
  *
  * Carries the declarative prop types so JSX and `createMnRef()` methods are
  * type-checked (mirrors the `VueNodeConstructor` / `.vue.d.ts` guarantees).
+ *
+ * `S` is the instance signals type — the tween methods (plus their hover
+ * prose) exposed on a constructed node. Defaults to the mapped
+ * `BackgroundSignals<P>`; a background may pass a concrete, JSDoc'd interface
+ * instead so `createMnRef()` method hovers carry the prop docs.
  */
 export interface BackgroundConstructor<
   P extends Record<string, BackgroundPropDef>,
   H extends object = {},
+  S extends object = BackgroundSignals<P>,
 > {
   isClass: true;
-  new (props?: BackgroundProps<P, H>): Background & BackgroundSignals<P>;
+  new (props?: BackgroundProps<P, H, S>): Background & S;
   /**
    * The declarative config this class was created from (`name`, `props` with
    * defaults, plus `fragment`/`uniforms` for shader backgrounds or `canvas` for
@@ -183,14 +219,17 @@ const MN_BACKGROUND = Symbol.for("moliniani:background");
 export interface BackgroundDescriptor<
   P extends Record<string, BackgroundPropDef>,
   H extends object = {},
+  S extends object = BackgroundSignals<P>,
 > {
   readonly [MN_BACKGROUND]: true;
-  readonly ctor: BackgroundConstructor<P, H>;
-  readonly props?: BackgroundProps<P, H>;
+  readonly ctor: BackgroundConstructor<P, H, S>;
+  readonly props?: BackgroundProps<P, H, S>;
 }
 
 /** Brands a value as a `background()` descriptor. */
-export function isBackgroundDescriptor(value: unknown): value is BackgroundDescriptor<any> {
+export function isBackgroundDescriptor(
+  value: unknown,
+): value is BackgroundDescriptor<any, any, any> {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -213,10 +252,14 @@ export function isBackgroundDescriptor(value: unknown): value is BackgroundDescr
  * );
  * ```
  */
-export function background<P extends Record<string, BackgroundPropDef>, H extends object = {}>(
-  ctor: BackgroundConstructor<P, H>,
-  props?: BackgroundProps<P, H>,
-): BackgroundDescriptor<P, H> {
+export function background<
+  P extends Record<string, BackgroundPropDef>,
+  H extends object = {},
+  S extends object = BackgroundSignals<P>,
+>(
+  ctor: BackgroundConstructor<P, H, S>,
+  props?: BackgroundProps<P, H, S>,
+): BackgroundDescriptor<P, H, S> {
   return { [MN_BACKGROUND]: true, ctor, props };
 }
 
@@ -418,7 +461,8 @@ function collectBackgroundValues(
 export function defineBackground<
   P extends Record<string, BackgroundPropDef>,
   H extends object = {},
->(config: BackgroundConfig<P>): BackgroundConstructor<P, H> {
+  S extends object = BackgroundSignals<P>,
+>(config: BackgroundConfig<P>): BackgroundConstructor<P, H, S> {
   class DynamicBackground extends Background {
     constructor(props: BackgroundProps<P> = {}) {
       super(props);
@@ -438,7 +482,7 @@ export function defineBackground<
   // Give the class the configured name so `MyBg.name` and devtools/node labels
   // read "GroovySquares" instead of the internal "DynamicBackground".
   Object.defineProperty(DynamicBackground, "name", { value: config.name });
-  return DynamicBackground as unknown as BackgroundConstructor<P>;
+  return DynamicBackground as unknown as BackgroundConstructor<P, H, S>;
 }
 
 /**
@@ -473,7 +517,8 @@ export function defineBackground<
 export function defineCanvasBackground<
   P extends Record<string, BackgroundPropDef>,
   H extends object = {},
->(config: CanvasBackgroundConfig<P>): BackgroundConstructor<P, H> {
+  S extends object = BackgroundSignals<P>,
+>(config: CanvasBackgroundConfig<P>): BackgroundConstructor<P, H, S> {
   class DynamicBackground extends Background {
     constructor(props: BackgroundProps<P> = {}) {
       super(props);
@@ -496,5 +541,5 @@ export function defineCanvasBackground<
   (DynamicBackground as any).prototype.isClass = true;
   (DynamicBackground as any).__mnBackground = config;
   Object.defineProperty(DynamicBackground, "name", { value: config.name });
-  return DynamicBackground as unknown as BackgroundConstructor<P>;
+  return DynamicBackground as unknown as BackgroundConstructor<P, H, S>;
 }

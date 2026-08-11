@@ -1,72 +1,9 @@
 import { defineCanvasBackground } from "@moliniani/core";
 import { renderTopographic, type TopographicValues } from "./renderer";
-
-/**
- * Declarative props of the Topographic contour-map background, carrying the
- * per-prop hover docs. `background(TopographicBackground, { … })` config
- * literals and `<TopographicBackground … />` JSX attributes surface these
- * comments on hover.
- */
-export interface TopographicBackgroundProps {
-  /**
-   * Backdrop color behind the contour map. Any CSS color; 8-digit hex adds
-   * alpha.
-   * @default "#0a0a0a"
-   */
-  color0?: string;
-  /**
-   * Palette stop 1 — low-elevation contour color (deep coral). Any CSS color;
-   * the `color1`–`color3` defaults form the original's coral → amber → gold
-   * ramp.
-   * @default "#e07850"
-   */
-  color1?: string;
-  /**
-   * Palette stop 2 — mid-elevation contour color (warm amber). Any CSS color;
-   * 8-digit hex adds alpha.
-   * @default "#c8956c"
-   */
-  color2?: string;
-  /**
-   * Palette stop 3 — high-elevation contour color (gold). Any CSS color;
-   * 8-digit hex adds alpha.
-   * @default "#d4a574"
-   */
-  color3?: string;
-  /**
-   * Number of contour levels drawn across the elevation field. Range 2–60:
-   * higher = denser, finer rings; lower = sparse, bold topography. 14 is the
-   * original look.
-   * @default 14
-   */
-  contours?: number;
-  /**
-   * How fast the elevation field morphs — a multiplier on scene time. Range
-   * 0–1: 0 freezes the terrain, 0.15 is the original look, 1 is a fast churn.
-   * @default 0.15
-   */
-  speed?: number;
-  /**
-   * Spatial frequency of the elevation noise, in CSS-pixel space. Range
-   * 0.001–0.01: low gives broad, rolling hills; high gives fine, tight
-   * contours. Named `noiseScale` (not `scale`) to avoid the built-in
-   * `Node.scale` property.
-   * @default 0.003
-   */
-  noiseScale?: number;
-  /**
-   * Elevation-label density along the major (every 5th) contours. Range 0–1:
-   * 0 hides the elevation text, 1 is the original density.
-   * @default 1.0
-   */
-  labels?: number;
-  /**
-   * Font size of the elevation labels, in px. Range 6–24: 6 is a subtle
-   * annotation, 24 is bold map lettering. 9 is the original size.
-   * @default 9
-   */
-  labelSize?: number;
-}
+import {
+  type TopographicBackgroundProps,
+  type TopographicBackgroundSignals,
+} from "./background.gen";
 
 const topographicProps = {
   color0: {
@@ -164,22 +101,18 @@ const topographicProps = {
  * );
  * ```
  *
- * @remarks Props
- * | prop | type | default | effect |
- * | --- | --- | --- | --- |
- * | `color0` | color | `#0a0a0a` | backdrop color (any CSS color) |
- * | `color1` | color | `#e07850` | low-elevation contour color (deep coral) — ramp stop 1 of 3 |
- * | `color2` | color | `#c8956c` | mid-elevation contour color (warm amber) — ramp stop 2 of 3 |
- * | `color3` | color | `#d4a574` | high-elevation contour color (gold) — ramp stop 3 of 3 |
- * | `contours` | number | `14` | contour levels (2–60) — higher = denser, finer |
- * | `speed` | number | `0.15` | field morph speed (0–1; scene-time multiplier, 0.15 = original) |
- * | `noiseScale` | number | `0.003` | field frequency in CSS px (0.001–0.01) |
- * | `labels` | number | `1.0` | elevation-label density (0–1; 0 hides them) |
- * | `labelSize` | number | `9` | elevation-label font size in px (6–24) |
+ * @remarks
+ * Per-prop hover docs (defaults, ranges, prose) live on
+ * {@link TopographicBackgroundProps} (JSX / `background(...)` configs) and
+ * {@link TopographicBackgroundSignals} (`createMnRef()` tween methods) — both
+ * generated verbatim from the config `description` strings by
+ * `scripts/gen-background-docs.mjs`. Edit those strings (then `pnpm gen`),
+ * never the generated files.
  */
 export const TopographicBackground = defineCanvasBackground<
   typeof topographicProps,
-  TopographicBackgroundProps
+  TopographicBackgroundProps,
+  TopographicBackgroundSignals
 >({
   name: "Topographic",
   canvas: (context, time, fps, props, node) =>

@@ -1,1 +1,2 @@
 src/vue/*.gen.ts
+src/backgrounds/*/background.gen.ts

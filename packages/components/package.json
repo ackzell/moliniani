@@ -17,12 +17,12 @@
     "access": "public"
   },
   "scripts": {
-    "gen": "node scripts/compile-vue.mjs",
-    "prebuild": "node scripts/compile-vue.mjs",
+    "gen": "node scripts/compile-vue.mjs && node scripts/gen-background-docs.mjs",
+    "prebuild": "node scripts/compile-vue.mjs && node scripts/gen-background-docs.mjs",
     "build": "vp pack",
     "dev": "vp pack --watch",
-    "test": "node scripts/compile-vue.mjs && vp test",
-    "check": "node scripts/compile-vue.mjs && vp check",
+    "test": "node scripts/compile-vue.mjs && node scripts/gen-background-docs.mjs && vp test",
+    "check": "node scripts/compile-vue.mjs && node scripts/gen-background-docs.mjs && vp check",
     "prepublishOnly": "vp run build"
   },
   "dependencies": {
