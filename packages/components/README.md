@@ -89,9 +89,18 @@ yield * vueRef().text("Vue <Typewriter>", 1.5);
 ## Backgrounds catalog
 
 Dynamic backgrounds live in the `@moliniani/components/backgrounds` subpath.
-Every built-in is a Motion Canvas node (a full-screen `Rect` running a GLSL
-fragment shader driven by MC's `time` signal), so props are tweenable MC
-signals and everything scrubs/renders like native nodes.
+Every built-in is a Motion Canvas node — a full-screen `Rect` that fills the
+scene and sits behind content. Two render paths are in play:
+
+- **Shader backgrounds** (e.g. `GroovySquaresBackground`) run a GLSL fragment
+  shader driven by MC's `time` signal. They need MC's experimental shader
+  support (`experimentalFeatures: true`).
+- **Canvas-draw backgrounds** (e.g. `FlowFieldBackground`) repaint a
+  deterministic Canvas-2D port from MC virtual time every frame — no shader,
+  no experimental flag.
+
+Either way the declarative props are tweenable MC signals, so everything
+scrubs and renders like native nodes.
 
 Import what you need by name, or enumerate everything via `backgroundCatalog`
 (`backgroundCatalog.` autocompletes the ids, and `Object.values(backgroundCatalog)`
@@ -118,10 +127,12 @@ export default makeProject(
 
 > Shader rendering is an MC experimental feature — set `experimentalFeatures: true`
 > in your project settings, or MC throws an `ExperimentalError` at runtime.
+> Canvas-draw backgrounds (flowField) do not need it.
 
-| catalog id      | export                    | props (type → default)                                                                                                                                                                                           |
-| --------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `groovySquares` | `GroovySquaresBackground` | `color0` color → `#02020266`, `color1` color → `#5c5c5c66`, `density` number → `7.6` (squares across the screen — higher = smaller), `random` number → `16`, `speed` number → `0.3` (per-square wobble velocity) |
+| catalog id      | export                    | props (type → default; practical range)                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `groovySquares` | `GroovySquaresBackground` | `color0` color → `#02020266`, `color1` color → `#5c5c5c66`, `density` number → `7.6` (squares across the screen — 2–40; higher = smaller), `random` number → `16` (spatial-variety seed — 1–100), `speed` number → `0.3` (per-square wobble velocity — 0–2)                                                                                                                                                                                                                              |
+| `flowField`     | `FlowFieldBackground`     | Faithful **Canvas-2D** port of the "Flow Field with Particle Trails" sketch (no shader). `color0` color → `#0a0a0a` (backdrop), `color1`–`color7` color (7 amber/gold/coral stops), `brightness` number → `1.0` (trail alpha scale — 0–2), `particleCount` number → `2500` (trails — 500–5000), `noiseScale` number → `0.0025` (field frequency, CSS px — 0.0005–0.01), `speed` number → `1.2` (trail velocity multiplier — 0–6), `trailFrames` number → `24` (trail persistence — 8–48) |
 
 ## Authoring your own animejs components
 

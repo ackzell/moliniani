@@ -18,7 +18,18 @@ const { mockDefineBackground, configs } = vi.hoisted(() => {
   };
 });
 
-vi.mock("@moliniani/core", () => ({ defineBackground: mockDefineBackground }));
+vi.mock("@moliniani/core", () => ({
+  defineBackground: mockDefineBackground,
+  // Needed because `backgrounds/index` also re-exports a canvas-draw background.
+  defineCanvasBackground: (config: any) => {
+    configs.push(config);
+    class StubBackground {
+      isClass = true;
+      constructor(public props: Record<string, any> = {}) {}
+    }
+    return StubBackground;
+  },
+}));
 
 vi.mock("../src/backgrounds/groovy-squares/shader.glsl", () => ({
   default: "mock-shader",
@@ -28,7 +39,7 @@ import { backgroundCatalog, GroovySquaresBackground } from "../src/backgrounds/i
 
 describe("GroovySquaresBackground", () => {
   it("declares its config through defineBackground", () => {
-    const config = configs[0];
+    const config = configs.find((c) => c.name === "GroovySquares");
 
     expect(config.name).toBe("GroovySquares");
     expect(config.fragment).toBe("mock-shader");
@@ -61,7 +72,7 @@ describe("GroovySquaresBackground", () => {
   });
 
   it("maps every GLSL uniform to a declarative prop", () => {
-    const config = configs[0];
+    const config = configs.find((c) => c.name === "GroovySquares");
 
     expect(config.uniforms).toEqual({
       _Color0: "color0",

@@ -3,8 +3,10 @@ import {
   Color,
   createSignal,
   useScene,
+  type ColorSignal,
   type ReferenceReceiver,
   type SignalValue,
+  type SimpleSignal,
   type WebGLConvertible,
 } from "@motion-canvas/core";
 import type { ThreadGenerator } from "@motion-canvas/core";
@@ -110,6 +112,44 @@ export interface BackgroundConfig<P extends Record<string, BackgroundPropDef>> {
 }
 
 /**
+ * A snapshot of a background's declarative props at one frame: colors resolved
+ * to CSS strings, numbers as numbers. Passed to a `CanvasBackgroundRenderer`
+ * so it can read current signal values without touching the node.
+ */
+export type CanvasBackgroundValues<P extends Record<string, BackgroundPropDef>> = {
+  [K in keyof P]: P[K] extends { type: "color" } ? string : number;
+};
+
+/**
+ * A frame-painting callback for a canvas-draw background. Runs every rendered
+ * frame (the node disables caching). `time` is MC's global virtual time in
+ * seconds (`playback.frame / fps`), `fps` the scene's playback rate — both
+ * scrub-correct and deterministic. `node` is the owning `Background` (typed so
+ * painters can read panel size and keep per-instance incremental state).
+ */
+export type CanvasBackgroundRenderer<P extends Record<string, BackgroundPropDef>> = (
+  context: CanvasRenderingContext2D,
+  time: number,
+  fps: number,
+  values: CanvasBackgroundValues<P>,
+  node: Background,
+) => void;
+
+/**
+ * The config passed to `defineCanvasBackground()` — the canvas-draw analogue
+ * of {@link BackgroundConfig}. Instead of a fragment shader it carries a
+ * `canvas` renderer that paints directly with the Canvas 2D API.
+ */
+export interface CanvasBackgroundConfig<P extends Record<string, BackgroundPropDef>> {
+  /** Human-readable class name (used for debugging / node naming). */
+  name: string;
+  /** Frame-painting callback (see {@link CanvasBackgroundRenderer}). */
+  canvas: CanvasBackgroundRenderer<P>;
+  /** Declarative, tweenable props and their defaults. */
+  props: P;
+}
+
+/**
  * The constructor type produced by `defineBackground()`.
  *
  * Carries the declarative prop types so JSX and `createMnRef()` methods are
@@ -122,11 +162,12 @@ export interface BackgroundConstructor<
   isClass: true;
   new (props?: BackgroundProps<P, H>): Background & BackgroundSignals<P>;
   /**
-   * The declarative config this class was created from (`name`, `fragment`,
-   * `props` with defaults, `uniforms`). Typed, so `MyBackground.__mnBackground.props`
+   * The declarative config this class was created from (`name`, `props` with
+   * defaults, plus `fragment`/`uniforms` for shader backgrounds or `canvas` for
+   * canvas-draw backgrounds). Typed, so `MyBackground.__mnBackground.props`
    * autocompletes — handy for catalog tooling and runtime introspection.
    */
-  readonly __mnBackground: BackgroundConfig<P>;
+  readonly __mnBackground: BackgroundConfig<P> | CanvasBackgroundConfig<P>;
 }
 
 /** Runtime marker that brands `background()` descriptors. */
@@ -204,12 +245,34 @@ export function background<P extends Record<string, BackgroundPropDef>, H extend
  *   scrub-correct. Do **not** declare your own time uniform.
  */
 export class Background extends Rect {
+  private readonly _scene: unknown;
+  private _canvasRenderer:
+    | ((context: CanvasRenderingContext2D, time: number, fps: number) => void)
+    | null = null;
+
   constructor(props: RectProps = {}) {
     super(props);
+    this._scene = useScene() as unknown;
     const { width, height, zIndex } = props;
     if (width === undefined) this.width(useScene().getSize().x);
     if (height === undefined) this.height(useScene().getSize().y);
     if (zIndex === undefined) this.zIndex(-100);
+  }
+
+  /** MC's global virtual time in seconds (`playback.frame / fps`). */
+  protected _virtualTime(): number {
+    return this._frame() / this._playbackFps();
+  }
+
+  private _frame(): number {
+    const playback = (this._scene as { playback?: { frame?: number } } | undefined)?.playback;
+    return typeof playback?.frame === "number" ? playback.frame : 0;
+  }
+
+  /** The scene's playback rate (frames per second). */
+  protected _playbackFps(): number {
+    const playback = (this._scene as { playback?: { fps?: number } } | undefined)?.playback;
+    return typeof playback?.fps === "number" && playback.fps > 0 ? playback.fps : 30;
   }
 
   /**
@@ -229,6 +292,30 @@ export class Background extends Rect {
   }
 
   /**
+   * Binds a per-frame canvas-draw painter to this background instead of a
+   * shader. Disables node caching so `render` runs every rendered frame, and
+   * hands it the node's local-space context plus MC's virtual time/fps.
+   *
+   * `render` is invoked inside `draw()` with the node's transform applied, so
+   * it paints in local coords centered on the node (draw from
+   * `(-width/2, -height/2)` to `(width/2, height/2)` to cover the panel).
+   */
+  protected _applyCanvasDraw(
+    render: (context: CanvasRenderingContext2D, time: number, fps: number) => void,
+  ): void {
+    this.cache(false);
+    this._canvasRenderer = render;
+  }
+
+  protected override draw(context: CanvasRenderingContext2D): void {
+    if (this._canvasRenderer) {
+      this._canvasRenderer(context, this._virtualTime(), this._playbackFps());
+      return;
+    }
+    super.draw(context);
+  }
+
+  /**
    * Optional per-shader-program setup hook (WebGL1/2 low-level). Runs before
    * the shader is first used; pair with {@link teardown}.
    */
@@ -241,6 +328,64 @@ export class Background extends Rect {
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected teardown(_gl: WebGL2RenderingContext, _program: WebGLProgram): void {}
+}
+
+/**
+ * Creates one MC signal (`Color` or number) per declarative prop, assigns it
+ * onto the instance (as a tweenable method), and returns the signal map.
+ *
+ * Shared by `defineBackground()` and `defineCanvasBackground()`.
+ */
+function createBackgroundSignals(
+  instance: Background,
+  config: { name: string; props: Record<string, BackgroundPropDef> },
+  props: BackgroundProps<Record<string, BackgroundPropDef>>,
+): Record<string, SimpleSignal<number> | ColorSignal<void>> {
+  const propSignals: Record<string, SimpleSignal<number> | ColorSignal<void>> = {};
+  for (const [propName, def] of Object.entries(config.props)) {
+    // MC creates a signal for every node property in the Node constructor,
+    // so by now every built-in (scale, opacity, zIndex, …) is `in this`.
+    // Overwriting one would silently break the render pipeline (e.g.
+    // `scale.x is not a function`), so reject the config instead.
+    if (propName in instance) {
+      throw new Error(
+        `[moliniani] background "${config.name}" declares a prop named ` +
+          `"${propName}", which shadows a built-in Motion Canvas node ` +
+          `property and would break rendering. Rename the prop (e.g. ` +
+          `"scale" -> "noiseScale") so the built-in is not overwritten.`,
+      );
+    }
+    const initial = (props as Record<string, any>)[propName] ?? def.default;
+    if (def.type === "color") {
+      const signal = Color.createSignal(initial as string);
+      (instance as Record<string, any>)[propName] = signal;
+      propSignals[propName] = signal;
+    } else {
+      const signal = createSignal(initial as number);
+      (instance as Record<string, any>)[propName] = signal;
+      propSignals[propName] = signal;
+    }
+  }
+  return propSignals;
+}
+
+/** Resolves a canvas background's signals to a plain values snapshot. */
+function collectBackgroundValues(
+  propSignals: Record<string, SimpleSignal<number> | ColorSignal<void>>,
+  props: Record<string, BackgroundPropDef>,
+): CanvasBackgroundValues<Record<string, BackgroundPropDef>> {
+  const values: Record<string, string | number> = {};
+  for (const [name, def] of Object.entries(props)) {
+    if (def.type === "color") {
+      const color = (propSignals[name] as ColorSignal<void>)() as unknown as {
+        serialize: () => string;
+      };
+      values[name] = color.serialize();
+    } else {
+      values[name] = (propSignals[name] as SimpleSignal<number>)();
+    }
+  }
+  return values as CanvasBackgroundValues<Record<string, BackgroundPropDef>>;
 }
 
 /**
@@ -278,19 +423,7 @@ export function defineBackground<
     constructor(props: BackgroundProps<P> = {}) {
       super(props);
 
-      const propSignals: Record<string, unknown> = {};
-      for (const [propName, def] of Object.entries(config.props)) {
-        const initial = (props as Record<string, any>)[propName] ?? def.default;
-        if (def.type === "color") {
-          const signal = Color.createSignal(initial as string);
-          (this as Record<string, any>)[propName] = signal;
-          propSignals[propName] = signal;
-        } else {
-          const signal = createSignal(initial as number);
-          (this as Record<string, any>)[propName] = signal;
-          propSignals[propName] = signal;
-        }
-      }
+      const propSignals = createBackgroundSignals(this, config, props as any);
 
       const uniforms: Record<string, unknown> = {};
       for (const [uniformName, propName] of Object.entries(config.uniforms)) {
@@ -304,6 +437,64 @@ export function defineBackground<
   (DynamicBackground as any).__mnBackground = config;
   // Give the class the configured name so `MyBg.name` and devtools/node labels
   // read "GroovySquares" instead of the internal "DynamicBackground".
+  Object.defineProperty(DynamicBackground, "name", { value: config.name });
+  return DynamicBackground as unknown as BackgroundConstructor<P>;
+}
+
+/**
+ * Creates a canvas-draw `Background` subclass — the same shape as
+ * {@link defineBackground}, but painting with the Canvas 2D API instead of a
+ * fragment shader.
+ *
+ * ```ts
+ * const FlowTrailsBackground = defineCanvasBackground({
+ *   name: "FlowTrails",
+ *   canvas: (ctx, time, fps, props) => { /* stroke particles *\/ },
+ *   props: {
+ *     speed: { type: "number", default: 1.2 },
+ *     color1: { type: "color", default: "#c8956c" },
+ *   },
+ * });
+ * ```
+ *
+ * The `canvas` callback runs every rendered frame (caching is disabled) in the
+ * node's local space, centered on the panel, and receives:
+ * - `context` — the MC draw context (apply the node's own transforms yourself).
+ * - `time` — MC's global virtual time in seconds (`playback.frame / fps`),
+ *   scrub-correct and deterministic.
+ * - `fps` — the scene's playback rate.
+ * - `props` — this frame's resolved prop values (colors as CSS strings, numbers
+ *   as numbers), so the painter never touches the node.
+ * - `node` — the owning `Background` instance (panel size, per-instance state).
+ *
+ * The same declarative props, JSX/`createMnRef` typing, `background(Ctor, {…})`
+ * descriptor support, and built-in-shadow guard as `defineBackground()` apply.
+ */
+export function defineCanvasBackground<
+  P extends Record<string, BackgroundPropDef>,
+  H extends object = {},
+>(config: CanvasBackgroundConfig<P>): BackgroundConstructor<P, H> {
+  class DynamicBackground extends Background {
+    constructor(props: BackgroundProps<P> = {}) {
+      super(props);
+
+      const propSignals = createBackgroundSignals(this, config, props as any);
+      const renderer = config.canvas;
+
+      this._applyCanvasDraw((context, time, fps) => {
+        renderer(
+          context,
+          time,
+          fps,
+          collectBackgroundValues(propSignals, config.props as any) as any,
+          this,
+        );
+      });
+    }
+  }
+
+  (DynamicBackground as any).prototype.isClass = true;
+  (DynamicBackground as any).__mnBackground = config;
   Object.defineProperty(DynamicBackground, "name", { value: config.name });
   return DynamicBackground as unknown as BackgroundConstructor<P>;
 }

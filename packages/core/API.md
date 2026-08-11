@@ -478,6 +478,9 @@ const GroovySquaresBackground = defineBackground<Props>({
   `__mnBackground.props.<name>.description` and shown by editors on
   `background(Ctor, { ... })` configs and JSX attributes when the class is
   built with a JSDoc'd props-hint interface (e.g. `GroovySquaresBackgroundProps`).
+  Convention: every description states what the knob does **and** its practical
+  value range — numbers get a min–max with the default and what the ends do;
+  colors get accepted formats and an alpha note.
 - `uniforms` — maps GLSL uniform names to prop names.
 
 The returned class is usable directly in JSX with autocompleted props, and its
@@ -490,9 +493,43 @@ yield * bgRef().color0("#ffd000", 1, easeInOutCubic);
 yield * bgRef().speed(0.3, 1, easeInOutCubic);
 ```
 
+### `defineCanvasBackground(config)`
+
+The canvas-draw analogue of `defineBackground()`: identical declarative props,
+JSX/`createMnRef` typing, `background(Ctor, { … })` descriptor support, and
+built-in-shadow guard — but it paints with the Canvas 2D API in `draw()`
+instead of running a fragment shader (no `experimentalFeatures` needed, no
+`uniforms`). The shipped `FlowFieldBackground` (a faithful Canvas-2D port of a
+radiant-shaders particle-trail sketch) is built this way.
+
+```ts
+const FlowTrailsBackground = defineCanvasBackground({
+  name: "FlowTrails",
+  canvas: (context, time, fps, props, node) => {
+    /* stroke particles for this frame */
+  },
+  props: {
+    speed: { type: "number", default: 1.2 },
+    color1: { type: "color", default: "#c8956c" },
+  },
+});
+```
+
+- `canvas` — frame-painting callback, run every rendered frame (caching is
+  disabled). Receives the MC draw context (node-local space, centered on the
+  panel), MC's virtual `time` in seconds (`playback.frame / fps` — deterministic
+  and scrub-correct), the scene `fps`, this frame's resolved `props` (colors as
+  CSS strings, numbers as numbers), and the owning `node` (panel size,
+  per-instance state). Render a pure function of `time`: rebuild state
+  deterministically on seek and advance it incrementally only on contiguous
+  frames — never accumulate from the wall clock.
+- `name` / `props` — same as `defineBackground()` (description fields follow the
+  same range-documenting convention).
+
 ### `Background`
 
-The base class behind `defineBackground()`. Subclasses typically do not need to
+The base class behind `defineBackground()` and `defineCanvasBackground()`.
+Subclasses typically do not need to
 touch it — but power users can extend it directly, assign `this.shaders({ ... })`
 via the protected `_applyShader()`, and override the protected `setup()` /
 `teardown()` hooks for custom WebGL setup/cleanup per shader program.
@@ -525,7 +562,7 @@ The accepted value type for `background` configs:
 
 ```ts
 type BackgroundSource =
-  | BackgroundConstructor<any> // defineBackground() class
+  | BackgroundConstructor<any> // defineBackground()/defineCanvasBackground() class
   | BackgroundDescriptor<any> // background(Ctor, props) lazy config
   | (() => Background) // zero-arg factory (also deferred)
   | false // opt out

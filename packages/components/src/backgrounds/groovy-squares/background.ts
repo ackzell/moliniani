@@ -10,33 +10,33 @@ import shader from "./shader.glsl";
 export interface GroovySquaresBackgroundProps {
   /**
    * Base fill color of the squares. Twinned with `color1`: each square blends
-   * between the two as it drifts.
+   * between the two as it drifts. Any CSS color; 8-digit hex adds alpha.
    * @default "#02020266"
    */
   color0?: string;
   /**
    * Accent color the squares drift towards. Higher density gives the two
-   * colors more alternation across the screen.
+   * colors more alternation across the screen. Any CSS color; 8-digit hex
+   * adds alpha.
    * @default "#5c5c5c66"
    */
   color1?: string;
   /**
-   * Number of squares across the screen — the square "size" knob. Higher
-   * density = more, smaller squares; lower density = fewer, larger squares.
-   * @default 7.6
+   * Number of squares across the screen — the square "size" knob. Range
+   * 2–40 (default 7.6): higher = more, smaller squares; lower = fewer,
+   * larger squares.
    */
   density?: number;
   /**
    * Spatial-variety seed. Randomizes each square's motion phase and color mix,
-   * so neighboring squares stay visually distinct. Raise it to increase
-   * variance between adjacent squares.
-   * @default 16
+   * so neighboring squares stay visually distinct. Range 1–100 (default 16):
+   * near 1 = nearly uniform, high = strong variance between adjacent squares.
    */
   random?: number;
   /**
    * How fast the individual squares drift/wobble — a multiplier on scene time
-   * for the per-square motion. 0 freezes the pattern; 0.3 is the original look.
-   * @default 0.3
+   * for the per-square motion. Range 0–2 (default 0.3): 0 freezes the
+   * pattern, 0.3 is the original look, 2 is a fast wobble.
    */
   speed?: number;
 }
@@ -45,30 +45,32 @@ const groovyProps = {
   color0: {
     type: "color",
     default: "#02020266",
-    description: "Base square color; blends toward color1 as squares drift.",
+    description:
+      "Base square color; blends toward color1 as squares drift. Any CSS color (8-digit hex adds alpha).",
   },
   color1: {
     type: "color",
     default: "#5c5c5c66",
-    description: "Accent square color; squares blend between color0 and color1.",
+    description:
+      "Accent square color; squares blend between color0 and color1. Any CSS color (8-digit hex adds alpha).",
   },
   density: {
     type: "number",
     default: 7.6,
     description:
-      "Squares across the screen (the size knob) — higher = more, smaller squares; lower = fewer, larger squares.",
+      "Squares across the screen (the size knob). Range 2–40: higher = more, smaller squares; lower = fewer, larger. 7.6 = original look.",
   },
   random: {
     type: "number",
     default: 16,
     description:
-      "Spatial-variety seed; randomizes per-square motion phase so neighbors stay distinct.",
+      "Spatial-variety seed. Range 1–100: near 1 = nearly uniform, high = strong variance between adjacent squares.",
   },
   speed: {
     type: "number",
     default: 0.3,
     description:
-      "Per-square drift/wobble velocity — multiplier on scene time. 0 freezes the pattern; 0.3 is the original look.",
+      "Per-square drift/wobble velocity — multiplier on scene time. Range 0–2: 0 freezes the pattern, 0.3 = original look.",
   },
 } as const;
 
@@ -103,11 +105,11 @@ const groovyProps = {
  * @remarks Props
  * | prop | type | default | effect |
  * | --- | --- | --- | --- |
- * | `color0` | color | `#02020266` | base square color (blends toward `color1`) |
- * | `color1` | color | `#5c5c5c66` | accent square color |
- * | `density` | number | `7.6` | squares across the screen — higher = more, smaller |
- * | `random` | number | `16` | spatial-variety seed (per-square motion phase) |
- * | `speed` | number | `0.3` | per-square drift/wobble velocity (scene-time multiplier) |
+ * | `color0` | color | `#02020266` | base square color (blends toward `color1`; any CSS color) |
+ * | `color1` | color | `#5c5c5c66` | accent square color (any CSS color) |
+ * | `density` | number | `7.6` | squares across the screen (2–40) — higher = more, smaller |
+ * | `random` | number | `16` | spatial-variety seed (1–100) — per-square motion phase |
+ * | `speed` | number | `0.3` | per-square drift/wobble velocity (0–2; scene-time multiplier) |
  */
 export const GroovySquaresBackground = defineBackground<
   typeof groovyProps,

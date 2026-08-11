@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from "vite-plus/test";
+import { Color } from "@motion-canvas/core";
 import { jsx } from "@motion-canvas/2d";
 import {
   Background,
   background,
   defineBackground,
+  defineCanvasBackground,
   type BackgroundConstructor,
 } from "../src/Background";
 import { createMnRef } from "../src/createRef";
@@ -27,14 +29,14 @@ vi.mock("@motion-canvas/core", async (importOriginal) => {
 });
 
 // Mock MC's Node/Rect hierarchy so Background can be instantiated without a
-// live scene. width/height/zIndex/shaders behave like MC signals (getter with
-// zero args, setter storing the value otherwise).
+// live scene. width/height/zIndex/cache/shaders behave like MC signals (getter
+// with zero args, setter storing the value otherwise).
 vi.mock("@motion-canvas/2d", () => {
   class Node {
     __signals: Record<string, any> = {};
 
     constructor(props: Record<string, any> = {}) {
-      for (const key of ["width", "height", "zIndex", "shaders"]) {
+      for (const key of ["width", "height", "zIndex", "cache", "shaders"]) {
         const sig = (...args: any[]) => {
           if (args.length === 0) {
             // Function values are derived signals (evaluated on read).
@@ -164,11 +166,87 @@ describe("Background", () => {
 
   it("exposes typed declarative metadata on the class", () => {
     expect(TestBackground.__mnBackground.name).toBe("TestBackground");
-    expect(TestBackground.__mnBackground.fragment).toBe("mock-fragment");
-    expect(TestBackground.__mnBackground.props.density.default).toBe(7.6);
-    expect(TestBackground.__mnBackground.uniforms._Color0).toBe("color0");
+    const config = TestBackground.__mnBackground;
+    if (!("fragment" in config)) {
+      throw new Error("expected a shader background config");
+    }
+    expect(config.fragment).toBe("mock-fragment");
+    expect(config.props.density.default).toBe(7.6);
+    expect(config.uniforms._Color0).toBe("color0");
     // The class name comes from the config, not the internal DynamicBackground.
     expect(TestBackground.name).toBe("TestBackground");
+  });
+
+  it("rejects props that would shadow a built-in node signal", () => {
+    const CollidingBackground = defineBackground({
+      name: "CollidingBackground",
+      fragment: "mock-fragment",
+      props: {
+        // "scale" is what bit FlowFieldBackground; "height" exists on the
+        // mocked Node so the guard trips the same way in tests.
+        height: { type: "number", default: 100 },
+      },
+      uniforms: {},
+    });
+
+    expect(() => new CollidingBackground()).toThrow(/shadows a built-in Motion Canvas/);
+  });
+
+  it("defineCanvasBackground derives a Background subclass and disables caching", () => {
+    const calls: Array<{
+      ctx: CanvasRenderingContext2D;
+      time: number;
+      fps: number;
+      props: Record<string, string | number>;
+    }> = [];
+    const CanvasBg = defineCanvasBackground({
+      name: "CanvasBg",
+      canvas: (ctx, time, fps, props) => {
+        calls.push({ ctx, time, fps, props });
+      },
+      props: {
+        color0: { type: "color", default: "#0a0a0a" },
+        speed: { type: "number", default: 1.2 },
+      },
+    });
+
+    const bg = new CanvasBg() as any;
+    expect(CanvasBg.prototype).toBeInstanceOf(Background);
+    expect(bg.cache()).toBe(false);
+    expect(bg.speed()).toBe(1.2);
+  });
+
+  it("defineCanvasBackground runs its renderer every draw with virtual time and resolved props", () => {
+    const calls: Array<{
+      time: number;
+      fps: number;
+      props: Record<string, string | number>;
+    }> = [];
+    const CanvasBg = defineCanvasBackground({
+      name: "CanvasBg",
+      canvas: (_, time, fps, props) => {
+        calls.push({ time, fps, props });
+      },
+      props: {
+        color0: { type: "color", default: "#0a0a0a" },
+        speed: { type: "number", default: 1.2 },
+      },
+    });
+
+    const bg = new CanvasBg({ speed: 3 } as any) as any;
+    scene.playback = { frame: 60, fps: 30 };
+
+    bg.draw({} as CanvasRenderingContext2D);
+    bg.draw({} as CanvasRenderingContext2D);
+
+    expect(calls).toHaveLength(2);
+    expect(calls[0].time).toBe(2);
+    expect(calls[0].fps).toBe(30);
+    expect(calls[0].props.speed).toBe(3);
+    expect(calls[0].props.color0).toBe(Color.createSignal("#0a0a0a")().serialize());
+
+    // Restore the shared scene stub for the remaining tests.
+    scene.playback = { frame: 0, fps: 30 };
   });
 
   it("background() returns a lazy descriptor (no node is constructed)", () => {

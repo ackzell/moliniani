@@ -96,6 +96,75 @@ pnpm playground
   `/* eslint-disable */` headers.
 - Keep `packages/core` free of node-only and DOM-only dependencies; core tests run
   in jsdom with mocked MC core/2d (see `tests/mount.test.ts`).
+- **Dynamic backgrounds are tuned visually before tests are locked.** When
+  adding/changing a catalog background (a `defineBackground` shader or a
+  `defineCanvasBackground` canvas painter in `packages/components/src/backgrounds/`),
+  the look and the knob defaults (colors, `density`/`speed`/…) are still being
+  tuned until the user confirms it in the playground (`pnpm playground`). Do
+  **not** update the config-capture test (`tests/*Background.test.ts`) or
+  re-document exact defaults in the README table until that visual confirmation —
+  a stale test is expected during iteration and gets updated after. Structural
+  facts that are safe to write early: prop names, prop types, and (for shaders)
+  the uniform↔prop map. See [Porting gallery backgrounds](#porting-gallery-backgrounds-radiant-shaderscom)
+  below for the full new-background workflow.
+- **GLSL files must never contain backticks () or `${` — not even in comments.**
+  Motion Canvas's `webgl` plugin inlines every `.glsl` into a JS template literal
+  (`export default \`...\``), so a stray backtick closes the literal early and
+the rest of the shader is parsed as JS (`Uncaught SyntaxError: Unexpected
+  identifier ...` at runtime). Introduce a background's first GLSL edit at your
+own risk; prefer plain quotes in comments (`the "palette" array`).
+- **`GL_INVALID_OPERATION: glUniform1i ... Uniform type does not match ...` in
+  the console is MC-core noise, not a bug in the background.** MC 2d 3.17.2
+  (`Node.ts` `shaderCanvas`) unconditionally uploads the integer `playback.frame`
+  into the shared **float** `time` uniform for every shader — the call is
+  rejected by WebGL and leaves `time` at the value set by the preceding
+  `uniform1f(globalTime)` just before it, so the shader renders/animates
+  correctly (scrub-correct, deterministic). Browsers suppress repeats after the
+  first. It fires for GroovySquares too and is still present on MC `main`.
+  Don't chase it; don't introduce per-frame time plumbing to work around it.
+
+## Porting gallery backgrounds (radiant-shaders.com)
+
+The `radiant-shaders.com` gallery is where `GroovySquaresBackground` and
+`FlowFieldBackground` came from; its source is the `pbakaus/radiant` repo, one
+`static/<id>.html` per effect (the flow-field port analyzed
+`static/flow-field.html`). Use this recipe for each new port, and follow the
+background-tuning rule above: tune in the playground, get the user's visual
+confirmation, then lock tests/docs.
+
+1. **Fetch the source** — the HTML embeds the JavaScript and shaders. Grab the
+   raw file into a scratch path outside the repo (e.g.
+   `curl -L https://raw.githubusercontent.com/pbakaus/radiant/main/static/<id>.html -o /tmp/<id>.html`)
+   and read the JS/shader inline.
+2. **Classify the mechanism**:
+   - Stateless, single-pass fragment shader (pattern recomputed each frame from
+     `time` alone, no cross-frame state) → `defineBackground` + `shader.glsl`
+     (the groovy-squares path).
+   - Canvas-2D accumulation (particles/trails with per-frame strokes and fading
+     state) → `defineCanvasBackground` + a `renderer.ts` (the flow-field path).
+3. **Strip interactivity** — drop mouse/keyboard/URL-param/pointer logic; keep
+   only the time-driven behavior.
+4. **Determinism, no wall clock** — canvas renderers receive virtual `time`
+   (`playback.frame / fps`) from the `canvas` callback. Rebuild state
+   deterministically on seek, advance incrementally only on contiguous frames,
+   seed per-particle RNG by index (mulberry32-style hash), and fade trails with
+   `exp(-k * age)` as the original does.
+5. **Constants → props** — mirror the original defaults 1:1 (`SPEED`, scales,
+   palettes, alpha ranges). Rename to dodge MC collisions: prop names are
+   guarded against built-in node props (`scale` → `noiseScale`); a throw tells
+   you a name is reserved.
+6. **Docs the IDE shows** — each prop carries three synchronized sources of
+   prose: the config `description` (read via `__mnBackground.props`), a JSDoc'd
+   props-hint interface passed as the `H` generic, and the class `@remarks Props`
+   table. Every description says what the knob does **and** its practical value
+   range: numbers get min–max, the default, and what the ends do; colors get
+   accepted formats and an alpha note. Keep the three in sync.
+7. **Codify gotchas** — `.glsl` files must never contain backticks or `${`
+   (see the GLSL rule above); the console `glUniform1i` error is MC noise, not
+   a shader bug (see above).
+
+Then verify: `pnpm --filter components test`, `pnpm run -r check`, and
+`pnpm --filter playground build`.
 
 ## Debugging
 

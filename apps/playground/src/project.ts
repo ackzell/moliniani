@@ -36,6 +36,7 @@ import shortSlideRight from "./scenes/short-slide-right?scene";
 import shaderBackground from "./scenes/shader-background?scene";
 import shaderBackgroundOverride from "./scenes/shader-background-override?scene";
 import shaderBackgroundNone from "./scenes/shader-background-none?scene";
+import shaderBackgroundFlowfield from "./scenes/shader-background-flowfield?scene";
 
 export default makeProject(
   {
@@ -75,6 +76,7 @@ export default makeProject(
       shaderBackground,
       shaderBackgroundOverride,
       shaderBackgroundNone,
+      shaderBackgroundFlowfield,
     ],
     experimentalFeatures: true,
   },
