@@ -37,6 +37,7 @@ import shaderBackground from "./scenes/shader-background?scene";
 import shaderBackgroundOverride from "./scenes/shader-background-override?scene";
 import shaderBackgroundNone from "./scenes/shader-background-none?scene";
 import shaderBackgroundFlowfield from "./scenes/shader-background-flowfield?scene";
+import shaderBackgroundTopographic from "./scenes/shader-background-topographic?scene";
 
 export default makeProject(
   {
@@ -77,6 +78,7 @@ export default makeProject(
       shaderBackgroundOverride,
       shaderBackgroundNone,
       shaderBackgroundFlowfield,
+      shaderBackgroundTopographic,
     ],
     experimentalFeatures: true,
   },

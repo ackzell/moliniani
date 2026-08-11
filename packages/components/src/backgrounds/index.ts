@@ -1,7 +1,8 @@
 import { FlowFieldBackground } from "./flow-field/background";
 import { GroovySquaresBackground } from "./groovy-squares/background";
+import { TopographicBackground } from "./topographic/background";
 
-export { FlowFieldBackground, GroovySquaresBackground };
+export { FlowFieldBackground, GroovySquaresBackground, TopographicBackground };
 
 /**
  * Every built-in dynamic background, keyed by a stable id. Use this to discover
@@ -11,4 +12,5 @@ export { FlowFieldBackground, GroovySquaresBackground };
 export const backgroundCatalog = {
   groovySquares: GroovySquaresBackground,
   flowField: FlowFieldBackground,
+  topographic: TopographicBackground,
 } as const;
