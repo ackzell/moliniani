@@ -17,7 +17,7 @@ Two render paths are supported:
 
 Prop animation happens through **Motion Canvas signals** on MC's virtual timeline,
 so tweening, seeking, and scrubbing work exactly like native MC nodes. There is no
-GSAP and no wall-clock animation.
+wall-clock animation.
 
 ## Repository layout
 
