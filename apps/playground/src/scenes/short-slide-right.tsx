@@ -32,6 +32,6 @@ export default makeScene(function* (view) {
   yield* t.phrase("Move with intent.");
   yield* t.phrase("Words glide across.");
   yield* t.phrase("Build the rhythm.", {
-    exitOn: "next-scene",
+    exitOn: "my-marker",
   });
 });

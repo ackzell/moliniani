@@ -14,7 +14,7 @@ export default makeScene(function* (view) {
 
   view.add(
     <>
-      <KineticGridBackground ref={bgRef} />
+      <KineticGridBackground ref={bgRef} impulseRate={0.3} />
 
       <Txt
         text="KineticGridBackground — neon spring-mesh port"
@@ -22,6 +22,7 @@ export default makeScene(function* (view) {
         fill="#ffffff"
         fontSize={48}
         fontFamily="monospace"
+        opacity={1}
       />
 
       <Txt
@@ -38,7 +39,7 @@ export default makeScene(function* (view) {
   yield* waitFor(2);
   // yield* bgRef().impulseRate(1.6, 2, easeInOutCubic);
   // yield* bgRef().springTension(1.6, 2, easeInOutCubic);
-  // yield* bgRef().lineColor1("#42d3ff", 2, easeInOutCubic);
+  yield* bgRef().lineColor1("#42d3ff", 2, easeInOutCubic);
   // yield* bgRef().impulseRate(0.7, 2, easeInOutCubic);
 
   yield* waitUntil("next-scene");

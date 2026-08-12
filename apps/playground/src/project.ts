@@ -1,5 +1,9 @@
 import { background, makeProject, molinianiExporterPlugin } from "@moliniani/core";
-import { GroovySquaresBackground } from "@moliniani/components/backgrounds";
+import {
+  GroovySquaresBackground,
+  KineticGridBackground,
+  TopographicBackground,
+} from "@moliniani/components/backgrounds";
 
 import example from "./scenes/example?scene";
 import tresjs from "./scenes/tresjs?scene";
@@ -87,10 +91,9 @@ export default makeProject(
     experimentalFeatures: true,
   },
   {
-    background: background(GroovySquaresBackground, {
-      color0: "#02020a",
-      color1: "#4a4a8a",
-      speed: 1,
+    background: background(KineticGridBackground, {
+      backdrop: "#02020a",
+      density: 0.7,
     }),
   },
 );

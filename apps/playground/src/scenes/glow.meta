@@ -7,7 +7,11 @@
     },
     {
       "name": "glowDur",
-      "targetTime": 1.6220579321937638
+      "targetTime": 1.474155255441396
+    },
+    {
+      "name": "next-scene",
+      "targetTime": 2.8439412163612934
     }
   ],
   "seed": 3278755238

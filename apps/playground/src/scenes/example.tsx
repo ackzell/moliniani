@@ -20,7 +20,14 @@ export default makeScene(function* (view) {
   view.add(
     <>
       <Layout layout gap={20} alignItems={"center"} justifyContent={"center"}>
-        <MyBox ref={boxRef} width={500} height={300} opacity={0} borderRadius={30} />
+        <MyBox
+          ref={boxRef}
+          width={500}
+          height={300}
+          opacity={0}
+          borderRadius={10}
+          label="a Vue box :)"
+        />
         <Rect
           layout
           direction={"column"}

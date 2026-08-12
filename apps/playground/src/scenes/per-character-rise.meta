@@ -7,31 +7,31 @@
     },
     {
       "name": "one-more-thing-out",
-      "targetTime": 1.8319293998615607
+      "targetTime": 1.594
     },
     {
       "name": "fast-and-fluid-in",
-      "targetTime": 3.1617503714612
+      "targetTime": 1.734
     },
     {
       "name": "fast-and-fluid-out",
-      "targetTime": 4.186603366184842
+      "targetTime": 2.476
     },
     {
       "name": "sharp-by-design-in",
-      "targetTime": 5.574524865377267
+      "targetTime": 2.918
     },
     {
       "name": "sharp-by-design-out",
-      "targetTime": 6.47171697735523
+      "targetTime": 3.677
     },
     {
       "name": "exit-rise",
-      "targetTime": 7.501756561218449
+      "targetTime": 4.679
     },
     {
       "name": "next-scene",
-      "targetTime": 8.767293621043335
+      "targetTime": 4.129
     }
   ],
   "seed": 2702564814

@@ -1,4 +1,4 @@
-import { easeInOutCubic, useDuration, waitUntil } from "@motion-canvas/core";
+import { easeInCubic, easeInOutCubic, useDuration, waitUntil } from "@motion-canvas/core";
 import { createMnRef, makeScene } from "@moliniani/core";
 import { GlowText } from "@moliniani/components/vue";
 import { Txt } from "@motion-canvas/2d";
@@ -31,7 +31,9 @@ export default makeScene(
     const glowDuration = useDuration("glowDur");
     yield* glowRef().phase(1, glowDuration, easeInOutCubic);
 
-    yield* glowRef().opacity(0, 0.5);
+    yield* glowRef().phase(0, 0.8, easeInCubic);
+
+    yield* waitUntil("next-scene");
   },
   { background: false },
 );

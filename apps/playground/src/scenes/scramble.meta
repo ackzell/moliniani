@@ -7,11 +7,15 @@
     },
     {
       "name": "scrambleDur",
-      "targetTime": 6.226167462879212
+      "targetTime": 4.071106119324705
+    },
+    {
+      "name": "scrambleOutDuration",
+      "targetTime": 4.583048759324626
     },
     {
       "name": "next-scene",
-      "targetTime": 15.176608413682267
+      "targetTime": 8.018885539747803
     }
   ],
   "seed": 556083379

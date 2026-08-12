@@ -1,5 +1,6 @@
 import {
   all,
+  createRef,
   Direction,
   easeInOutCubic,
   slideTransition,
@@ -9,6 +10,7 @@ import {
 import { createMnRef, makeScene } from "@moliniani/core";
 import TresBoxSFC from "@/components/TresBox.vue";
 import MyBox from "@/components/MyBox.vue";
+import { Rect } from "@motion-canvas/2d";
 
 export default makeScene(
   function* (view) {
@@ -16,6 +18,7 @@ export default makeScene(
 
     const boxRef = createMnRef(TresBoxSFC);
     const vueBoxRef = createMnRef(MyBox);
+    const mcRect = createRef<Rect>();
 
     view.add(
       <>
@@ -23,7 +26,7 @@ export default makeScene(
           ref={boxRef}
           rotationY={0}
           rotationX={0}
-          color="#4488ff"
+          color="magenta"
           width={700}
           height={500}
           cameraX={0}
@@ -35,6 +38,7 @@ export default makeScene(
           x={-500}
         />
         <MyBox ref={vueBoxRef} x={500} />
+        <Rect ref={mcRect} width={100} height={100} x={550} opacity={1} fill={"tomato"} />
       </>,
     );
 
@@ -48,6 +52,7 @@ export default makeScene(
       boxRef().cameraZ(1, 5, easeInOutCubic),
 
       vueBoxRef().x(0, 5, easeInOutCubic),
+      mcRect().y(-200, 0.5),
     );
 
     // Spin the box and tilt it on the MC timeline

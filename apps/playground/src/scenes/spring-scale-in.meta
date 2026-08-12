@@ -3,7 +3,7 @@
   "timeEvents": [
     {
       "name": "fast-crisp-fluid-in",
-      "targetTime": 0.2971536743106026
+      "targetTime": 0.6940000000000001
     },
     {
       "name": "fast-crisp-fluid-out",
@@ -19,19 +19,19 @@
     },
     {
       "name": "smooth-by-default-in",
-      "targetTime": 2.41
+      "targetTime": 1.8599999999999999
     },
     {
       "name": "smooth-by-default-out",
-      "targetTime": 3.137251091916692
+      "targetTime": 2.255
     },
     {
       "name": "smooth-out",
-      "targetTime": 3.7520024435809427
+      "targetTime": 3.0649999999999995
     },
     {
       "name": "next-scene",
-      "targetTime": 4.062349982431608
+      "targetTime": 2.5149999999999997
     }
   ],
   "seed": 1587838090

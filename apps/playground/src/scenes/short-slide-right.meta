@@ -3,31 +3,31 @@
   "timeEvents": [
     {
       "name": "move-with-intent-in",
-      "targetTime": 0.1687723840274241
+      "targetTime": 0
     },
     {
       "name": "move-with-intent-out",
-      "targetTime": 0.7781211944610013
+      "targetTime": 1.154
     },
     {
       "name": "words-glide-across-in",
-      "targetTime": 0.9887785470158247
+      "targetTime": 1.154
     },
     {
       "name": "words-glide-across-out",
-      "targetTime": 1.528
+      "targetTime": 1.154
     },
     {
       "name": "build-the-rhythm-in",
-      "targetTime": 2.093244481035162
+      "targetTime": 2.8579999999999997
     },
     {
       "name": "build-the-rhythm-out",
-      "targetTime": 2.562950161040975
+      "targetTime": 3.112950161040975
     },
     {
-      "name": "next-scene",
-      "targetTime": 4.15705032592689
+      "name": "my-marker",
+      "targetTime": 3.892950161040975
     }
   ],
   "seed": 1555695893
