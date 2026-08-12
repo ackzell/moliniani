@@ -2,10 +2,11 @@
 
 A Vue-native authoring layer for programmatic video, built on top of [Motion Canvas](https://motioncanvas.io).
 
-Write your visuals as Vue SFCs — 2D DOM overlays or TresJS 3D scenes — and orchestrate
-them with Motion Canvas generators. The full Motion Canvas API — `createRef`, `Rect`,
-`all`, `chain`, `waitFor`, signals, transitions — remains available and can be mixed
-freely with Moliniani's Vue nodes in the same scene.
+Write your visuals as Vue SFCs — 2D DOM overlays, TresJS 3D scenes, or dynamic
+backgrounds — and orchestrate them with Motion Canvas generators. The full Motion
+Canvas API — `createRef`, `Rect`, `all`, `chain`, `waitFor`, signals, transitions —
+remains available and can be mixed freely with Moliniani's Vue nodes in the same
+scene.
 
 ## How it works
 
@@ -17,40 +18,43 @@ each Vue SFC as a node on that timeline:
   onto the canvas in `draw()`.
 - Numeric, color, and string props declared on an SFC become **Motion Canvas signals**
   on the virtual timeline, so `yield* box().progress(100, 1.5)` tweens, seeks, and
-  scrubs exactly like a native MC node. No GSAP, no wall-clock animation.
+  scrubs exactly like a native MC node. No wall-clock animation.
 
-```ts
-import { all, createRef, waitFor } from '@motion-canvas/core'
-import { Rect } from '@motion-canvas/2d'
-import { makeScene, mn, createMnRef } from '@moliniani/core'
-import MyBox from './components/MyBox.vue'
+```tsx
+import { all, createRef, waitFor } from "@motion-canvas/core";
+import { Rect } from "@motion-canvas/2d";
+import { makeScene, createMnRef } from "@moliniani/core";
+import MyBox from "./components/MyBox.vue";
 
 export default makeScene(function* (view) {
-  const box = createMnRef(MyBox)
-  const rect = createRef<Rect>()
+  const box = createMnRef(MyBox);
+  const rect = createRef<Rect>();
 
   view.add(
     <>
-      {mn(MyBox, box, { label: 'Hello', opacity: 0 })}
+      <MyBox ref={box} label="Hello" opacity={0} />
       <Rect ref={rect} width={300} height={300} fill="#333" opacity={0} />
     </>,
-  )
+  );
 
   // animate Vue node and MC node together
-  yield* all(
-    box().opacity(1, 0.5),
-    rect().opacity(1, 0.5),
-  )
-  yield* waitFor(1)
-})
+  yield* all(box().opacity(1, 0.5), rect().opacity(1, 0.5));
+  yield* waitFor(1);
+});
 ```
+
+> The Vite plugin turns every `.vue` import into a Motion Canvas node, so SFCs are
+> used directly as JSX tags. `mn(MyBox, box, props)` remains supported as sugar for
+> the JSX form.
 
 ## Packages
 
-| Package                                           | Description                                      |
-| ------------------------------------------------- | ------------------------------------------------ |
-| [`@moliniani/core`](packages/core/)               | Vue ↔ Motion Canvas bridge, compositor, exporter |
-| [`@moliniani/vite-plugin`](packages/vite-plugin/) | Auto-wraps `.vue` imports with `defineVueNode()` |
+| Package                                           | Description                                                                               |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [`@moliniani/core`](packages/core/)               | Vue ↔ Motion Canvas bridge, compositor, exporter, dynamic backgrounds                     |
+| [`@moliniani/components`](packages/components/)   | Ready-made nodes: vibe backgrounds, spec-driven text effects, `useAnime()` animejs driver |
+| [`@moliniani/utils`](packages/utils/)             | Framework-free helpers (`revealText()`, `floatIt()`)                                      |
+| [`@moliniani/vite-plugin`](packages/vite-plugin/) | Auto-wraps `.vue` imports with `defineVueNode()`                                          |
 
 ## Apps
 

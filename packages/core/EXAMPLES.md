@@ -228,8 +228,7 @@ exported frames:
 
 ```ts
 // project.ts
-import { makeProject } from "@motion-canvas/core";
-import { molinianiExporterPlugin } from "@moliniani/core";
+import { makeProject, molinianiExporterPlugin } from "@moliniani/core";
 
 export default makeProject({
   plugins: [molinianiExporterPlugin],
@@ -238,3 +237,47 @@ export default makeProject({
 ```
 
 The exporter is `@moliniani/core/ffmpeg` (set it in the project's render settings).
+Import `makeProject` from `@moliniani/core` (not `@motion-canvas/core`) so project- and
+scene-level backgrounds resolve.
+
+---
+
+## Dynamic backgrounds
+
+Moliniani backgrounds are full-screen MC nodes that sit behind scene content. Apply
+one project-wide via `makeProject(settings, { background })`:
+
+```ts
+// project.ts
+import { background, makeProject, molinianiExporterPlugin } from "@moliniani/core";
+import { GroovySquaresBackground } from "@moliniani/components/backgrounds";
+
+export default makeProject(
+  {
+    experimentalFeatures: true, // GLSL shader backgrounds need this flag
+    plugins: [molinianiExporterPlugin],
+    scenes: [...],
+  },
+  { background: background(GroovySquaresBackground, { color0: "#02020a", color1: "#4a4a8a" }) },
+);
+```
+
+Or per scene — override the project default, opt out entirely, or pass a configured
+descriptor. Use it as a JSX tag for a scene-local instance you want to tween:
+
+```tsx
+import { easeInOutCubic } from "@motion-canvas/core";
+import { createMnRef, makeScene } from "@moliniani/core";
+import { FlowFieldBackground } from "@moliniani/components/backgrounds";
+
+export default makeScene(function* (view) {
+  const bg = createMnRef(FlowFieldBackground);
+  view.add(<FlowFieldBackground ref={bg} />);
+  yield* bg().speed(2.4, 1, easeInOutCubic);
+});
+```
+
+Discover every built-in with the `backgroundCatalog` export from
+`@moliniani/components/backgrounds`. All props are tweenable MC signals — they seek,
+scrub, and export like native nodes. See the [Backgrounds catalog](../components/README.md#backgrounds-catalog) in `@moliniani/components` for the full
+list of built-ins and their props.

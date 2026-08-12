@@ -18,7 +18,7 @@ Two render paths exist:
 
 ## Prop animation via MC signals
 
-The core design decision: **props are Motion Canvas signals, not GSAP tweens.**
+The core design decision: **props are Motion Canvas signals.**
 
 When a node class is created, each numeric / CSS-color / plain-string prop declared
 on the SFC gets a corresponding MC signal (`createSignal` / `Color.createSignal`),
@@ -30,7 +30,7 @@ yield * box().backgroundColor("#41998d", 3);
 ```
 
 Because the signals live on MC's virtual timeline, tweens are frame-accurate, seekable,
-and scrub correctly in both directions. There is no GSAP and no wall-clock animation.
+and scrub correctly in both directions. There is no wall-clock animation.
 
 Each frame, the node's `render()` hook reads the signal values and writes them into a
 Vue `reactive` state object (`_syncDom()` in `VueNode`, `_syncState()` in `TresNode`).
@@ -93,17 +93,37 @@ render context during the render lifecycle, exported frames include the overlays
 automatically. Add the plugin to `project.ts` and select the `@moliniani/core/ffmpeg`
 exporter in render settings.
 
+## Dynamic backgrounds
+
+A dynamic background is a native Motion Canvas node: a full-screen `Rect` (`zIndex: -100`,
+non-interactive) positioned behind scene content, driven from MC's virtual timeline. Two
+render paths:
+
+| Path                              | Painted by                    | Source          |
+| --------------------------------- | ----------------------------- | --------------- |
+| Shader (`defineBackground`)       | GLSL fragment shader          | `Background.ts` |
+| Canvas (`defineCanvasBackground`) | Canvas-2D painter in `draw()` | `Background.ts` |
+
+Both share the same declarative props, each a tweenable MC signal (so they seek and
+scrub like native nodes), and both accept a per-scene or project-wide config via
+`makeScene(runner, { background })` / `makeProject(settings, { background })` using a
+`background(Ctor, props)` descriptor — nodes can only be constructed inside a live
+scene, so descriptors defer `new` to generator time. Canvas painters are rendered as
+a pure function of MC virtual `time` (rebuilt deterministically on seek), never the
+wall clock. See `Background.ts` and `API.md` for details.
+
 ## Module map
 
-| File                | Responsibility                                          |
-| ------------------- | ------------------------------------------------------- |
-| `VueNode.ts`        | 2D overlay node; `KNOWN_NODE_KEYS`; DOM sync            |
-| `TresNode.ts`       | 3D WebGL node; `defineTresNode`; manual render          |
-| `mount.ts`          | `mn()` dispatcher, `defineVueNode`, Tres auto-detection |
-| `createRef.ts`      | `createMnRef()`                                         |
-| `compositor.ts`     | HTML-in-canvas bridge, render-lifecycle hook            |
-| `scene.ts`          | `makeScene()`                                           |
-| `exporter.ts`       | `molinianiExporterPlugin`                               |
-| `textAnimations.ts` | re-exports `revealText()` from `@moliniani/utils`       |
-| `PretextText.ts`    | pluggable text-layout engine hooks                      |
-| `debug.ts`          | opt-in debug logger                                     |
+| File                | Responsibility                                                           |
+| ------------------- | ------------------------------------------------------------------------ |
+| `VueNode.ts`        | 2D overlay node; `KNOWN_NODE_KEYS`; DOM sync                             |
+| `TresNode.ts`       | 3D WebGL node; `defineTresNode`; manual render                           |
+| `mount.ts`          | `mn()` dispatcher, `defineVueNode`, Tres auto-detection                  |
+| `createRef.ts`      | `createMnRef()`                                                          |
+| `compositor.ts`     | HTML-in-canvas bridge, render-lifecycle hook                             |
+| `scene.ts`          | `makeScene()`, `makeProject()`                                           |
+| `exporter.ts`       | `molinianiExporterPlugin`                                                |
+| `Background.ts`     | `defineBackground()`, `defineCanvasBackground()`, background descriptors |
+| `textAnimations.ts` | re-exports `revealText()` from `@moliniani/utils`                        |
+| `PretextText.ts`    | pluggable text-layout engine hooks                                       |
+| `debug.ts`          | opt-in debug logger                                                      |

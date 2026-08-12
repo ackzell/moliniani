@@ -16,10 +16,13 @@
   the compositor and `TresNode` handle backward frame jumps.
 - **Dynamic backgrounds** — `makeProject(settings, { background })` /
   `makeScene(runner, { background })` + `defineBackground()` in `@moliniani/core`
-  (`packages/core/src/Background.ts`); built-in `GroovySquaresBackground` ships
-  from `@moliniani/components/backgrounds` with `#include` inlining at build
-  time. Clock is MC's project-global `time` uniform (scrub-correct, continuous
-  across scenes).
+  (`packages/core/src/Background.ts`) and its canvas-draw sibling
+  `defineCanvasBackground()`. Five built-ins ship from
+  `@moliniani/components/backgrounds` (`GroovySquares`, `FlowField`,
+  `Topographic`, `SugarGlass`, `KineticGrid`) with `#include` inlining at build
+  time and a `backgroundCatalog` export to enumerate them. Clock is MC's
+  project-global `time` uniform / virtual time (scrub-correct, continuous across
+  scenes).
 
 ## To work on later
 
